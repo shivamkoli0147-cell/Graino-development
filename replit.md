@@ -1,45 +1,60 @@
-# [Project name]
+# KisanDirect
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A full-stack mobile-first agriculture selling web app for Rohit Mukati (single seller) serving 8–10 villages in rural Madhya Pradesh, India. Two modes: Customer App and Seller Dashboard.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- `pnpm --filter @workspace/api-server run dev` — API server (port 8080, auto-builds on start)
+- `pnpm --filter @workspace/kisan-direct run dev` — Frontend (port 21034)
+- `pnpm --filter @workspace/kisan-direct run typecheck` — TypeScript check for frontend
+- `pnpm --filter @workspace/api-spec run codegen` — Regenerate API hooks and Zod schemas from OpenAPI spec
+- Required env: none (uses SQLite, no external DB)
 
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
+- Frontend: React + Vite + Tailwind CSS v4, Baloo 2 font
 - API: Express 5
-- DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+- DB: Node.js built-in `node:sqlite` (no native compilation needed)
+- API codegen: Orval (from OpenAPI spec in lib/api-spec/openapi.yaml)
+- State: React state only (no external state library)
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/api-server/src/db.ts` — SQLite DB init, schema, seed data (6 products, 10 villages)
+- `artifacts/api-server/src/routes/kisanRoutes.ts` — All KisanDirect API routes
+- `artifacts/kisan-direct/src/App.tsx` — Main app with customer/seller mode toggle
+- `artifacts/kisan-direct/src/pages/` — All page components (Customer + Seller)
+- `artifacts/kisan-direct/src/lib/utils.ts` — Cart types, session helpers, formatINR
+- `lib/api-spec/openapi.yaml` — OpenAPI spec (source of truth for API contract)
+- `lib/api-client-react/src/generated/api.ts` — Generated React Query hooks
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Uses Node.js 24 built-in `node:sqlite` instead of `better-sqlite3` (avoids Python/node-gyp native compilation issues in NixOS)
+- Single-page React app with mode toggle button (Customer ↔ Seller) — no URL routing needed for this simple use case
+- Cart state in React (App.tsx) using plain objects keyed by `productId-varietyId`
+- Customer session in localStorage, seller session in sessionStorage
+- OTP auth is mocked (any 4-digit OTP works for customers; seller uses phone 9999999999 / OTP 1234)
+- DB file at workspace root: `kisandirect.db`
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- **Customer App**: Login with phone+village+OTP → Browse 6 products with multiple varieties → Add to cart with kg-based quantity → Place orders → Track order status → Request returns
+- **Seller Dashboard**: Login (Rohit Mukati) → View today's earnings & new orders → Manage all orders (accept/dispatch/deliver/cancel) → Toggle product variety stock on/off
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Hindi text throughout the customer-facing UI
+- Max-width 390px centered, dark green (#1a3d1a) outer background
+- Baloo 2 Google font
+- 10 delivery villages: Pichor, Bamori, Datia, Indergarh, Bhander, Dabra, Karera, Lahar, Mohna, Shivpuri
+- Seller: Rohit Mukati
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
-
-## Pointers
-
-- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+- **PORT must be set** for the API server — handled via `artifact.toml` `[services.development.env]` section
+- **node:sqlite** requires `--experimental-sqlite` flag (included in package.json start script)
+- After code changes to api-server, the dev script re-runs esbuild build automatically (takes ~1s)
+- DB is seeded on first startup — delete `kisandirect.db` to reset
+- The workflow restart tool may time out (the build step takes ~15s); check logs to confirm it actually started

@@ -3,20 +3,30 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: KisanDirect API — farm-to-village selling platform
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication
+  - name: products
+    description: Product catalog
+  - name: orders
+    description: Order management
+  - name: villages
+    description: Village list
+  - name: dashboard
+    description: Seller dashboard stats
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +34,601 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # ── Auth ────────────────────────────────────────────────────────
+  /auth/customer:
+    post:
+      operationId: customerAuth
+      tags: [auth]
+      summary: Customer login or register by phone + OTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomerAuthInput"
+      responses:
+        "200":
+          description: Customer authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerAuthResult"
+
+  /auth/seller:
+    post:
+      operationId: sellerAuth
+      tags: [auth]
+      summary: Seller login (hardcoded credentials)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SellerAuthInput"
+      responses:
+        "200":
+          description: Seller authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SellerAuthResult"
+
+  # ── Products ─────────────────────────────────────────────────────
+  /products:
+    get:
+      operationId: getProducts
+      tags: [products]
+      summary: List all products with varieties and benefits
+      parameters:
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Product list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Product"
+    post:
+      operationId: createProduct
+      tags: [products]
+      summary: Create a new product (seller only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductInput"
+      responses:
+        "201":
+          description: Product created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+
+  /products/{id}:
+    get:
+      operationId: getProduct
+      tags: [products]
+      summary: Get single product detail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Product detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+    put:
+      operationId: updateProduct
+      tags: [products]
+      summary: Update product (seller only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductInput"
+      responses:
+        "200":
+          description: Updated product
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+    delete:
+      operationId: deleteProduct
+      tags: [products]
+      summary: Delete product (seller only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResult"
+
+  /products/{id}/varieties/{varietyId}/stock:
+    patch:
+      operationId: updateVarietyStock
+      tags: [products]
+      summary: Toggle in-stock status for a variety
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: varietyId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StockUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Variety"
+
+  # ── Orders ────────────────────────────────────────────────────────
+  /orders:
+    get:
+      operationId: getOrders
+      tags: [orders]
+      summary: Get orders (seller gets all; customer gets own by phone)
+      parameters:
+        - name: phone
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Orders list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Order"
+    post:
+      operationId: createOrder
+      tags: [orders]
+      summary: Place a new order (customer)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderInput"
+      responses:
+        "201":
+          description: Order placed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
+  /orders/{id}/status:
+    patch:
+      operationId: updateOrderStatus
+      tags: [orders]
+      summary: Update order status (seller)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderStatusUpdate"
+      responses:
+        "200":
+          description: Updated order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
+  /orders/{id}/return:
+    post:
+      operationId: requestReturn
+      tags: [orders]
+      summary: Customer requests a return on a delivered order
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReturnRequest"
+      responses:
+        "200":
+          description: Return requested
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
+  # ── Villages ──────────────────────────────────────────────────────
+  /villages:
+    get:
+      operationId: getVillages
+      tags: [villages]
+      summary: List allowed delivery villages
+      responses:
+        "200":
+          description: Village list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Village"
+
+  # ── Dashboard ─────────────────────────────────────────────────────
+  /dashboard/stats:
+    get:
+      operationId: getDashboardStats
+      tags: [dashboard]
+      summary: Seller dashboard stats — today earnings, new orders, village count
+      responses:
+        "200":
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
+
+# ── Schemas ──────────────────────────────────────────────────────────
 components:
   schemas:
     HealthStatus:
       type: object
+      required: [status]
       properties:
         status:
           type: string
-      required:
-        - status
 
+    # ── Auth ──────────────────────────────────
+    CustomerAuthInput:
+      type: object
+      required: [phone, otp, name, village]
+      properties:
+        phone:
+          type: string
+        otp:
+          type: string
+        name:
+          type: string
+        village:
+          type: string
+
+    CustomerAuthResult:
+      type: object
+      required: [success, customer]
+      properties:
+        success:
+          type: boolean
+        customer:
+          $ref: "#/components/schemas/Customer"
+
+    SellerAuthInput:
+      type: object
+      required: [phone, otp]
+      properties:
+        phone:
+          type: string
+        otp:
+          type: string
+
+    SellerAuthResult:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
+        message:
+          type: ["string", "null"]
+
+    # ── Domain entities ────────────────────────
+    Customer:
+      type: object
+      required: [id, name, phone, village]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        phone:
+          type: string
+        village:
+          type: string
+        created_at:
+          type: ["string", "null"]
+
+    Variety:
+      type: object
+      required: [id, product_id, name, price_per_kg, in_stock]
+      properties:
+        id:
+          type: integer
+        product_id:
+          type: integer
+        name:
+          type: string
+        price_per_kg:
+          type: number
+        description:
+          type: ["string", "null"]
+        shelf_life:
+          type: ["string", "null"]
+        in_stock:
+          type: boolean
+
+    Product:
+      type: object
+      required: [id, name, name_en, emoji, category, min_kg, bg_color]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        name_en:
+          type: string
+        emoji:
+          type: string
+        category:
+          type: string
+        min_kg:
+          type: integer
+        bg_color:
+          type: string
+        created_at:
+          type: ["string", "null"]
+        varieties:
+          type: array
+          items:
+            $ref: "#/components/schemas/Variety"
+        benefits:
+          type: array
+          items:
+            type: string
+
+    ProductInput:
+      type: object
+      required: [name, name_en, emoji, category, min_kg, bg_color]
+      properties:
+        name:
+          type: string
+        name_en:
+          type: string
+        emoji:
+          type: string
+        category:
+          type: string
+        min_kg:
+          type: integer
+        bg_color:
+          type: string
+        varieties:
+          type: array
+          items:
+            type: object
+            required: [name, price_per_kg]
+            properties:
+              name:
+                type: string
+              price_per_kg:
+                type: number
+              description:
+                type: string
+              shelf_life:
+                type: string
+              in_stock:
+                type: boolean
+        benefits:
+          type: array
+          items:
+            type: string
+
+    StockUpdate:
+      type: object
+      required: [in_stock]
+      properties:
+        in_stock:
+          type: boolean
+        stock_level:
+          type: ["string", "null"]
+
+    OrderItem:
+      type: object
+      required: [id, order_id, variety_id, product_name, variety_name, price_per_kg, quantity_kg]
+      properties:
+        id:
+          type: integer
+        order_id:
+          type: integer
+        variety_id:
+          type: integer
+        product_name:
+          type: string
+        variety_name:
+          type: string
+        price_per_kg:
+          type: number
+        quantity_kg:
+          type: number
+
+    Order:
+      type: object
+      required: [id, customer_id, village, total_amount, status, payment_status]
+      properties:
+        id:
+          type: integer
+        customer_id:
+          type: integer
+        village:
+          type: string
+        address:
+          type: ["string", "null"]
+        total_amount:
+          type: number
+        status:
+          type: string
+          enum: [placed, accepted, out_for_delivery, delivered, cancelled]
+        payment_status:
+          type: string
+          enum: [pending, paid]
+        return_requested:
+          type: boolean
+        return_note:
+          type: ["string", "null"]
+        created_at:
+          type: ["string", "null"]
+        customer_name:
+          type: ["string", "null"]
+        customer_phone:
+          type: ["string", "null"]
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderItem"
+
+    OrderInput:
+      type: object
+      required: [customer_id, village, items]
+      properties:
+        customer_id:
+          type: integer
+        village:
+          type: string
+        address:
+          type: string
+        items:
+          type: array
+          items:
+            type: object
+            required: [variety_id, product_name, variety_name, price_per_kg, quantity_kg]
+            properties:
+              variety_id:
+                type: integer
+              product_name:
+                type: string
+              variety_name:
+                type: string
+              price_per_kg:
+                type: number
+              quantity_kg:
+                type: number
+
+    OrderStatusUpdate:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [placed, accepted, out_for_delivery, delivered, cancelled]
+
+    ReturnRequest:
+      type: object
+      required: [note]
+      properties:
+        note:
+          type: string
+
+    Village:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+
+    DashboardStats:
+      type: object
+      required: [new_orders, today_earnings, village_count, total_orders_today, low_stock_count]
+      properties:
+        new_orders:
+          type: integer
+        today_earnings:
+          type: number
+        village_count:
+          type: integer
+        total_orders_today:
+          type: integer
+        low_stock_count:
+          type: integer
+        stock_summary:
+          type: array
+          items:
+            type: object
+            required: [product_name, variety_name, in_stock]
+            properties:
+              product_name:
+                type: string
+              variety_name:
+                type: string
+              in_stock:
+                type: boolean
+              stock_level:
+                type: ["string", "null"]
+
+    DeleteResult:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
