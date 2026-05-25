@@ -148,17 +148,15 @@ function KisanApp() {
                 {sellerTab === "products" && (
                   <SellerProducts onBack={() => setSellerTab("dashboard")} />
                 )}
-                {sellerTab === "dashboard" && (
-                  <BottomNav
-                    active={sellerTab}
-                    onSelect={id => setSellerTab(id as SellerTab)}
-                    tabs={[
-                      { id: "dashboard", icon: "📊", label: "Dashboard" },
-                      { id: "orders", icon: "📋", label: "Orders" },
-                      { id: "products", icon: "🌾", label: "Products" },
-                    ]}
-                  />
-                )}
+                <BottomNav
+                  active={sellerTab}
+                  onSelect={id => setSellerTab(id as SellerTab)}
+                  tabs={[
+                    { id: "dashboard", icon: "📊", label: "Dashboard" },
+                    { id: "orders", icon: "📋", label: "Orders" },
+                    { id: "products", icon: "🌾", label: "Products" },
+                  ]}
+                />
               </>
             )}
           </>
