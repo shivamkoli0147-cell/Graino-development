@@ -51,7 +51,15 @@ export function initDb() {
     CREATE TABLE IF NOT EXISTS product_benefits (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-      benefit_text TEXT NOT NULL
+      benefit_text TEXT NOT NULL,
+      type TEXT NOT NULL DEFAULT 'benefit'
+    );
+
+    CREATE TABLE IF NOT EXISTS variety_benefits (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      variety_id INTEGER NOT NULL REFERENCES varieties(id) ON DELETE CASCADE,
+      benefit_text TEXT NOT NULL,
+      type TEXT NOT NULL DEFAULT 'benefit'
     );
 
     CREATE TABLE IF NOT EXISTS orders (
@@ -78,15 +86,22 @@ export function initDb() {
     );
   `);
 
+  // Migrate: add type column to product_benefits if missing
+  try {
+    db.exec("ALTER TABLE product_benefits ADD COLUMN type TEXT NOT NULL DEFAULT 'benefit'");
+  } catch { /* already exists */ }
+
+  // Migrate: fix existing rows where ⚠️ prefix means they are disadvantages
+  db.exec("UPDATE product_benefits SET type='disadvantage' WHERE benefit_text LIKE '⚠️%' AND type='benefit'");
+
   seedIfEmpty();
 }
 
 function seedIfEmpty() {
   const villageCount = (db.prepare("SELECT COUNT(*) as c FROM villages").get() as { c: number }).c;
   if (villageCount === 0) {
-    const insertVillage = db.prepare("INSERT INTO villages (name) VALUES (?)");
     for (const v of ["Pichor","Bamori","Datia","Indergarh","Bhander","Dabra","Karera","Lahar","Mohna","Shivpuri"])
-      insertVillage.run(v);
+      db.prepare("INSERT INTO villages (name) VALUES (?)").run(v);
   }
 
   const productCount = (db.prepare("SELECT COUNT(*) as c FROM products").get() as { c: number }).c;
@@ -95,7 +110,7 @@ function seedIfEmpty() {
   type ProductSeed = {
     name: string; nameEn: string; emoji: string; category: string; minKg: number; bgColor: string;
     varieties: { name: string; price: number; desc: string; shelf: string }[];
-    benefits: string[];
+    benefits: string[]; disadvantages: string[];
   };
 
   const products: ProductSeed[] = [
@@ -109,6 +124,7 @@ function seedIfEmpty() {
         { name: "PBW-343", price: 23, desc: "उत्तर भारत की पसंद, अच्छी yield", shelf: "2 साल" },
       ],
       benefits: ["💪 प्रोटीन से भरपूर","🫀 दिल के लिए अच्छा","⚡ ऊर्जा देता है","🦴 हड्डियाँ मजबूत"],
+      disadvantages: ["⚠️ ज्यादा खाने से मोटापा","⚠️ Gluten sensitivity वालों के लिए नुकसानदेह"],
     },
     {
       name: "मूंग दाल", nameEn: "Moong Dal", emoji: "🟢", category: "दालें", minKg: 10,
@@ -119,6 +135,7 @@ function seedIfEmpty() {
         { name: "धुली मूंग", price: 95, desc: "छिलका उतरी हुई, खिचड़ी के लिए", shelf: "8 महीने" },
       ],
       benefits: ["🌱 हल्की और digestible","🧠 दिमाग तेज करे","🩸 खून बढ़ाए","🤸 वजन कम करे"],
+      disadvantages: ["⚠️ गैस हो सकती है"],
     },
     {
       name: "चना", nameEn: "Chana", emoji: "🟡", category: "दालें", minKg: 25,
@@ -129,6 +146,7 @@ function seedIfEmpty() {
         { name: "हरा चना", price: 55, desc: "ताजा हरा, सब्जी बनाने के लिए", shelf: "6 महीने" },
       ],
       benefits: ["💪 प्रोटीन का राजा","🦷 दाँत मजबूत करे","🩺 शुगर control","⚖️ वजन संतुलित"],
+      disadvantages: ["⚠️ पाचन में भारी हो सकता है"],
     },
     {
       name: "मूंगफली", nameEn: "Moongfali", emoji: "🥜", category: "तिलहन", minKg: 10,
@@ -139,6 +157,7 @@ function seedIfEmpty() {
         { name: "Bold", price: 62, desc: "बड़े दाने, snacking के लिए", shelf: "8 महीने" },
       ],
       benefits: ["🧠 Brain food","❤️ दिल को ताकत","🦴 कैल्शियम","💊 Vitamin E"],
+      disadvantages: ["⚠️ Allergy हो सकती है","⚠️ ज्यादा खाने से वजन बढ़े"],
     },
     {
       name: "मक्का", nameEn: "Maize", emoji: "🌽", category: "अनाज", minKg: 50,
@@ -148,6 +167,7 @@ function seedIfEmpty() {
         { name: "देसी मक्का", price: 22, desc: "खाने में मीठा, रोटी भी बनती है", shelf: "18 महीने" },
       ],
       benefits: ["⚡ Energy boost","👁️ आँखें तेज","🌿 Fiber भरपूर","🦷 मसूड़े मजबूत"],
+      disadvantages: ["⚠️ High glycemic index"],
     },
     {
       name: "मेथी दाना", nameEn: "Fenugreek", emoji: "🌿", category: "मसाले", minKg: 5,
@@ -157,19 +177,22 @@ function seedIfEmpty() {
         { name: "Kasuri", price: 120, desc: "खाने में खुशबू के लिए", shelf: "1 साल" },
       ],
       benefits: ["🩺 शुगर में फायदेमंद","🦵 जोड़ों का दर्द","💇 बाल काले रखे","🍽️ पाचन सुधारे"],
+      disadvantages: ["⚠️ गर्भवती महिलाओं के लिए सावधानी"],
     },
   ];
 
   for (const p of products) {
-    const result = db.prepare(
+    const r = db.prepare(
       "INSERT INTO products (name, name_en, emoji, category, min_kg, bg_color) VALUES (?,?,?,?,?,?)"
     ).run(p.name, p.nameEn, p.emoji, p.category, p.minKg, p.bgColor);
-    const productId = result.lastInsertRowid as number;
+    const productId = r.lastInsertRowid as number;
     for (const v of p.varieties)
       db.prepare("INSERT INTO varieties (product_id, name, price_per_kg, description, shelf_life, in_stock) VALUES (?,?,?,?,?,1)")
         .run(productId, v.name, v.price, v.desc, v.shelf);
     for (const b of p.benefits)
-      db.prepare("INSERT INTO product_benefits (product_id, benefit_text) VALUES (?,?)").run(productId, b);
+      db.prepare("INSERT INTO product_benefits (product_id, benefit_text, type) VALUES (?,?,'benefit')").run(productId, b);
+    for (const d of p.disadvantages)
+      db.prepare("INSERT INTO product_benefits (product_id, benefit_text, type) VALUES (?,?,'disadvantage')").run(productId, d);
   }
 
   db.prepare("INSERT OR IGNORE INTO customers (name, phone, village) VALUES (?,?,?)").run("Ramesh Kumar","9876543210","Pichor");

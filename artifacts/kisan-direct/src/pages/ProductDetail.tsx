@@ -9,6 +9,18 @@ interface ProductDetailProps {
   onCartChange: (key: string, item: CartItem | null) => void;
 }
 
+type BenefitObj = { id?: number; text: string };
+type Variety = {
+  id: number; name: string; price_per_kg: number;
+  description?: string; shelf_life?: string; in_stock: boolean | number;
+  benefits?: BenefitObj[]; disadvantages?: BenefitObj[];
+};
+type Product = {
+  id: number; name: string; name_en: string; emoji: string; bg_color: string;
+  category: string; min_kg: number; varieties: Variety[];
+  benefits?: BenefitObj[]; disadvantages?: BenefitObj[];
+};
+
 export function ProductDetail({ productId, cart, onBack, onCartChange }: ProductDetailProps) {
   const { data: product, isLoading } = useGetProduct(productId);
   const [selected, setSelected] = useState<number | null>(null);
@@ -22,7 +34,7 @@ export function ProductDetail({ productId, cart, onBack, onCartChange }: Product
 
   if (!product) return null;
 
-  const p = product as Product;
+  const p = product as unknown as Product;
   const varieties = p.varieties.filter(v => v.in_stock);
   const minKg = p.min_kg;
 
@@ -52,6 +64,9 @@ export function ProductDetail({ productId, cart, onBack, onCartChange }: Product
     }
   };
 
+  const getBenefitText = (b: BenefitObj | string): string =>
+    typeof b === "string" ? b : b.text;
+
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: "#F7F4EF" }}>
       {/* Header */}
@@ -73,26 +88,37 @@ export function ProductDetail({ productId, cart, onBack, onCartChange }: Product
 
       <div style={{ flex: 1, overflowY: "auto", padding: "16px 16px 24px" }}>
         {/* Benefits */}
-        {p.benefits?.length > 0 && (
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ fontWeight: 800, fontSize: 14, color: "#1C1C1C", marginBottom: 8 }}>फ़ायदे</div>
+        {(p.benefits?.length ?? 0) > 0 && (
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ fontWeight: 800, fontSize: 14, color: "#1C1C1C", marginBottom: 8 }}>✅ फ़ायदे</div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-              {p.benefits.map((b, i) => (
+              {p.benefits!.map((b, i) => (
                 <span key={i} style={{
                   background: "#E8F5E8", color: "#2D6A2D", borderRadius: 20,
                   padding: "4px 12px", fontSize: 12, fontWeight: 600,
-                }}>
-                  {b}
-                </span>
+                }}>{getBenefitText(b)}</span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Disadvantages */}
+        {(p.disadvantages?.length ?? 0) > 0 && (
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontWeight: 800, fontSize: 14, color: "#1C1C1C", marginBottom: 8 }}>⚠️ नुकसान</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {p.disadvantages!.map((b, i) => (
+                <span key={i} style={{
+                  background: "#FEF9C3", color: "#92400E", borderRadius: 20,
+                  padding: "4px 12px", fontSize: 12, fontWeight: 600,
+                }}>{getBenefitText(b)}</span>
               ))}
             </div>
           </div>
         )}
 
         {/* Varieties */}
-        <div style={{ fontWeight: 800, fontSize: 14, color: "#1C1C1C", marginBottom: 10 }}>
-          किस्में चुनें
-        </div>
+        <div style={{ fontWeight: 800, fontSize: 14, color: "#1C1C1C", marginBottom: 10 }}>किस्में चुनें</div>
         {varieties.length === 0 ? (
           <div style={{ textAlign: "center", padding: 32, color: "#777", background: "white", borderRadius: 16 }}>
             <div style={{ fontSize: 32 }}>😔</div>
@@ -104,16 +130,18 @@ export function ProductDetail({ productId, cart, onBack, onCartChange }: Product
               const key = `${p.id}-${v.id}`;
               const inCart = !!cart[key];
               const q = getQty(v.id);
+              const isOpen = selected === v.id;
 
               return (
-                <div key={v.id} onClick={() => setSelected(selected === v.id ? null : v.id)}
+                <div key={v.id}
                   style={{
                     background: "white", borderRadius: 16, overflow: "hidden",
                     border: inCart ? "2px solid #2D6A2D" : "1.5px solid #E5DDD0",
                     boxShadow: inCart ? "0 2px 12px rgba(45,106,45,0.15)" : "0 2px 6px rgba(0,0,0,0.05)",
                   }}
                 >
-                  <div style={{ padding: "14px 14px 12px", cursor: "pointer" }}>
+                  <div style={{ padding: "14px 14px 12px", cursor: "pointer" }}
+                    onClick={() => setSelected(isOpen ? null : v.id)}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                       <div>
                         <div style={{ fontWeight: 800, fontSize: 15, color: "#1C1C1C" }}>{v.name}</div>
@@ -130,23 +158,47 @@ export function ProductDetail({ productId, cart, onBack, onCartChange }: Product
                       </div>
                     </div>
 
-                    {/* Qty + Cart button */}
+                    {/* Variety benefits */}
+                    {isOpen && (v.benefits?.length ?? 0) > 0 && (
+                      <div style={{ marginTop: 10 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: "#2D6A2D", marginBottom: 4 }}>✅ फ़ायदे</div>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                          {v.benefits!.map((b, i) => (
+                            <span key={i} style={{
+                              background: "#E8F5E8", color: "#2D6A2D", borderRadius: 16,
+                              padding: "2px 10px", fontSize: 11, fontWeight: 600,
+                            }}>{getBenefitText(b)}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {isOpen && (v.disadvantages?.length ?? 0) > 0 && (
+                      <div style={{ marginTop: 8 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: "#92400E", marginBottom: 4 }}>⚠️ नुकसान</div>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                          {v.disadvantages!.map((b, i) => (
+                            <span key={i} style={{
+                              background: "#FEF9C3", color: "#92400E", borderRadius: 16,
+                              padding: "2px 10px", fontSize: 11, fontWeight: 600,
+                            }}>{getBenefitText(b)}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Qty + Cart */}
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12 }}>
-                      {/* Qty control */}
                       <div style={{ display: "flex", alignItems: "center", gap: 0, background: "#F0EDE8", borderRadius: 12, overflow: "hidden" }}>
                         <button onClick={e => { e.stopPropagation(); updateQty(v.id, -minKg); }} className="btn-press" style={{
                           background: "none", border: "none", padding: "8px 12px", cursor: "pointer",
                           fontFamily: "'Baloo 2', sans-serif", fontWeight: 800, fontSize: 16, color: "#2D6A2D",
                         }}>−</button>
-                        <div style={{ fontWeight: 800, fontSize: 13, minWidth: 36, textAlign: "center", color: "#1C1C1C" }}>
-                          {q}kg
-                        </div>
+                        <div style={{ fontWeight: 800, fontSize: 13, minWidth: 36, textAlign: "center", color: "#1C1C1C" }}>{q}kg</div>
                         <button onClick={e => { e.stopPropagation(); updateQty(v.id, minKg); }} className="btn-press" style={{
                           background: "none", border: "none", padding: "8px 12px", cursor: "pointer",
                           fontFamily: "'Baloo 2', sans-serif", fontWeight: 800, fontSize: 16, color: "#2D6A2D",
                         }}>+</button>
                       </div>
-                      {/* Cart toggle */}
                       <button onClick={e => { e.stopPropagation(); toggleCart(v); }} className="btn-press" style={{
                         flex: 1, background: inCart ? "#dc2626" : "#2D6A2D", color: "white",
                         border: "none", borderRadius: 12, padding: "9px 0",
@@ -165,7 +217,3 @@ export function ProductDetail({ productId, cart, onBack, onCartChange }: Product
     </div>
   );
 }
-
-type Variety = { id: number; name: string; price_per_kg: number; description?: string; shelf_life?: string; in_stock: boolean | number };
-type Product = { id: number; name: string; name_en: string; emoji: string; bg_color: string;
-  category: string; min_kg: number; varieties: Variety[]; benefits: string[] };

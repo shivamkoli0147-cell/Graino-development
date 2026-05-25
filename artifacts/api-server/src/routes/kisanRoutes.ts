@@ -8,14 +8,37 @@ const ALLOWED_VILLAGES = ["Pichor","Bamori","Datia","Indergarh","Bhander","Dabra
 // ── helpers ──────────────────────────────────────────────────────────────────
 type Row = Record<string, unknown>;
 
+type BenefitRow = { id: number; benefit_text: string; type: string };
+
+function getVarietyWithBenefits(varietyId: number) {
+  const v = db.prepare("SELECT * FROM varieties WHERE id = ?").get(varietyId) as Row | undefined;
+  if (!v) return null;
+  const vBenefits = db.prepare("SELECT * FROM variety_benefits WHERE variety_id = ?").all(varietyId) as BenefitRow[];
+  return {
+    ...v,
+    in_stock: v.in_stock === 1,
+    benefits: vBenefits.filter(b => b.type === "benefit").map(b => ({ id: b.id, text: b.benefit_text })),
+    disadvantages: vBenefits.filter(b => b.type === "disadvantage").map(b => ({ id: b.id, text: b.benefit_text })),
+  };
+}
+
 function getProductWithDetails(id: number) {
   const product = db.prepare("SELECT * FROM products WHERE id = ?").get(id) as Row | undefined;
   if (!product) return null;
-  const varieties = (db.prepare("SELECT * FROM varieties WHERE product_id = ?").all(id) as Row[]).map(v => ({
-    ...v, in_stock: v.in_stock === 1,
-  }));
-  const benefitRows = db.prepare("SELECT benefit_text FROM product_benefits WHERE product_id = ?").all(id) as { benefit_text: string }[];
-  return { ...product, varieties, benefits: benefitRows.map(b => b.benefit_text) };
+  const varieties = (db.prepare("SELECT * FROM varieties WHERE product_id = ? ORDER BY id").all(id) as Row[]).map(v => {
+    const vBenefits = db.prepare("SELECT * FROM variety_benefits WHERE variety_id = ?").all(v.id as number) as BenefitRow[];
+    return {
+      ...v, in_stock: v.in_stock === 1,
+      benefits: vBenefits.filter(b => b.type === "benefit").map(b => ({ id: b.id, text: b.benefit_text })),
+      disadvantages: vBenefits.filter(b => b.type === "disadvantage").map(b => ({ id: b.id, text: b.benefit_text })),
+    };
+  });
+  const pBenefits = db.prepare("SELECT * FROM product_benefits WHERE product_id = ?").all(id) as BenefitRow[];
+  return {
+    ...product, varieties,
+    benefits: pBenefits.filter(b => b.type === "benefit").map(b => ({ id: b.id, text: b.benefit_text })),
+    disadvantages: pBenefits.filter(b => b.type === "disadvantage").map(b => ({ id: b.id, text: b.benefit_text })),
+  };
 }
 
 function getAllProductsWithDetails(category?: string, search?: string) {
@@ -28,11 +51,20 @@ function getAllProductsWithDetails(category?: string, search?: string) {
   query += " ORDER BY id ASC";
   const products = db.prepare(query).all(...params) as Row[];
   return products.map(p => {
-    const varieties = (db.prepare("SELECT * FROM varieties WHERE product_id = ?").all(p.id as number) as Row[]).map(v => ({
-      ...v, in_stock: v.in_stock === 1,
-    }));
-    const benefitRows = db.prepare("SELECT benefit_text FROM product_benefits WHERE product_id = ?").all(p.id as number) as { benefit_text: string }[];
-    return { ...p, varieties, benefits: benefitRows.map(b => b.benefit_text) };
+    const varieties = (db.prepare("SELECT * FROM varieties WHERE product_id = ? ORDER BY id").all(p.id as number) as Row[]).map(v => {
+      const vBenefits = db.prepare("SELECT * FROM variety_benefits WHERE variety_id = ?").all(v.id as number) as BenefitRow[];
+      return {
+        ...v, in_stock: v.in_stock === 1,
+        benefits: vBenefits.filter(b => b.type === "benefit").map(b => ({ id: b.id, text: b.benefit_text })),
+        disadvantages: vBenefits.filter(b => b.type === "disadvantage").map(b => ({ id: b.id, text: b.benefit_text })),
+      };
+    });
+    const pBenefits = db.prepare("SELECT * FROM product_benefits WHERE product_id = ?").all(p.id as number) as BenefitRow[];
+    return {
+      ...p, varieties,
+      benefits: pBenefits.filter(b => b.type === "benefit").map(b => ({ id: b.id, text: b.benefit_text })),
+      disadvantages: pBenefits.filter(b => b.type === "disadvantage").map(b => ({ id: b.id, text: b.benefit_text })),
+    };
   });
 }
 
@@ -44,6 +76,58 @@ function getOrderWithDetails(orderId: number) {
   if (!order) return null;
   const items = db.prepare("SELECT * FROM order_items WHERE order_id = ?").all(orderId);
   return { ...order, return_requested: order.return_requested === 1, items };
+}
+
+type VarietyInput = {
+  id?: number;
+  name: string; price_per_kg: number; description?: string; shelf_life?: string;
+  in_stock?: boolean; stock_level?: string;
+  benefits?: { text: string }[];
+  disadvantages?: { text: string }[];
+};
+
+function saveVarieties(productId: number, varieties: VarietyInput[]) {
+  // Get existing variety IDs to handle deletes
+  const existingIds = new Set(
+    (db.prepare("SELECT id FROM varieties WHERE product_id = ?").all(productId) as { id: number }[]).map(r => r.id)
+  );
+  const keptIds = new Set<number>();
+
+  for (const v of varieties) {
+    if (v.id && existingIds.has(v.id)) {
+      // Update existing
+      db.prepare("UPDATE varieties SET name=?,price_per_kg=?,description=?,shelf_life=?,in_stock=?,stock_level=? WHERE id=?")
+        .run(v.name, v.price_per_kg, v.description || null, v.shelf_life || null,
+          v.in_stock !== false ? 1 : 0,
+          v.stock_level || (v.in_stock !== false ? "High" : "Out of Stock"),
+          v.id);
+      // Replace variety benefits
+      db.prepare("DELETE FROM variety_benefits WHERE variety_id = ?").run(v.id);
+      for (const b of (v.benefits || []))
+        db.prepare("INSERT INTO variety_benefits (variety_id, benefit_text, type) VALUES (?,?,'benefit')").run(v.id, b.text);
+      for (const d of (v.disadvantages || []))
+        db.prepare("INSERT INTO variety_benefits (variety_id, benefit_text, type) VALUES (?,?,'disadvantage')").run(v.id, d.text);
+      keptIds.add(v.id);
+    } else {
+      // Insert new
+      const r = db.prepare("INSERT INTO varieties (product_id,name,price_per_kg,description,shelf_life,in_stock,stock_level) VALUES (?,?,?,?,?,?,?)")
+        .run(productId, v.name, v.price_per_kg, v.description || null, v.shelf_life || null,
+          v.in_stock !== false ? 1 : 0,
+          v.stock_level || "High");
+      const newId = r.lastInsertRowid as number;
+      for (const b of (v.benefits || []))
+        db.prepare("INSERT INTO variety_benefits (variety_id, benefit_text, type) VALUES (?,?,'benefit')").run(newId, b.text);
+      for (const d of (v.disadvantages || []))
+        db.prepare("INSERT INTO variety_benefits (variety_id, benefit_text, type) VALUES (?,?,'disadvantage')").run(newId, d.text);
+      keptIds.add(newId);
+    }
+  }
+
+  // Delete varieties not in the new list
+  for (const id of existingIds) {
+    if (!keptIds.has(id))
+      db.prepare("DELETE FROM varieties WHERE id = ?").run(id);
+  }
 }
 
 // ── Villages ──────────────────────────────────────────────────────────────────
@@ -86,32 +170,55 @@ router.get("/products/:id", (req, res) => {
 });
 
 router.post("/products", (req, res) => {
-  const { name, name_en, emoji, category, min_kg, bg_color, varieties = [], benefits = [] } = req.body;
+  const { name, name_en, emoji, category, min_kg, bg_color,
+    varieties = [], benefits = [], disadvantages = [] } = req.body as {
+    name: string; name_en: string; emoji: string; category: string;
+    min_kg?: number; bg_color?: string;
+    varieties?: VarietyInput[];
+    benefits?: string[];
+    disadvantages?: string[];
+  };
   if (!name || !name_en || !emoji || !category) { res.status(400).json({ error: "Required fields missing" }); return; }
   const r = db.prepare("INSERT INTO products (name,name_en,emoji,category,min_kg,bg_color) VALUES (?,?,?,?,?,?)")
     .run(name, name_en, emoji, category, min_kg || 10, bg_color || "linear-gradient(135deg,#e8f5e8,#d1fae5)");
   const productId = r.lastInsertRowid as number;
-  for (const v of varieties as { name: string; price_per_kg: number; description?: string; shelf_life?: string; in_stock?: boolean }[])
-    db.prepare("INSERT INTO varieties (product_id,name,price_per_kg,description,shelf_life,in_stock) VALUES (?,?,?,?,?,?)")
+  for (const v of varieties) {
+    const vr = db.prepare("INSERT INTO varieties (product_id,name,price_per_kg,description,shelf_life,in_stock) VALUES (?,?,?,?,?,?)")
       .run(productId, v.name, v.price_per_kg, v.description || null, v.shelf_life || null, v.in_stock !== false ? 1 : 0);
+    const vid = vr.lastInsertRowid as number;
+    for (const b of (v.benefits || []))
+      db.prepare("INSERT INTO variety_benefits (variety_id, benefit_text, type) VALUES (?,?,'benefit')").run(vid, b.text || b);
+    for (const d of (v.disadvantages || []))
+      db.prepare("INSERT INTO variety_benefits (variety_id, benefit_text, type) VALUES (?,?,'disadvantage')").run(vid, d.text || d);
+  }
   for (const b of benefits as string[])
-    db.prepare("INSERT INTO product_benefits (product_id,benefit_text) VALUES (?,?)").run(productId, b);
+    db.prepare("INSERT INTO product_benefits (product_id, benefit_text, type) VALUES (?,?,'benefit')").run(productId, b);
+  for (const d of disadvantages as string[])
+    db.prepare("INSERT INTO product_benefits (product_id, benefit_text, type) VALUES (?,?,'disadvantage')").run(productId, d);
   res.status(201).json(getProductWithDetails(productId));
 });
 
 router.put("/products/:id", (req, res) => {
   const id = parseInt(req.params.id);
-  const { name, name_en, emoji, category, min_kg, bg_color, varieties = [], benefits = [] } = req.body;
+  const { name, name_en, emoji, category, min_kg, bg_color,
+    varieties = [], benefits = [], disadvantages = [] } = req.body as {
+    name: string; name_en: string; emoji: string; category: string;
+    min_kg?: number; bg_color?: string;
+    varieties?: VarietyInput[];
+    benefits?: string[];
+    disadvantages?: string[];
+  };
   if (!db.prepare("SELECT id FROM products WHERE id = ?").get(id)) { res.status(404).json({ error: "Not found" }); return; }
   db.prepare("UPDATE products SET name=?,name_en=?,emoji=?,category=?,min_kg=?,bg_color=? WHERE id=?")
-    .run(name, name_en, emoji, category, min_kg, bg_color, id);
-  db.prepare("DELETE FROM varieties WHERE product_id = ?").run(id);
+    .run(name, name_en, emoji, category, min_kg || 10, bg_color || "linear-gradient(135deg,#e8f5e8,#d1fae5)", id);
+  // Replace product benefits
   db.prepare("DELETE FROM product_benefits WHERE product_id = ?").run(id);
-  for (const v of varieties as { name: string; price_per_kg: number; description?: string; shelf_life?: string; in_stock?: boolean }[])
-    db.prepare("INSERT INTO varieties (product_id,name,price_per_kg,description,shelf_life,in_stock) VALUES (?,?,?,?,?,?)")
-      .run(id, v.name, v.price_per_kg, v.description || null, v.shelf_life || null, v.in_stock !== false ? 1 : 0);
   for (const b of benefits as string[])
-    db.prepare("INSERT INTO product_benefits (product_id,benefit_text) VALUES (?,?)").run(id, b);
+    db.prepare("INSERT INTO product_benefits (product_id, benefit_text, type) VALUES (?,?,'benefit')").run(id, b);
+  for (const d of disadvantages as string[])
+    db.prepare("INSERT INTO product_benefits (product_id, benefit_text, type) VALUES (?,?,'disadvantage')").run(id, d);
+  // Smart merge varieties
+  saveVarieties(id, varieties);
   res.json(getProductWithDetails(id));
 });
 
@@ -122,6 +229,7 @@ router.delete("/products/:id", (req, res) => {
   res.json({ success: true });
 });
 
+// ── Variety management ─────────────────────────────────────────────────────────
 router.patch("/products/:id/varieties/:varietyId/stock", (req, res) => {
   const varietyId = parseInt(req.params.varietyId);
   const { in_stock, stock_level } = req.body as { in_stock: boolean; stock_level?: string };
@@ -131,6 +239,15 @@ router.patch("/products/:id/varieties/:varietyId/stock", (req, res) => {
     .run(in_stock ? 1 : 0, stock_level || (in_stock ? "High" : "Out of Stock"), varietyId);
   const updated = db.prepare("SELECT * FROM varieties WHERE id = ?").get(varietyId) as Row;
   res.json({ ...updated, in_stock: updated.in_stock === 1 });
+});
+
+router.delete("/products/:id/varieties/:varietyId", (req, res) => {
+  const varietyId = parseInt(req.params.varietyId);
+  const productId = parseInt(req.params.id);
+  const existing = db.prepare("SELECT * FROM varieties WHERE id = ? AND product_id = ?").get(varietyId, productId);
+  if (!existing) { res.status(404).json({ error: "Variety not found" }); return; }
+  db.prepare("DELETE FROM varieties WHERE id = ?").run(varietyId);
+  res.json({ success: true });
 });
 
 // ── Orders ────────────────────────────────────────────────────────────────────
