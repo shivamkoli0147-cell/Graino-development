@@ -5,10 +5,9 @@
  * KisanDirect API — farm-to-village selling platform
  * OpenAPI spec version: 0.1.0
  */
-import type { GetOrdersSlot } from './getOrdersSlot';
 
-export type GetOrdersParams = {
-phone?: string;
-status?: string;
-slot?: GetOrdersSlot;
-};
+export interface SlotBreakdown {
+  /** @nullable */
+  delivery_slot?: string | null;
+  count?: number;
+}

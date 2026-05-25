@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { DashboardStatsStockSummaryItem } from './dashboardStatsStockSummaryItem';
+import type { SlotBreakdown } from './slotBreakdown';
 
 export interface DashboardStats {
   new_orders: number;
@@ -14,4 +15,5 @@ export interface DashboardStats {
   total_orders_today: number;
   low_stock_count: number;
   stock_summary?: DashboardStatsStockSummaryItem[];
+  slot_breakdown?: SlotBreakdown[];
 }

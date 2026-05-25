@@ -54,25 +54,18 @@ export function AddressSetup({ customer, onComplete, onSkip }: AddressSetupProps
 
   const handleSave = async () => {
     setSaving(true);
-    const fullAddress = [street.trim(), landmark.trim(), customer.village].filter(Boolean).join(", ");
+    const fullAddress = [street.trim(), landmark.trim(), customer.village].filter(Boolean).join(", ") || customer.village;
+    const updated: CustomerSession = { ...customer, address: fullAddress, lat, lng };
     try {
-      const res = await fetch(`/api/customers/${customer.id}`, {
+      await fetch(`/api/customers/${customer.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: customer.name, address: fullAddress, lat, lng }),
       });
-      if (res.ok) {
-        const updated: CustomerSession = { ...customer, address: fullAddress, lat, lng };
-        setCustomerSession(updated);
-        onComplete(updated);
-      }
-    } catch { /* fallback: save locally */ }
-    // Fallback if API fails — save to localStorage anyway
-    const fullAddr = [street.trim(), landmark.trim(), customer.village].filter(Boolean).join(", ");
-    const updated: CustomerSession = { ...customer, address: fullAddr, lat, lng };
+    } catch { /* silent — saved in localStorage below */ }
     setCustomerSession(updated);
-    onComplete(updated);
     setSaving(false);
+    onComplete(updated);
   };
 
   return (

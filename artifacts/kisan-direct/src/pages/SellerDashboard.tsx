@@ -78,6 +78,36 @@ export function SellerDashboard({ onLogout, onManageOrders, onManageProducts }: 
           </div>
         )}
 
+        {/* Slot breakdown */}
+        {!isLoading && s?.slot_breakdown && s.slot_breakdown.length > 0 && (
+          <div style={{ marginTop: 16 }}>
+            <div style={{ fontWeight: 800, fontSize: 15, color: "#1C1C1C", marginBottom: 10 }}>⏰ आज Slots</div>
+            <div style={{ display: "flex", gap: 8 }}>
+              {[
+                { id: "morning",   label: "🌅 सुबह",  color: "#c2410c", bg: "#FFF7ED", border: "#FED7AA" },
+                { id: "afternoon", label: "☀️ दोपहर", color: "#b45309", bg: "#FFFBEB", border: "#FDE68A" },
+                { id: "evening",   label: "🌇 शाम",   color: "#6d28d9", bg: "#F5F3FF", border: "#DDD6FE" },
+              ].map(slot => {
+                const item = s.slot_breakdown?.find(b => b.delivery_slot === slot.id);
+                const count = item?.count || 0;
+                return (
+                  <div key={slot.id} style={{
+                    flex: 1, background: count > 0 ? slot.bg : "#F0EDE8",
+                    border: `1.5px solid ${count > 0 ? slot.border : "#E5DDD0"}`,
+                    borderRadius: 14, padding: "12px 10px", textAlign: "center",
+                  }}>
+                    <div style={{ fontSize: 18, marginBottom: 2 }}>{slot.label.split(" ")[0]}</div>
+                    <div style={{ fontWeight: 800, fontSize: 20, color: count > 0 ? slot.color : "#bbb" }}>{count}</div>
+                    <div style={{ fontSize: 10, color: count > 0 ? slot.color : "#bbb", fontWeight: 600 }}>
+                      {slot.label.split(" ")[1]}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Village info */}
         <div style={{ marginTop: 16, background: "linear-gradient(135deg,#E8F5E8,#d1fae5)", borderRadius: 16, padding: 16 }}>
           <div style={{ fontWeight: 700, fontSize: 13, color: "#2D6A2D", marginBottom: 4 }}>
@@ -147,7 +177,9 @@ function ActionCard({ emoji, label, sub, color, onClick, badge }: {
 }
 
 type StockItem = { product_name: string; variety_name: string; in_stock: boolean; stock_level: string };
+type SlotBreakdownItem = { delivery_slot: string | null; count: number };
 type DashboardStats = {
   new_orders: number; today_earnings: number; village_count: number;
-  total_orders_today: number; low_stock_count: number; stock_summary: StockItem[];
+  total_orders_today: number; low_stock_count: number;
+  stock_summary: StockItem[]; slot_breakdown?: SlotBreakdownItem[];
 };

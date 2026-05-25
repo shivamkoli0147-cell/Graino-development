@@ -23,7 +23,10 @@ export const CustomerAuthBody = zod.object({
   "phone": zod.string(),
   "otp": zod.string(),
   "name": zod.string(),
-  "village": zod.string()
+  "village": zod.string(),
+  "address": zod.string().nullish(),
+  "lat": zod.number().nullish(),
+  "lng": zod.number().nullish()
 })
 
 export const CustomerAuthResponse = zod.object({
@@ -33,6 +36,9 @@ export const CustomerAuthResponse = zod.object({
   "name": zod.string(),
   "phone": zod.string(),
   "village": zod.string(),
+  "address": zod.string().nullish(),
+  "lat": zod.number().nullish(),
+  "lng": zod.number().nullish(),
   "created_at": zod.string().nullish()
 })
 })
@@ -49,6 +55,32 @@ export const SellerAuthBody = zod.object({
 export const SellerAuthResponse = zod.object({
   "success": zod.boolean(),
   "message": zod.string().nullish()
+})
+
+
+/**
+ * @summary Update customer profile (name, address, lat, lng)
+ */
+export const UpdateCustomerParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdateCustomerBody = zod.object({
+  "name": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "lat": zod.number().nullish(),
+  "lng": zod.number().nullish()
+})
+
+export const UpdateCustomerResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "phone": zod.string(),
+  "village": zod.string(),
+  "address": zod.string().nullish(),
+  "lat": zod.number().nullish(),
+  "lng": zod.number().nullish(),
+  "created_at": zod.string().nullish()
 })
 
 
@@ -220,7 +252,8 @@ export const UpdateVarietyStockResponse = zod.object({
  */
 export const GetOrdersQueryParams = zod.object({
   "phone": zod.coerce.string().optional(),
-  "status": zod.coerce.string().optional()
+  "status": zod.coerce.string().optional(),
+  "slot": zod.enum(['morning', 'afternoon', 'evening']).optional()
 })
 
 export const GetOrdersResponseItem = zod.object({
@@ -228,6 +261,7 @@ export const GetOrdersResponseItem = zod.object({
   "customer_id": zod.number(),
   "village": zod.string(),
   "address": zod.string().nullish(),
+  "delivery_slot": zod.union([zod.literal('morning'),zod.literal('afternoon'),zod.literal('evening'),zod.literal(null)]).nullish(),
   "total_amount": zod.number(),
   "status": zod.enum(['placed', 'accepted', 'out_for_delivery', 'delivered', 'cancelled']),
   "payment_status": zod.enum(['pending', 'paid']),
@@ -236,6 +270,8 @@ export const GetOrdersResponseItem = zod.object({
   "created_at": zod.string().nullish(),
   "customer_name": zod.string().nullish(),
   "customer_phone": zod.string().nullish(),
+  "customer_lat": zod.number().nullish(),
+  "customer_lng": zod.number().nullish(),
   "items": zod.array(zod.object({
   "id": zod.number(),
   "order_id": zod.number(),
@@ -256,6 +292,7 @@ export const CreateOrderBody = zod.object({
   "customer_id": zod.number(),
   "village": zod.string(),
   "address": zod.string().optional(),
+  "delivery_slot": zod.enum(['morning', 'afternoon', 'evening']).optional(),
   "items": zod.array(zod.object({
   "variety_id": zod.number(),
   "product_name": zod.string(),
@@ -282,6 +319,7 @@ export const UpdateOrderStatusResponse = zod.object({
   "customer_id": zod.number(),
   "village": zod.string(),
   "address": zod.string().nullish(),
+  "delivery_slot": zod.union([zod.literal('morning'),zod.literal('afternoon'),zod.literal('evening'),zod.literal(null)]).nullish(),
   "total_amount": zod.number(),
   "status": zod.enum(['placed', 'accepted', 'out_for_delivery', 'delivered', 'cancelled']),
   "payment_status": zod.enum(['pending', 'paid']),
@@ -290,6 +328,8 @@ export const UpdateOrderStatusResponse = zod.object({
   "created_at": zod.string().nullish(),
   "customer_name": zod.string().nullish(),
   "customer_phone": zod.string().nullish(),
+  "customer_lat": zod.number().nullish(),
+  "customer_lng": zod.number().nullish(),
   "items": zod.array(zod.object({
   "id": zod.number(),
   "order_id": zod.number(),
@@ -318,6 +358,7 @@ export const RequestReturnResponse = zod.object({
   "customer_id": zod.number(),
   "village": zod.string(),
   "address": zod.string().nullish(),
+  "delivery_slot": zod.union([zod.literal('morning'),zod.literal('afternoon'),zod.literal('evening'),zod.literal(null)]).nullish(),
   "total_amount": zod.number(),
   "status": zod.enum(['placed', 'accepted', 'out_for_delivery', 'delivered', 'cancelled']),
   "payment_status": zod.enum(['pending', 'paid']),
@@ -326,6 +367,8 @@ export const RequestReturnResponse = zod.object({
   "created_at": zod.string().nullish(),
   "customer_name": zod.string().nullish(),
   "customer_phone": zod.string().nullish(),
+  "customer_lat": zod.number().nullish(),
+  "customer_lng": zod.number().nullish(),
   "items": zod.array(zod.object({
   "id": zod.number(),
   "order_id": zod.number(),
@@ -362,6 +405,10 @@ export const GetDashboardStatsResponse = zod.object({
   "variety_name": zod.string(),
   "in_stock": zod.boolean(),
   "stock_level": zod.string().nullish()
+})).optional(),
+  "slot_breakdown": zod.array(zod.object({
+  "delivery_slot": zod.string().nullish(),
+  "count": zod.number().optional()
 })).optional()
 })
 

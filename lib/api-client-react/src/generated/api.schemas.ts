@@ -14,6 +14,12 @@ export interface CustomerAuthInput {
   otp: string;
   name: string;
   village: string;
+  /** @nullable */
+  address?: string | null;
+  /** @nullable */
+  lat?: number | null;
+  /** @nullable */
+  lng?: number | null;
 }
 
 export interface Customer {
@@ -21,6 +27,12 @@ export interface Customer {
   name: string;
   phone: string;
   village: string;
+  /** @nullable */
+  address?: string | null;
+  /** @nullable */
+  lat?: number | null;
+  /** @nullable */
+  lng?: number | null;
   /** @nullable */
   created_at?: string | null;
 }
@@ -39,6 +51,17 @@ export interface SellerAuthResult {
   success: boolean;
   /** @nullable */
   message?: string | null;
+}
+
+export interface CustomerUpdateInput {
+  /** @nullable */
+  name?: string | null;
+  /** @nullable */
+  address?: string | null;
+  /** @nullable */
+  lat?: number | null;
+  /** @nullable */
+  lng?: number | null;
 }
 
 export interface Variety {
@@ -102,6 +125,18 @@ export interface OrderItem {
   quantity_kg: number;
 }
 
+/**
+ * @nullable
+ */
+export type OrderDeliverySlot = typeof OrderDeliverySlot[keyof typeof OrderDeliverySlot] | null;
+
+
+export const OrderDeliverySlot = {
+  morning: 'morning',
+  afternoon: 'afternoon',
+  evening: 'evening',
+} as const;
+
 export type OrderStatus = typeof OrderStatus[keyof typeof OrderStatus];
 
 
@@ -127,6 +162,8 @@ export interface Order {
   village: string;
   /** @nullable */
   address?: string | null;
+  /** @nullable */
+  delivery_slot?: OrderDeliverySlot;
   total_amount: number;
   status: OrderStatus;
   payment_status: OrderPaymentStatus;
@@ -139,8 +176,21 @@ export interface Order {
   customer_name?: string | null;
   /** @nullable */
   customer_phone?: string | null;
+  /** @nullable */
+  customer_lat?: number | null;
+  /** @nullable */
+  customer_lng?: number | null;
   items?: OrderItem[];
 }
+
+export type OrderInputDeliverySlot = typeof OrderInputDeliverySlot[keyof typeof OrderInputDeliverySlot];
+
+
+export const OrderInputDeliverySlot = {
+  morning: 'morning',
+  afternoon: 'afternoon',
+  evening: 'evening',
+} as const;
 
 export type OrderInputItemsItem = {
   variety_id: number;
@@ -154,6 +204,7 @@ export interface OrderInput {
   customer_id: number;
   village: string;
   address?: string;
+  delivery_slot?: OrderInputDeliverySlot;
   items: OrderInputItemsItem[];
 }
 
@@ -181,6 +232,12 @@ export interface Village {
   name: string;
 }
 
+export interface SlotBreakdown {
+  /** @nullable */
+  delivery_slot?: string | null;
+  count?: number;
+}
+
 export type DashboardStatsStockSummaryItem = {
   product_name: string;
   variety_name: string;
@@ -196,6 +253,7 @@ export interface DashboardStats {
   total_orders_today: number;
   low_stock_count: number;
   stock_summary?: DashboardStatsStockSummaryItem[];
+  slot_breakdown?: SlotBreakdown[];
 }
 
 export interface DeleteResult {
@@ -210,5 +268,15 @@ search?: string;
 export type GetOrdersParams = {
 phone?: string;
 status?: string;
+slot?: GetOrdersSlot;
 };
+
+export type GetOrdersSlot = typeof GetOrdersSlot[keyof typeof GetOrdersSlot];
+
+
+export const GetOrdersSlot = {
+  morning: 'morning',
+  afternoon: 'afternoon',
+  evening: 'evening',
+} as const;
 

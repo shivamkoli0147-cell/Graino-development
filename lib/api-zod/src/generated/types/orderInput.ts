@@ -5,11 +5,13 @@
  * KisanDirect API — farm-to-village selling platform
  * OpenAPI spec version: 0.1.0
  */
+import type { OrderInputDeliverySlot } from './orderInputDeliverySlot';
 import type { OrderInputItemsItem } from './orderInputItemsItem';
 
 export interface OrderInput {
   customer_id: number;
   village: string;
   address?: string;
+  delivery_slot?: OrderInputDeliverySlot;
   items: OrderInputItemsItem[];
 }

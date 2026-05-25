@@ -37,8 +37,7 @@ export function CartPage({ cart, customer, onCartChange, onClearCart, onOrderSuc
           customer_id: customer.id,
           village: customer.village,
           address: deliveryAddress,
-          // @ts-ignore — delivery_slot is new field, codegen may not have it yet
-          delivery_slot: selectedSlot,
+          delivery_slot: selectedSlot as "morning" | "afternoon" | "evening",
           items: items.map(([, item]) => ({
             variety_id: item.varietyId,
             product_name: item.productName,

@@ -1,5 +1,5 @@
 import { useGetOrders } from "@workspace/api-client-react";
-import { formatINR, timeAgo, type CustomerSession } from "../lib/utils";
+import { formatINR, timeAgo, DELIVERY_SLOTS, type CustomerSession } from "../lib/utils";
 
 interface OrdersPageProps {
   customer: CustomerSession;
@@ -67,7 +67,17 @@ export function OrdersPage({ customer, onRequestReturn }: OrdersPageProps) {
 
                   {/* Items */}
                   <div style={{ padding: "12px 14px 14px" }}>
-                    <div style={{ fontSize: 11, color: "#777", fontWeight: 600, marginBottom: 6 }}>Order #{order.id}</div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                      <div style={{ fontSize: 11, color: "#777", fontWeight: 600 }}>Order #{order.id}</div>
+                      {order.delivery_slot && (() => {
+                        const slot = DELIVERY_SLOTS.find(s => s.id === order.delivery_slot);
+                        return slot ? (
+                          <div style={{ fontSize: 11, fontWeight: 700, color: "#6d28d9", background: "#F5F3FF", padding: "2px 10px", borderRadius: 8 }}>
+                            {slot.label} {slot.time}
+                          </div>
+                        ) : null;
+                      })()}
+                    </div>
                     {order.items.map((item, i) => (
                       <div key={i} style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                         <div style={{ fontSize: 13, color: "#1C1C1C", fontWeight: 600 }}>
@@ -111,4 +121,5 @@ export function OrdersPage({ customer, onRequestReturn }: OrdersPageProps) {
 
 type OrderItem = { product_name: string; variety_name: string; price_per_kg: number; quantity_kg: number };
 type Order = { id: number; status: string; payment_status: string; total_amount: number;
-  created_at: string; items: OrderItem[]; return_requested: boolean; return_note?: string };
+  created_at: string; delivery_slot?: string | null; items: OrderItem[];
+  return_requested: boolean; return_note?: string };

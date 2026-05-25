@@ -5,6 +5,7 @@
  * KisanDirect API — farm-to-village selling platform
  * OpenAPI spec version: 0.1.0
  */
+import type { OrderDeliverySlot } from './orderDeliverySlot';
 import type { OrderItem } from './orderItem';
 import type { OrderPaymentStatus } from './orderPaymentStatus';
 import type { OrderStatus } from './orderStatus';
@@ -15,6 +16,8 @@ export interface Order {
   village: string;
   /** @nullable */
   address?: string | null;
+  /** @nullable */
+  delivery_slot?: OrderDeliverySlot;
   total_amount: number;
   status: OrderStatus;
   payment_status: OrderPaymentStatus;
@@ -27,5 +30,9 @@ export interface Order {
   customer_name?: string | null;
   /** @nullable */
   customer_phone?: string | null;
+  /** @nullable */
+  customer_lat?: number | null;
+  /** @nullable */
+  customer_lng?: number | null;
   items?: OrderItem[];
 }

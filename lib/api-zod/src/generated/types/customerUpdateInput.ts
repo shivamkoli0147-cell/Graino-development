@@ -6,17 +6,13 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface Customer {
-  id: number;
-  name: string;
-  phone: string;
-  village: string;
+export interface CustomerUpdateInput {
+  /** @nullable */
+  name?: string | null;
   /** @nullable */
   address?: string | null;
   /** @nullable */
   lat?: number | null;
   /** @nullable */
   lng?: number | null;
-  /** @nullable */
-  created_at?: string | null;
 }

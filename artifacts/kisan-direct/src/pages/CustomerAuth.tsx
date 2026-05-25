@@ -31,9 +31,15 @@ export function CustomerAuth({ onSuccess }: CustomerAuthProps) {
       { data: { phone, otp, name: name.trim(), village } },
       {
         onSuccess: (result) => {
-          const c = result.customer as { id: number; name: string; phone: string; village: string };
-          setCustomerSession({ id: c.id, name: c.name, phone: c.phone, village: c.village });
-          onSuccess({ id: c.id, name: c.name, phone: c.phone, village: c.village });
+          const c = result.customer as { id: number; name: string; phone: string; village: string; address?: string | null; lat?: number | null; lng?: number | null };
+          const session = {
+            id: c.id, name: c.name, phone: c.phone, village: c.village,
+            address: c.address || undefined,
+            lat: c.lat || undefined,
+            lng: c.lng || undefined,
+          };
+          setCustomerSession(session);
+          onSuccess(session);
         },
         onError: () => setError("Login नहीं हो सका, दोबारा कोशिश करें"),
       }

@@ -11,4 +11,10 @@ export interface CustomerAuthInput {
   otp: string;
   name: string;
   village: string;
+  /** @nullable */
+  address?: string | null;
+  /** @nullable */
+  lat?: number | null;
+  /** @nullable */
+  lng?: number | null;
 }

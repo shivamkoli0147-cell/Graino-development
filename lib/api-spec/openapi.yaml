@@ -12,6 +12,8 @@ tags:
     description: Health operations
   - name: auth
     description: Authentication
+  - name: customers
+    description: Customer profile management
   - name: products
     description: Product catalog
   - name: orders
@@ -73,6 +75,32 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SellerAuthResult"
+
+  # ── Customers ─────────────────────────────────────────────────────
+  /customers/{id}:
+    put:
+      operationId: updateCustomer
+      tags: [customers]
+      summary: Update customer profile (name, address, lat, lng)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomerUpdateInput"
+      responses:
+        "200":
+          description: Updated customer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
 
   # ── Products ─────────────────────────────────────────────────────
   /products:
@@ -224,6 +252,12 @@ paths:
           required: false
           schema:
             type: string
+        - name: slot
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [morning, afternoon, evening]
       responses:
         "200":
           description: Orders list
@@ -354,6 +388,12 @@ components:
           type: string
         village:
           type: string
+        address:
+          type: ["string", "null"]
+        lat:
+          type: ["number", "null"]
+        lng:
+          type: ["number", "null"]
 
     CustomerAuthResult:
       type: object
@@ -395,8 +435,26 @@ components:
           type: string
         village:
           type: string
+        address:
+          type: ["string", "null"]
+        lat:
+          type: ["number", "null"]
+        lng:
+          type: ["number", "null"]
         created_at:
           type: ["string", "null"]
+
+    CustomerUpdateInput:
+      type: object
+      properties:
+        name:
+          type: ["string", "null"]
+        address:
+          type: ["string", "null"]
+        lat:
+          type: ["number", "null"]
+        lng:
+          type: ["number", "null"]
 
     Variety:
       type: object
@@ -523,6 +581,9 @@ components:
           type: string
         address:
           type: ["string", "null"]
+        delivery_slot:
+          type: ["string", "null"]
+          enum: [morning, afternoon, evening, null]
         total_amount:
           type: number
         status:
@@ -541,6 +602,10 @@ components:
           type: ["string", "null"]
         customer_phone:
           type: ["string", "null"]
+        customer_lat:
+          type: ["number", "null"]
+        customer_lng:
+          type: ["number", "null"]
         items:
           type: array
           items:
@@ -556,6 +621,9 @@ components:
           type: string
         address:
           type: string
+        delivery_slot:
+          type: string
+          enum: [morning, afternoon, evening]
         items:
           type: array
           items:
@@ -597,6 +665,14 @@ components:
         name:
           type: string
 
+    SlotBreakdown:
+      type: object
+      properties:
+        delivery_slot:
+          type: ["string", "null"]
+        count:
+          type: integer
+
     DashboardStats:
       type: object
       required: [new_orders, today_earnings, village_count, total_orders_today, low_stock_count]
@@ -625,6 +701,10 @@ components:
                 type: boolean
               stock_level:
                 type: ["string", "null"]
+        slot_breakdown:
+          type: array
+          items:
+            $ref: "#/components/schemas/SlotBreakdown"
 
     DeleteResult:
       type: object
