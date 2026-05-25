@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useGetOrders, useUpdateOrderStatus } from "@workspace/api-client-react";
 import type { OrderStatusUpdateStatus } from "@workspace/api-client-react";
-import { formatINR, timeAgo } from "../lib/utils";
+import { formatINR, timeAgo, DELIVERY_SLOTS } from "../lib/utils";
 
 interface SellerOrdersProps {
   onBack: () => void;
@@ -16,15 +16,29 @@ const STATUS_META: Record<string, { label: string; emoji: string; color: string;
   cancelled:         { label: "Cancel",            emoji: "❌", color: "#dc2626", bg: "#FEE2E2" },
 };
 
-const FILTERS = ["all","placed","accepted","out_for_delivery","delivered"];
+const STATUS_FILTERS = ["all","placed","accepted","out_for_delivery","delivered"];
+
+const SLOT_META: Record<string, { label: string; emoji: string; color: string; bg: string }> = {
+  morning:   { label: "सुबह 8-11",     emoji: "🌅", color: "#c2410c", bg: "#FFF7ED" },
+  afternoon: { label: "दोपहर 12-3",   emoji: "☀️", color: "#b45309", bg: "#FFFBEB" },
+  evening:   { label: "शाम 4-7",      emoji: "🌇", color: "#6d28d9", bg: "#F5F3FF" },
+};
 
 export function SellerOrders({ onBack }: SellerOrdersProps) {
-  const [filter, setFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [slotFilter, setSlotFilter] = useState("all");
   const [expanded, setExpanded] = useState<number | null>(null);
-  const { data: orders, isLoading, refetch } = useGetOrders({ status: filter === "all" ? undefined : filter });
+  const [filterTab, setFilterTab] = useState<"status" | "slot">("status");
+
+  const { data: orders, isLoading, refetch } = useGetOrders({ status: statusFilter === "all" ? undefined : statusFilter });
   const updateStatus = useUpdateOrderStatus();
 
-  const list = (orders as Order[]) || [];
+  let list = (orders as Order[]) || [];
+
+  // Client-side slot filter (since API may not yet have slot query param in generated hooks)
+  if (slotFilter !== "all") {
+    list = list.filter(o => (o as Order & { delivery_slot?: string }).delivery_slot === slotFilter);
+  }
 
   const nextStatus = (status: string) => {
     const idx = STATUS_FLOW.indexOf(status);
@@ -43,7 +57,7 @@ export function SellerOrders({ onBack }: SellerOrdersProps) {
     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: "#F7F4EF" }}>
       {/* Header */}
       <div style={{ background: "linear-gradient(135deg,#1a3d1a,#2D6A2D)", padding: "16px 16px 0", flexShrink: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
           <button onClick={onBack} className="btn-press" style={{
             background: "rgba(255,255,255,0.15)", border: "none", borderRadius: 10,
             padding: "6px 12px", color: "white", fontFamily: "'Baloo 2', sans-serif",
@@ -56,22 +70,61 @@ export function SellerOrders({ onBack }: SellerOrdersProps) {
             fontFamily: "'Baloo 2', sans-serif", fontWeight: 700, fontSize: 12, cursor: "pointer",
           }}>↻</button>
         </div>
-        {/* Filter tabs */}
-        <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 12 }}>
-          {FILTERS.map(f => {
-            const m = STATUS_META[f];
-            return (
-              <button key={f} onClick={() => setFilter(f)} className="btn-press" style={{
-                flexShrink: 0, padding: "5px 12px", borderRadius: 16,
-                background: filter === f ? "rgba(255,255,255,0.25)" : "transparent",
-                color: "white", border: "1px solid rgba(255,255,255,0.3)",
-                fontFamily: "'Baloo 2', sans-serif", fontWeight: 700, fontSize: 12, cursor: "pointer",
-              }}>
-                {m ? `${m.emoji} ${m.label}` : "सब"}
-              </button>
-            );
-          })}
+
+        {/* Filter Tab Switcher */}
+        <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+          <button onClick={() => setFilterTab("status")} style={{
+            flex: 1, padding: "6px 0", borderRadius: 10, border: "none", cursor: "pointer",
+            background: filterTab === "status" ? "rgba(255,255,255,0.25)" : "transparent",
+            color: "white", fontFamily: "'Baloo 2',sans-serif", fontWeight: 700, fontSize: 12,
+          }}>📊 Status</button>
+          <button onClick={() => setFilterTab("slot")} style={{
+            flex: 1, padding: "6px 0", borderRadius: 10, border: "none", cursor: "pointer",
+            background: filterTab === "slot" ? "rgba(255,255,255,0.25)" : "transparent",
+            color: "white", fontFamily: "'Baloo 2',sans-serif", fontWeight: 700, fontSize: 12,
+          }}>🕐 Time Slot</button>
         </div>
+
+        {/* Status filters */}
+        {filterTab === "status" && (
+          <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 12 }}>
+            {STATUS_FILTERS.map(f => {
+              const m = STATUS_META[f];
+              return (
+                <button key={f} onClick={() => setStatusFilter(f)} className="btn-press" style={{
+                  flexShrink: 0, padding: "5px 12px", borderRadius: 16,
+                  background: statusFilter === f ? "rgba(255,255,255,0.25)" : "transparent",
+                  color: "white", border: "1px solid rgba(255,255,255,0.3)",
+                  fontFamily: "'Baloo 2', sans-serif", fontWeight: 700, fontSize: 12, cursor: "pointer",
+                }}>
+                  {m ? `${m.emoji} ${m.label}` : "सब"}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Slot filters */}
+        {filterTab === "slot" && (
+          <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 12 }}>
+            <button onClick={() => setSlotFilter("all")} className="btn-press" style={{
+              flexShrink: 0, padding: "5px 14px", borderRadius: 16,
+              background: slotFilter === "all" ? "rgba(255,255,255,0.25)" : "transparent",
+              color: "white", border: "1px solid rgba(255,255,255,0.3)",
+              fontFamily: "'Baloo 2',sans-serif", fontWeight: 700, fontSize: 12, cursor: "pointer",
+            }}>सब Slots</button>
+            {DELIVERY_SLOTS.map(slot => (
+              <button key={slot.id} onClick={() => setSlotFilter(slot.id)} className="btn-press" style={{
+                flexShrink: 0, padding: "5px 14px", borderRadius: 16,
+                background: slotFilter === slot.id ? "rgba(255,255,255,0.25)" : "transparent",
+                color: "white", border: "1px solid rgba(255,255,255,0.3)",
+                fontFamily: "'Baloo 2',sans-serif", fontWeight: 700, fontSize: 12, cursor: "pointer",
+              }}>
+                {slot.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div style={{ flex: 1, overflowY: "auto", padding: "12px 14px 24px" }}>
@@ -80,7 +133,9 @@ export function SellerOrders({ onBack }: SellerOrdersProps) {
         ) : !list.length ? (
           <div style={{ textAlign: "center", padding: "60px 24px", color: "#777" }}>
             <div style={{ fontSize: 40 }}>📦</div>
-            <div style={{ fontWeight: 700, marginTop: 12 }}>कोई order नहीं</div>
+            <div style={{ fontWeight: 700, marginTop: 12 }}>
+              {slotFilter !== "all" ? `${SLOT_META[slotFilter]?.label} के कोई orders नहीं` : "कोई order नहीं"}
+            </div>
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -88,6 +143,8 @@ export function SellerOrders({ onBack }: SellerOrdersProps) {
               const s = STATUS_META[order.status] || STATUS_META.placed;
               const next = nextStatus(order.status);
               const isExpanded = expanded === order.id;
+              const slot = SLOT_META[(order as Order & { delivery_slot?: string }).delivery_slot || ""];
+              const orderWithSlot = order as Order & { delivery_slot?: string; address?: string; customer_lat?: number; customer_lng?: number };
 
               return (
                 <div key={order.id} style={{
@@ -95,12 +152,22 @@ export function SellerOrders({ onBack }: SellerOrdersProps) {
                   border: "1.5px solid #E5DDD0", boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
                 }}>
                   {/* Status header */}
-                  <div style={{ background: s.bg, padding: "10px 14px", display: "flex", justifyContent: "space-between" }}>
+                  <div style={{ background: s.bg, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       <span>{s.emoji}</span>
                       <span style={{ fontWeight: 700, fontSize: 12, color: s.color }}>{s.label}</span>
                     </div>
-                    <span style={{ fontSize: 11, color: "#777" }}>{timeAgo(order.created_at)}</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      {slot && (
+                        <div style={{
+                          background: slot.bg, borderRadius: 8, padding: "2px 10px",
+                          fontSize: 11, fontWeight: 700, color: slot.color,
+                        }}>
+                          {slot.emoji} {slot.label}
+                        </div>
+                      )}
+                      <span style={{ fontSize: 11, color: "#777" }}>{timeAgo(order.created_at)}</span>
+                    </div>
                   </div>
 
                   {/* Content */}
@@ -118,6 +185,25 @@ export function SellerOrders({ onBack }: SellerOrdersProps) {
                         {formatINR(order.total_amount)}
                       </div>
                     </div>
+
+                    {/* Address */}
+                    {orderWithSlot.address && (
+                      <div style={{
+                        background: "#F0FDF4", borderRadius: 8, padding: "6px 10px", marginBottom: 8,
+                        fontSize: 12, color: "#15803d", fontWeight: 600,
+                      }}>
+                        📍 {orderWithSlot.address}
+                        {orderWithSlot.customer_lat && orderWithSlot.customer_lng && (
+                          <a
+                            href={`https://www.openstreetmap.org/?mlat=${orderWithSlot.customer_lat}&mlon=${orderWithSlot.customer_lng}&zoom=16`}
+                            target="_blank" rel="noreferrer"
+                            style={{ marginLeft: 8, color: "#2D6A2D", fontWeight: 700, fontSize: 11 }}
+                          >
+                            🗺 Map
+                          </a>
+                        )}
+                      </div>
+                    )}
 
                     {/* Items preview */}
                     <div style={{ fontSize: 12, color: "#555", marginBottom: 10 }}>
@@ -179,6 +265,9 @@ export function SellerOrders({ onBack }: SellerOrdersProps) {
 }
 
 type OrderItem = { product_name: string; variety_name: string; price_per_kg: number; quantity_kg: number };
-type Order = { id: number; status: string; payment_status: string; total_amount: number;
+type Order = {
+  id: number; status: string; payment_status: string; total_amount: number;
   created_at: string; customer_name: string; customer_phone: string; village: string;
-  items: OrderItem[]; return_requested: boolean; return_note?: string };
+  items: OrderItem[]; return_requested: boolean; return_note?: string;
+  delivery_slot?: string; address?: string; customer_lat?: number; customer_lng?: number;
+};

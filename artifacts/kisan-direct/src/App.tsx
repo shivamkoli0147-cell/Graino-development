@@ -6,6 +6,7 @@ import { ProductDetail } from "@/pages/ProductDetail";
 import { CartPage } from "@/pages/CartPage";
 import { OrdersPage } from "@/pages/OrdersPage";
 import { CustomerProfile } from "@/pages/CustomerProfile";
+import { AddressSetup } from "@/pages/AddressSetup";
 import { SellerAuth } from "@/pages/SellerAuth";
 import { SellerDashboard } from "@/pages/SellerDashboard";
 import { SellerOrders } from "@/pages/SellerOrders";
@@ -32,6 +33,10 @@ function KisanApp() {
 
   // ── Customer state ──────────────────────────────────────────────────────────
   const [customer, setCustomer] = useState<CustomerSession | null>(getCustomerSession);
+  const [showAddressSetup, setShowAddressSetup] = useState<boolean>(() => {
+    const c = getCustomerSession();
+    return !!c && !c.address; // show setup if logged in but no address yet
+  });
   const [customerTab, setCustomerTab] = useState<CustomerTab>("products");
   const [viewProductId, setViewProductId] = useState<number | null>(null);
   const [cart, setCart] = useState<Cart>({});
@@ -59,6 +64,18 @@ function KisanApp() {
     setCustomer(c);
   };
 
+  const handleLoginSuccess = (c: CustomerSession) => {
+    setCustomerSession(c);
+    setCustomer(c);
+    // Show address setup if no address yet
+    if (!c.address) setShowAddressSetup(true);
+  };
+
+  const handleAddressComplete = (c: CustomerSession) => {
+    setCustomer(c);
+    setShowAddressSetup(false);
+  };
+
   const goToSeller = () => {
     setShowProfile(false);
     setMode("seller");
@@ -74,7 +91,14 @@ function KisanApp() {
         {mode === "customer" ? (
           <>
             {!customer ? (
-              <CustomerAuth onSuccess={c => { setCustomerSession(c); setCustomer(c); }} />
+              <CustomerAuth onSuccess={handleLoginSuccess} />
+            ) : showAddressSetup ? (
+              /* Address Setup — shown once after first login if no address */
+              <AddressSetup
+                customer={customer}
+                onComplete={handleAddressComplete}
+                onSkip={() => setShowAddressSetup(false)}
+              />
             ) : viewProductId ? (
               <ProductDetail
                 productId={viewProductId} cart={cart}
@@ -115,11 +139,11 @@ function KisanApp() {
             )}
 
             {/* Profile panel */}
-            {showProfile && customer && (
+            {showProfile && customer && !showAddressSetup && (
               <CustomerProfile
                 customer={customer}
                 onUpdate={handleCustomerUpdate}
-                onLogout={() => { clearCustomerSession(); setCustomer(null); setCart({}); setShowProfile(false); }}
+                onLogout={() => { clearCustomerSession(); setCustomer(null); setCart({}); setShowProfile(false); setShowAddressSetup(false); }}
                 onClose={() => setShowProfile(false)}
                 onGoSeller={goToSeller}
               />

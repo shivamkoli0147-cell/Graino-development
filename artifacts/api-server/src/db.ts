@@ -23,6 +23,9 @@ export function initDb() {
       name TEXT NOT NULL,
       phone TEXT NOT NULL UNIQUE,
       village TEXT NOT NULL,
+      address TEXT,
+      lat REAL,
+      lng REAL,
       created_at TEXT DEFAULT (datetime('now'))
     );
 
@@ -67,6 +70,7 @@ export function initDb() {
       customer_id INTEGER NOT NULL REFERENCES customers(id),
       village TEXT NOT NULL,
       address TEXT,
+      delivery_slot TEXT,
       total_amount REAL NOT NULL DEFAULT 0,
       status TEXT NOT NULL DEFAULT 'placed',
       payment_status TEXT NOT NULL DEFAULT 'pending',
@@ -86,12 +90,19 @@ export function initDb() {
     );
   `);
 
-  // Migrate: add type column to product_benefits if missing
-  try {
-    db.exec("ALTER TABLE product_benefits ADD COLUMN type TEXT NOT NULL DEFAULT 'benefit'");
-  } catch { /* already exists */ }
+  // Migrations for existing DBs
+  const migrations = [
+    "ALTER TABLE product_benefits ADD COLUMN type TEXT NOT NULL DEFAULT 'benefit'",
+    "ALTER TABLE customers ADD COLUMN address TEXT",
+    "ALTER TABLE customers ADD COLUMN lat REAL",
+    "ALTER TABLE customers ADD COLUMN lng REAL",
+    "ALTER TABLE orders ADD COLUMN delivery_slot TEXT",
+  ];
+  for (const sql of migrations) {
+    try { db.exec(sql); } catch { /* column already exists */ }
+  }
 
-  // Migrate: fix existing rows where ⚠️ prefix means they are disadvantages
+  // Fix ⚠️ entries that should be disadvantages
   db.exec("UPDATE product_benefits SET type='disadvantage' WHERE benefit_text LIKE '⚠️%' AND type='benefit'");
 
   seedIfEmpty();
@@ -204,13 +215,13 @@ function seedIfEmpty() {
   const d2 = new Date(); d2.setDate(d2.getDate() - 1);
   const fmt = (d: Date) => d.toISOString().replace("T"," ").slice(0,19);
 
-  const o1 = db.prepare("INSERT INTO orders (customer_id,village,address,total_amount,status,payment_status,created_at) VALUES (?,?,?,?,?,?,?)")
-    .run(customerId,"Pichor","Near Shiv Mandir",2200,"delivered","paid",fmt(d1));
+  const o1 = db.prepare("INSERT INTO orders (customer_id,village,address,delivery_slot,total_amount,status,payment_status,created_at) VALUES (?,?,?,?,?,?,?,?)")
+    .run(customerId,"Pichor","Near Shiv Mandir","morning",2200,"delivered","paid",fmt(d1));
   db.prepare("INSERT INTO order_items (order_id,variety_id,product_name,variety_name,price_per_kg,quantity_kg) VALUES (?,?,?,?,?,?)")
     .run(o1.lastInsertRowid, var1Id, "गेहूं", "Lokman", 22, 100);
 
-  const o2 = db.prepare("INSERT INTO orders (customer_id,village,address,total_amount,status,payment_status,created_at) VALUES (?,?,?,?,?,?,?)")
-    .run(customerId,"Pichor","Near Shiv Mandir",1625,"accepted","pending",fmt(d2));
+  const o2 = db.prepare("INSERT INTO orders (customer_id,village,address,delivery_slot,total_amount,status,payment_status,created_at) VALUES (?,?,?,?,?,?,?,?)")
+    .run(customerId,"Pichor","Near Shiv Mandir","afternoon",1625,"accepted","pending",fmt(d2));
   db.prepare("INSERT INTO order_items (order_id,variety_id,product_name,variety_name,price_per_kg,quantity_kg) VALUES (?,?,?,?,?,?)")
     .run(o2.lastInsertRowid, var2Id, "चना", "देसी चना", 65, 25);
 }

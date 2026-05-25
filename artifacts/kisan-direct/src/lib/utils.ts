@@ -21,6 +21,12 @@ export function timeAgo(dateStr: string): string {
 
 export const VILLAGES = ["Pichor","Bamori","Datia","Indergarh","Bhander","Dabra","Karera","Lahar","Mohna","Shivpuri"];
 
+export const DELIVERY_SLOTS = [
+  { id: "morning",   label: "🌅 सुबह",    time: "8:00 – 11:00 AM" },
+  { id: "afternoon", label: "☀️ दोपहर",   time: "12:00 – 3:00 PM" },
+  { id: "evening",   label: "🌇 शाम",     time: "4:00 – 7:00 PM"  },
+];
+
 export type CartItem = {
   productId: number;
   varietyId: number;
@@ -49,6 +55,8 @@ export type CustomerSession = {
   phone: string;
   village: string;
   address?: string;
+  lat?: number;
+  lng?: number;
 };
 
 export function getCustomerSession(): CustomerSession | null {
