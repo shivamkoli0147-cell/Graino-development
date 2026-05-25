@@ -48,6 +48,7 @@ export type CustomerSession = {
   name: string;
   phone: string;
   village: string;
+  address?: string;
 };
 
 export function getCustomerSession(): CustomerSession | null {

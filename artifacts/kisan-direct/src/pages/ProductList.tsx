@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useGetProducts } from "@workspace/api-client-react";
-import { formatINR, type Cart } from "../lib/utils";
+import { formatINR, type Cart, type CustomerSession } from "../lib/utils";
 
 const CATEGORIES = ["सब", "अनाज", "दालें", "तिलहन", "मसाले"];
 
@@ -9,22 +9,43 @@ interface ProductListProps {
   onAddToCart: (item: { productId: number; varietyId: number; productName: string; productNameEn: string;
     productEmoji: string; varietyName: string; pricePerKg: number; quantityKg: number; minKg: number }) => void;
   onViewProduct: (id: number) => void;
+  customer?: CustomerSession | null;
+  onOpenProfile?: () => void;
 }
 
-export function ProductList({ cart, onAddToCart, onViewProduct }: ProductListProps) {
+export function ProductList({ cart, onAddToCart, onViewProduct, customer, onOpenProfile }: ProductListProps) {
   const [category, setCategory] = useState("सब");
   const [search, setSearch] = useState("");
   const { data: products, isLoading } = useGetProducts({ category: category === "सब" ? undefined : category, search: search || undefined });
 
   const cartKeys = new Set(Object.keys(cart));
+  const initial = customer ? (customer.name || "?")[0].toUpperCase() : null;
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: "#F7F4EF" }}>
       {/* Header */}
       <div style={{ background: "white", padding: "16px 16px 0", flexShrink: 0, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
-        <div style={{ fontWeight: 800, fontSize: 20, color: "#1C1C1C", marginBottom: 10 }}>
-          🌾 ताज़ा उपज
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+          <div style={{ fontWeight: 800, fontSize: 20, color: "#1C1C1C" }}>
+            🌾 ताज़ा उपज
+          </div>
+          {/* Profile avatar button */}
+          {customer && onOpenProfile && (
+            <button onClick={onOpenProfile} className="btn-press" style={{
+              width: 38, height: 38, borderRadius: "50%",
+              background: "linear-gradient(135deg,#2D6A2D,#4A9B4A)",
+              border: "none", cursor: "pointer", display: "flex",
+              alignItems: "center", justifyContent: "center",
+              color: "white", fontWeight: 800, fontSize: 16,
+              fontFamily: "'Baloo 2',sans-serif",
+              boxShadow: "0 2px 8px rgba(45,106,45,0.3)",
+              flexShrink: 0,
+            }}>
+              {initial}
+            </button>
+          )}
         </div>
+
         {/* Search */}
         <div style={{ position: "relative", marginBottom: 12 }}>
           <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", fontSize: 16 }}>🔍</span>
@@ -83,7 +104,6 @@ export function ProductList({ cart, onAddToCart, onViewProduct }: ProductListPro
                     position: "relative",
                   }}
                 >
-                  {/* Product banner */}
                   <div style={{
                     background: product.bg_color as string || "linear-gradient(135deg,#e8f5e8,#d1fae5)",
                     padding: "16px 12px 12px", textAlign: "center",
@@ -92,7 +112,6 @@ export function ProductList({ cart, onAddToCart, onViewProduct }: ProductListPro
                     <div style={{ fontWeight: 800, fontSize: 13, color: "#1C1C1C", marginTop: 4 }}>{product.name as string}</div>
                     <div style={{ fontSize: 10, color: "#777", fontWeight: 500 }}>{product.name_en as string}</div>
                   </div>
-                  {/* Bottom info */}
                   <div style={{ padding: "10px 10px 12px" }}>
                     {cheapestInStock ? (
                       <>
@@ -128,6 +147,9 @@ export function ProductList({ cart, onAddToCart, onViewProduct }: ProductListPro
     </div>
   );
 }
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _onAddToCart = (item: Parameters<ProductListProps["onAddToCart"]>[0]) => item;
 
 type Variety = { id: number; in_stock: boolean | number; price_per_kg: number; name: string };
 type Product = { id: number; name: string; name_en: string; emoji: string; bg_color: string;

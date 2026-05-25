@@ -5,6 +5,7 @@ import { ProductList } from "@/pages/ProductList";
 import { ProductDetail } from "@/pages/ProductDetail";
 import { CartPage } from "@/pages/CartPage";
 import { OrdersPage } from "@/pages/OrdersPage";
+import { CustomerProfile } from "@/pages/CustomerProfile";
 import { SellerAuth } from "@/pages/SellerAuth";
 import { SellerDashboard } from "@/pages/SellerDashboard";
 import { SellerOrders } from "@/pages/SellerOrders";
@@ -14,7 +15,7 @@ import {
   getCustomerSession, setCustomerSession, clearCustomerSession,
   isSellerSession, clearSellerSession,
   type Cart, type CartItem, type CustomerSession,
-  getCartCount, getCartTotal,
+  getCartCount,
 } from "@/lib/utils";
 import { useRequestReturn } from "@workspace/api-client-react";
 
@@ -34,6 +35,7 @@ function KisanApp() {
   const [customerTab, setCustomerTab] = useState<CustomerTab>("products");
   const [viewProductId, setViewProductId] = useState<number | null>(null);
   const [cart, setCart] = useState<Cart>({});
+  const [showProfile, setShowProfile] = useState(false);
 
   // ── Seller state ────────────────────────────────────────────────────────────
   const [sellerAuthed, setSellerAuthed] = useState(isSellerSession);
@@ -48,20 +50,26 @@ function KisanApp() {
     });
   }, []);
 
-  const toggleMode = () => {
-    setMode(prev => prev === "customer" ? "seller" : "customer");
-  };
-
   const handleReturnRequest = (orderId: number) => {
     requestReturn.mutate({ id: orderId, data: { note: "Customer ने return request ki hai" } });
   };
 
-  // ── Wrapper ─────────────────────────────────────────────────────────────────
+  const handleCustomerUpdate = (c: CustomerSession) => {
+    setCustomerSession(c);
+    setCustomer(c);
+  };
+
+  const goToSeller = () => {
+    setShowProfile(false);
+    setMode("seller");
+  };
+
   return (
     <div style={{ display: "flex", justifyContent: "center", background: "#1a3d1a", minHeight: "100vh" }}>
       <div style={{
         width: "100%", maxWidth: 390, background: "#F7F4EF", minHeight: "100vh",
-        display: "flex", flexDirection: "column", position: "relative", fontFamily: "'Baloo 2', sans-serif",
+        display: "flex", flexDirection: "column", position: "relative",
+        fontFamily: "'Baloo 2', sans-serif",
       }}>
         {mode === "customer" ? (
           <>
@@ -76,13 +84,19 @@ function KisanApp() {
             ) : (
               <>
                 {customerTab === "products" && (
-                  <ProductList cart={cart} onAddToCart={() => {}} onViewProduct={id => { setViewProductId(id); }} />
+                  <ProductList
+                    cart={cart}
+                    onAddToCart={() => {}}
+                    onViewProduct={id => setViewProductId(id)}
+                    customer={customer}
+                    onOpenProfile={() => setShowProfile(true)}
+                  />
                 )}
                 {customerTab === "cart" && (
                   <CartPage cart={cart} customer={customer}
                     onCartChange={handleCartChange}
                     onClearCart={() => setCart({})}
-                    onOrderSuccess={() => { setCustomerTab("orders"); }}
+                    onOrderSuccess={() => setCustomerTab("orders")}
                   />
                 )}
                 {customerTab === "orders" && (
@@ -99,6 +113,17 @@ function KisanApp() {
                 />
               </>
             )}
+
+            {/* Profile panel */}
+            {showProfile && customer && (
+              <CustomerProfile
+                customer={customer}
+                onUpdate={handleCustomerUpdate}
+                onLogout={() => { clearCustomerSession(); setCustomer(null); setCart({}); setShowProfile(false); }}
+                onClose={() => setShowProfile(false)}
+                onGoSeller={goToSeller}
+              />
+            )}
           </>
         ) : (
           <>
@@ -108,7 +133,11 @@ function KisanApp() {
               <>
                 {sellerTab === "dashboard" && (
                   <SellerDashboard
-                    onLogout={() => { clearSellerSession(); setSellerAuthed(false); }}
+                    onLogout={() => {
+                      clearSellerSession();
+                      setSellerAuthed(false);
+                      setMode("customer");
+                    }}
                     onManageOrders={() => setSellerTab("orders")}
                     onManageProducts={() => setSellerTab("products")}
                   />
@@ -133,48 +162,6 @@ function KisanApp() {
               </>
             )}
           </>
-        )}
-
-        {/* Mode toggle button */}
-        <button
-          onClick={toggleMode}
-          className="btn-press"
-          style={{
-            position: "fixed",
-            bottom: customer && mode === "customer" ? 80 : 24,
-            right: "max(12px, calc(50% - 183px))",
-            zIndex: 999,
-            background: mode === "seller" ? "#F59E0B" : "#1C1C1C",
-            color: "white",
-            border: "none",
-            borderRadius: 30,
-            padding: "9px 16px",
-            fontFamily: "'Baloo 2', sans-serif",
-            fontWeight: 700,
-            fontSize: 12,
-            cursor: "pointer",
-            boxShadow: "0 4px 20px rgba(0,0,0,0.35)",
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-          }}
-        >
-          {mode === "customer" ? "🌾 Seller" : "👤 Customer"}
-        </button>
-
-        {/* Logout customer button (top right) */}
-        {mode === "customer" && customer && !viewProductId && (
-          <button
-            onClick={() => { clearCustomerSession(); setCustomer(null); setCart({}); }}
-            style={{
-              position: "absolute", top: 12, right: 12, zIndex: 100,
-              background: "rgba(0,0,0,0.15)", border: "none", borderRadius: 8,
-              padding: "4px 10px", color: "white", fontFamily: "'Baloo 2', sans-serif",
-              fontWeight: 600, fontSize: 11, cursor: "pointer",
-            }}
-          >
-            {customer.name.split(" ")[0]} ✕
-          </button>
         )}
       </div>
     </div>
