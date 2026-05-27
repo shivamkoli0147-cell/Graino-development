@@ -221,19 +221,31 @@
   scrollbar-width: none;
 }
 
-/* KisanDirect CSS variables */
+/* Graino CSS variables */
 :root {
+  --graino-dark: #1B4332;
+  --graino-green: #2D6A2D;
+  --graino-green-light: #4A9B4A;
+  --graino-green-pale: #E8F5E8;
+  --graino-amber: #F59E0B;
+  --graino-gold: #D4AF37;
+  --graino-bg: #F4F6F3;
+  --graino-text: #1C1C1C;
+  --graino-muted: #777777;
+  --graino-border: #E5DDD0;
+  /* legacy aliases */
   --kd-green: #2D6A2D;
   --kd-green-light: #4A9B4A;
   --kd-green-pale: #E8F5E8;
   --kd-amber: #F59E0B;
-  --kd-bg: #F7F4EF;
+  --kd-bg: #F4F6F3;
   --kd-text: #1C1C1C;
   --kd-muted: #777777;
   --kd-border: #E5DDD0;
 }
 
-/* Animations */
+/* ── Animations ─────────────────────────────────────────────────────────── */
+
 .slide-up { animation: slideUp 0.28s ease; }
 @keyframes slideUp {
   from { opacity: 0; transform: translateY(18px); }
@@ -253,6 +265,39 @@
 }
 
 .btn-press:active { transform: scale(0.96); }
+
+/* Splash screen fade-in */
+.splash-fade {
+  animation: splashFade 0.7s ease both;
+}
+@keyframes splashFade {
+  from { opacity: 0; transform: translateY(20px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Splash logo icon pop */
+@keyframes splashIconPop {
+  from { opacity: 0; transform: scale(0.5) rotate(-15deg); }
+  to   { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+/* Floating grain particles — used in Splash & Login */
+.grain-particle {
+  animation: floatUp linear infinite;
+  will-change: transform, opacity;
+}
+@keyframes floatUp {
+  0%   { transform: translateY(0) scale(1);     opacity: 0; }
+  10%  { opacity: 1; }
+  80%  { opacity: 0.8; }
+  100% { transform: translateY(-110vh) scale(0.6); opacity: 0; }
+}
+
+/* Shimmer skeleton loading */
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
 
 @layer utilities {
   input[type="search"]::-webkit-search-cancel-button { @apply hidden; }

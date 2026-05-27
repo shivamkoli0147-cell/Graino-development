@@ -47,108 +47,197 @@ export function CustomerAuth({ onSuccess }: CustomerAuthProps) {
   };
 
   return (
-    <div className="slide-up" style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-      <div style={{ background: "linear-gradient(135deg,#2D6A2D,#4A9B4A)", padding: "48px 24px 36px", flexShrink: 0 }}>
-        <div style={{ fontSize: 52, marginBottom: 8 }}>🌾</div>
-        <div style={{ color: "white", fontSize: 30, fontWeight: 800, letterSpacing: -0.5 }}>
-          Kisan<span style={{ color: "#F59E0B" }}>Direct</span>
-        </div>
-        <div style={{ color: "rgba(255,255,255,0.80)", fontSize: 14, marginTop: 4, fontWeight: 500 }}>
-          सीधे खेत से आपके घर तक 🏡
-        </div>
+    <div style={{ flex: 1, position: "relative", overflow: "hidden", background: "#0f2418" }}>
+      {/* Animated floating grain particles */}
+      <div style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }}>
+        {AUTH_PARTICLES.map((p, i) => (
+          <div key={i} className="grain-particle" style={{
+            left: p.x + "%",
+            width: p.size, height: p.size,
+            animationDuration: p.dur + "s",
+            animationDelay: p.delay + "s",
+            background: p.gold
+              ? `rgba(245,158,11,${p.opacity})`
+              : `rgba(74,155,74,${p.opacity})`,
+            borderRadius: p.size > 10 ? "30%" : "50%",
+            position: "absolute",
+            bottom: "-20px",
+          }} />
+        ))}
       </div>
 
-      <div style={{ flex: 1, overflowY: "auto", padding: "24px 20px 40px", background: "#F7F4EF" }}>
-        <div style={{
-          background: "white", borderRadius: 20, padding: 24,
-          boxShadow: "0 4px 20px rgba(0,0,0,0.08)", border: "1px solid #E5DDD0",
-        }}>
-          <div style={{ fontWeight: 800, fontSize: 18, color: "#1C1C1C", marginBottom: 6 }}>
-            {step === "phone" ? "Login / Register करो" : "OTP डालो"}
+      {/* Dark overlay */}
+      <div style={{
+        position: "absolute", inset: 0,
+        background: "linear-gradient(180deg, rgba(15,36,24,0.55) 0%, rgba(15,36,24,0.85) 100%)",
+        pointerEvents: "none",
+      }} />
+
+      {/* Content */}
+      <div style={{
+        position: "relative", zIndex: 2,
+        height: "100%", display: "flex", flexDirection: "column",
+        alignItems: "center", justifyContent: "center",
+        padding: "24px 20px",
+        overflowY: "auto",
+      }}>
+        {/* Logo */}
+        <div className="splash-fade" style={{ textAlign: "center", marginBottom: 28 }}>
+          <div style={{ fontSize: 44, lineHeight: 1, marginBottom: 8,
+            filter: "drop-shadow(0 2px 12px rgba(245,158,11,0.6))" }}>🌾</div>
+          <div style={{
+            fontFamily: "'Baloo 2', sans-serif", fontWeight: 800, fontSize: 38,
+            color: "white", lineHeight: 1, letterSpacing: -1,
+          }}>
+            Grai<span style={{ color: "#F59E0B" }}>no</span>
           </div>
-          <div style={{ fontSize: 13, color: "#777", marginBottom: 20 }}>
-            {step === "phone" ? "अपना phone number और details भरो" : `${phone} पर OTP भेजा गया`}
+          <div style={{
+            fontFamily: "'Baloo 2', sans-serif", fontSize: 12,
+            color: "rgba(212,175,55,0.9)", fontWeight: 600, marginTop: 4, letterSpacing: 0.5,
+          }}>
+            हर किसान, हमारा वादा
+          </div>
+        </div>
+
+        {/* Auth card */}
+        <div className="slide-up" style={{
+          background: "rgba(255,255,255,0.10)",
+          backdropFilter: "blur(18px)",
+          WebkitBackdropFilter: "blur(18px)",
+          borderRadius: 24,
+          padding: "24px 22px",
+          width: "100%",
+          maxWidth: 360,
+          border: "1px solid rgba(255,255,255,0.15)",
+          boxShadow: "0 8px 40px rgba(0,0,0,0.35)",
+        }}>
+          <div style={{
+            fontFamily: "'Baloo 2', sans-serif", fontWeight: 800,
+            fontSize: 17, color: "white", marginBottom: 4,
+          }}>
+            {step === "phone" ? "अपना नंबर डालें" : "OTP डालें"}
+          </div>
+          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", marginBottom: 20, fontFamily: "'Baloo 2', sans-serif" }}>
+            {step === "phone" ? "Login या Register करें" : `${phone} पर OTP भेजा गया`}
           </div>
 
           {step === "phone" && (
             <>
-              <InputField label="आपका नाम *"
-                value={name} onChange={setName} placeholder="जैसे: Ramesh Kumar" />
-              <InputField label="Phone Number *"
-                value={phone} onChange={v => setPhone(v.replace(/\D/g, "").slice(0, 10))}
+              <GlassInput label="आपका नाम *" value={name}
+                onChange={setName} placeholder="जैसे: Ramesh Kumar" />
+              <GlassInput label="Phone Number *" value={phone}
+                onChange={v => setPhone(v.replace(/\D/g, "").slice(0, 10))}
                 placeholder="10 अंकों का नंबर" type="tel" />
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#777", marginBottom: 6 }}>गांव चुनें *</div>
-                <select value={village} onChange={e => setVillage(e.target.value)} style={iSty}>
-                  <option value="">-- गांव select करो --</option>
-                  {VILLAGES.map(v => <option key={v} value={v}>{v}</option>)}
+
+              <div style={{ marginBottom: 16 }}>
+                <div style={labelSty}>गांव चुनें *</div>
+                <select value={village} onChange={e => setVillage(e.target.value)} style={glassSty}>
+                  <option value="" style={{ background: "#1B4332", color: "white" }}>-- गांव select करो --</option>
+                  {VILLAGES.map(v => (
+                    <option key={v} value={v} style={{ background: "#1B4332", color: "white" }}>{v}</option>
+                  ))}
                 </select>
               </div>
-              {error && <div style={{ color: "#dc2626", fontSize: 13, marginBottom: 12 }}>{error}</div>}
-              <GreenBtn onClick={sendOtp} label="OTP भेजो →" />
+
+              {error && <div style={{ color: "#fca5a5", fontSize: 12, marginBottom: 12,
+                fontFamily: "'Baloo 2', sans-serif", fontWeight: 600 }}>{error}</div>}
+
+              <GoldBtn onClick={sendOtp} label="आगे बढ़ें →" />
             </>
           )}
 
           {step === "otp" && (
             <>
               <div style={{
-                background: "#E8F5E8", borderRadius: 12, padding: 12, fontSize: 13,
-                color: "#2D6A2D", fontWeight: 600, marginBottom: 16,
+                background: "rgba(245,158,11,0.15)", borderRadius: 12, padding: "10px 14px",
+                fontSize: 12, color: "#FCD34D", fontWeight: 600, marginBottom: 16,
+                fontFamily: "'Baloo 2', sans-serif", border: "1px solid rgba(245,158,11,0.25)",
               }}>
                 Test OTP: <strong>1234</strong> (कोई भी 4 अंक चलेंगे)
               </div>
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#777", marginBottom: 6 }}>4-Digit OTP *</div>
-                <input value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g, "").slice(0, 4))}
+
+              <div style={{ marginBottom: 16 }}>
+                <div style={labelSty}>4-Digit OTP *</div>
+                <input value={otp}
+                  onChange={e => setOtp(e.target.value.replace(/\D/g, "").slice(0, 4))}
                   placeholder="1234" type="tel" inputMode="numeric"
-                  style={{ ...iSty, letterSpacing: 8, fontSize: 22, fontWeight: 800, textAlign: "center" }} />
+                  style={{ ...glassSty, letterSpacing: 12, fontSize: 24, fontWeight: 800, textAlign: "center" }} />
               </div>
-              {error && <div style={{ color: "#dc2626", fontSize: 13, marginBottom: 12 }}>{error}</div>}
-              <GreenBtn onClick={login} label="Login करो ✓" loading={authMutation.isPending} />
+
+              {error && <div style={{ color: "#fca5a5", fontSize: 12, marginBottom: 12,
+                fontFamily: "'Baloo 2', sans-serif", fontWeight: 600 }}>{error}</div>}
+
+              <GoldBtn onClick={login} label="Login करें ✓" loading={authMutation.isPending} />
               <button onClick={() => { setStep("phone"); setOtp(""); setError(""); }}
-                style={{ background: "none", border: "none", color: "#777", fontSize: 13,
-                  cursor: "pointer", fontFamily: "'Baloo 2', sans-serif", marginTop: 10,
-                  display: "block", width: "100%", textAlign: "center" }}>
-                ← वापस जाओ
+                style={{
+                  background: "none", border: "none", color: "rgba(255,255,255,0.5)",
+                  fontSize: 13, cursor: "pointer", fontFamily: "'Baloo 2', sans-serif",
+                  marginTop: 12, display: "block", width: "100%", textAlign: "center",
+                }}>
+                ← वापस जाएं
               </button>
             </>
           )}
         </div>
 
-        <div style={{ marginTop: 20, textAlign: "center", fontSize: 12, color: "#aaa", fontWeight: 500 }}>
-          Pichor, Bamori, Datia और 7 अन्य गांवों में delivery
+        {/* Bottom note */}
+        <div style={{
+          marginTop: 20, textAlign: "center", fontSize: 12,
+          color: "rgba(255,255,255,0.35)", fontFamily: "'Baloo 2', sans-serif", fontWeight: 500,
+        }}>
+          नया हैं? अभी जुड़ें — Pichor, Bamori और 8 गांवों में delivery
         </div>
       </div>
     </div>
   );
 }
 
-function InputField({ label, value, onChange, placeholder, type = "text" }: {
+function GlassInput({ label, value, onChange, placeholder, type = "text" }: {
   label: string; value: string; onChange: (v: string) => void; placeholder: string; type?: string;
 }) {
   return (
     <div style={{ marginBottom: 14 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: "#777", marginBottom: 6 }}>{label}</div>
-      <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} type={type}
-        style={iSty} />
+      <div style={labelSty}>{label}</div>
+      <input value={value} onChange={e => onChange(e.target.value)}
+        placeholder={placeholder} type={type} style={glassSty} />
     </div>
   );
 }
 
-function GreenBtn({ onClick, label, loading }: { onClick: () => void; label: string; loading?: boolean }) {
+function GoldBtn({ onClick, label, loading }: { onClick: () => void; label: string; loading?: boolean }) {
   return (
     <button onClick={onClick} disabled={loading} className="btn-press" style={{
-      width: "100%", background: loading ? "#4A9B4A" : "#2D6A2D", color: "white", border: "none",
-      borderRadius: 14, padding: "14px", fontFamily: "'Baloo 2', sans-serif",
-      fontSize: 16, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer",
+      width: "100%",
+      background: loading ? "rgba(245,158,11,0.6)" : "linear-gradient(135deg,#F59E0B,#D97706)",
+      color: "#1B4332", border: "none",
+      borderRadius: 14, padding: "14px",
+      fontFamily: "'Baloo 2', sans-serif",
+      fontSize: 16, fontWeight: 800, cursor: loading ? "not-allowed" : "pointer",
+      boxShadow: "0 4px 16px rgba(245,158,11,0.35)",
     }}>
       {loading ? "कृपया रुकें..." : label}
     </button>
   );
 }
 
-const iSty: React.CSSProperties = {
-  width: "100%", padding: "11px 14px", borderRadius: 12, border: "1.5px solid #E5DDD0",
-  fontSize: 14, fontFamily: "'Baloo 2', sans-serif", outline: "none", color: "#1C1C1C",
-  background: "white", boxSizing: "border-box",
+const labelSty: React.CSSProperties = {
+  fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.6)",
+  marginBottom: 6, fontFamily: "'Baloo 2', sans-serif",
+  textTransform: "uppercase", letterSpacing: 0.5,
 };
+
+const glassSty: React.CSSProperties = {
+  width: "100%", padding: "12px 14px", borderRadius: 12,
+  border: "1px solid rgba(255,255,255,0.18)",
+  fontSize: 14, fontFamily: "'Baloo 2', sans-serif", outline: "none",
+  color: "white", background: "rgba(255,255,255,0.08)", boxSizing: "border-box",
+};
+
+const AUTH_PARTICLES = Array.from({ length: 28 }, (_, i) => ({
+  x: Math.random() * 100,
+  size: Math.random() * 12 + 5,
+  dur: Math.random() * 6 + 5,
+  delay: Math.random() * 5,
+  gold: i % 3 === 0,
+  opacity: Math.random() * 0.15 + 0.06,
+}));

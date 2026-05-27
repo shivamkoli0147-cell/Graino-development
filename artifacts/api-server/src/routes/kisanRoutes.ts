@@ -20,21 +20,39 @@ async function getVarietyBenefitsData(varietyId: number) {
   };
 }
 
+function mapVariety(v: { id: number; productId: number; name: string; pricePerKg: number; description: string | null; shelfLife: string | null; inStock: boolean; stockLevel: string | null }, vb: { benefits: { id: number; text: string }[]; disadvantages: { id: number; text: string }[] }) {
+  return {
+    ...v,
+    product_id: v.productId,
+    price_per_kg: v.pricePerKg,
+    shelf_life: v.shelfLife,
+    in_stock: v.inStock,
+    stock_level: v.stockLevel,
+    ...vb,
+  };
+}
+
+function mapProduct(p: { id: number; name: string; nameEn: string; emoji: string; category: string; minKg: number; bgColor: string; createdAt: Date | null }) {
+  return {
+    ...p,
+    name_en: p.nameEn,
+    min_kg: p.minKg,
+    bg_color: p.bgColor,
+    created_at: p.createdAt,
+  };
+}
+
 async function getProductWithDetails(id: number) {
   const [product] = await db.select().from(products).where(eq(products.id, id));
   if (!product) return null;
   const vars = await db.select().from(varieties).where(eq(varieties.productId, id)).orderBy(asc(varieties.id));
   const varWithBenefits = await Promise.all(vars.map(async v => {
     const vb = await getVarietyBenefitsData(v.id);
-    return { ...v, in_stock: v.inStock, ...vb };
+    return mapVariety(v, vb);
   }));
   const pBenefits = await db.select().from(productBenefits).where(eq(productBenefits.productId, id));
   return {
-    ...product,
-    min_kg: product.minKg,
-    name_en: product.nameEn,
-    bg_color: product.bgColor,
-    created_at: product.createdAt,
+    ...mapProduct(product),
     varieties: varWithBenefits,
     benefits: pBenefits.filter(b => b.type === "benefit").map(b => ({ id: b.id, text: b.benefitText })),
     disadvantages: pBenefits.filter(b => b.type === "disadvantage").map(b => ({ id: b.id, text: b.benefitText })),
@@ -54,15 +72,11 @@ async function getAllProductsWithDetails(category?: string, search?: string) {
     const vars = await db.select().from(varieties).where(eq(varieties.productId, p.id)).orderBy(asc(varieties.id));
     const varWithBenefits = await Promise.all(vars.map(async v => {
       const vb = await getVarietyBenefitsData(v.id);
-      return { ...v, in_stock: v.inStock, ...vb };
+      return mapVariety(v, vb);
     }));
     const pBenefits = await db.select().from(productBenefits).where(eq(productBenefits.productId, p.id));
     return {
-      ...p,
-      min_kg: p.minKg,
-      name_en: p.nameEn,
-      bg_color: p.bgColor,
-      created_at: p.createdAt,
+      ...mapProduct(p),
       varieties: varWithBenefits,
       benefits: pBenefits.filter(b => b.type === "benefit").map(b => ({ id: b.id, text: b.benefitText })),
       disadvantages: pBenefits.filter(b => b.type === "disadvantage").map(b => ({ id: b.id, text: b.benefitText })),

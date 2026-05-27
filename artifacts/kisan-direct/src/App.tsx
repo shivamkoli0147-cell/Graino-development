@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { SplashScreen } from "@/pages/SplashScreen";
 import { CustomerAuth } from "@/pages/CustomerAuth";
 import { ProductList } from "@/pages/ProductList";
 import { ProductDetail } from "@/pages/ProductDetail";
@@ -28,14 +29,15 @@ type AppMode = "customer" | "seller";
 type CustomerTab = "products" | "cart" | "orders";
 type SellerTab = "dashboard" | "orders" | "products";
 
-function KisanApp() {
+function GrainoApp() {
+  const [showSplash, setShowSplash] = useState(true);
   const [mode, setMode] = useState<AppMode>("customer");
 
   // ── Customer state ──────────────────────────────────────────────────────────
   const [customer, setCustomer] = useState<CustomerSession | null>(getCustomerSession);
   const [showAddressSetup, setShowAddressSetup] = useState<boolean>(() => {
     const c = getCustomerSession();
-    return !!c && !c.address; // show setup if logged in but no address yet
+    return !!c && !c.address;
   });
   const [customerTab, setCustomerTab] = useState<CustomerTab>("products");
   const [viewProductId, setViewProductId] = useState<number | null>(null);
@@ -67,7 +69,6 @@ function KisanApp() {
   const handleLoginSuccess = (c: CustomerSession) => {
     setCustomerSession(c);
     setCustomer(c);
-    // Show address setup if no address yet
     if (!c.address) setShowAddressSetup(true);
   };
 
@@ -82,18 +83,21 @@ function KisanApp() {
   };
 
   return (
-    <div style={{ display: "flex", justifyContent: "center", background: "#1a3d1a", minHeight: "100vh" }}>
+    <div style={{ display: "flex", justifyContent: "center", background: "#1B4332", minHeight: "100vh" }}>
       <div style={{
-        width: "100%", maxWidth: 390, background: "#F7F4EF", minHeight: "100vh",
+        width: "100%", maxWidth: 390, background: "#F4F6F3", minHeight: "100vh",
         display: "flex", flexDirection: "column", position: "relative",
         fontFamily: "'Baloo 2', sans-serif",
+        overflow: "hidden",
       }}>
+        {/* Splash screen */}
+        {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
+
         {mode === "customer" ? (
           <>
             {!customer ? (
               <CustomerAuth onSuccess={handleLoginSuccess} />
             ) : showAddressSetup ? (
-              /* Address Setup — shown once after first login if no address */
               <AddressSetup
                 customer={customer}
                 onComplete={handleAddressComplete}
@@ -130,20 +134,23 @@ function KisanApp() {
                   active={customerTab}
                   onSelect={id => { setCustomerTab(id as CustomerTab); setViewProductId(null); }}
                   tabs={[
-                    { id: "products", icon: "🌾", label: "Products" },
+                    { id: "products", icon: "🏠", label: "Home" },
                     { id: "cart", icon: "🛒", label: "Cart", badge: getCartCount(cart) },
-                    { id: "orders", icon: "📋", label: "Orders" },
+                    { id: "orders", icon: "📦", label: "Orders" },
                   ]}
                 />
               </>
             )}
 
-            {/* Profile panel */}
             {showProfile && customer && !showAddressSetup && (
               <CustomerProfile
                 customer={customer}
                 onUpdate={handleCustomerUpdate}
-                onLogout={() => { clearCustomerSession(); setCustomer(null); setCart({}); setShowProfile(false); setShowAddressSetup(false); }}
+                onLogout={() => {
+                  clearCustomerSession();
+                  setCustomer(null); setCart({});
+                  setShowProfile(false); setShowAddressSetup(false);
+                }}
                 onClose={() => setShowProfile(false)}
                 onGoSeller={goToSeller}
               />
@@ -193,7 +200,7 @@ function KisanApp() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <KisanApp />
+      <GrainoApp />
     </QueryClientProvider>
   );
 }
