@@ -5,8 +5,6 @@ import router from "./routes/index.js";
 import { logger } from "./lib/logger.js";
 import { initDb } from "./db.js";
 
-initDb();
-
 const app: Express = express();
 
 app.use(
@@ -33,5 +31,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", router);
+
+initDb().catch(err => {
+  console.error("[db] Failed to seed database:", err);
+});
 
 export default app;
