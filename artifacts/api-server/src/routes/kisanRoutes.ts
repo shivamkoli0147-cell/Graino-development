@@ -1,10 +1,67 @@
 import { Router } from "express";
+import multer from "multer";
 import { db } from "../db.js";
 import {
   villages, customers, products, varieties,
-  productBenefits, varietyBenefits, orders, orderItems,
+  productBenefits, varietyBenefits, orders, orderItems, productImages,
 } from "@workspace/db/schema";
 import { eq, and, ilike, or, sql, count, sum, countDistinct, asc, desc, inArray, ne } from "drizzle-orm";
+import { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_STORAGE_BUCKET } from "../config.js";
+
+// ── Multer (memory storage for Supabase upload) ───────────────────────────────
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+
+// ── Supabase Storage upload helper ────────────────────────────────────────────
+async function uploadToSupabase(buffer: Buffer, filename: string, mimetype: string): Promise<string> {
+  if (SUPABASE_SERVICE_ROLE_KEY === "ADD_YOUR_SERVICE_ROLE_KEY_HERE") {
+    throw new Error("Supabase service role key not configured. Please add it to artifacts/api-server/src/config.ts");
+  }
+  const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const path = `products/${Date.now()}-${safeName}`;
+  const storageUrl = `${SUPABASE_URL}/storage/v1/object/${SUPABASE_STORAGE_BUCKET}/${path}`;
+  const res = await fetch(storageUrl, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      "Content-Type": mimetype,
+      "x-upsert": "true",
+    },
+    body: buffer,
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Supabase upload failed: ${res.status} ${text}`);
+  }
+  return `${SUPABASE_URL}/storage/v1/object/public/${SUPABASE_STORAGE_BUCKET}/${path}`;
+}
+
+// ── Seed static product images (runs once on startup if table empty) ───────────
+const STATIC_IMAGE_SEED: Record<string, string[]> = {
+  "Wheat":       ["/images/products/wheat-1.jpg", "/images/products/wheat-2.jpg", "/images/products/wheat-3.jpg", "/images/products/wheat-4.jpg"],
+  "Moong Dal":   ["/images/products/moong-dal-2.jpg"],
+  "Chana":       ["/images/products/chana-1.jpg", "/images/products/chana-2.jpg", "/images/products/chana-3.jpg"],
+  "Moongfali":   ["/images/products/moongfali-1.jpg", "/images/products/moongfali-2.jpg"],
+  "Maize":       ["/images/products/maize-1.jpg", "/images/products/maize-2.jpg"],
+  "Fenugreek":   ["/images/products/methi-1.jpg", "/images/products/methi-2.jpg"],
+};
+
+async function seedStaticImages() {
+  try {
+    const existing = await db.select({ id: productImages.id }).from(productImages).limit(1);
+    if (existing.length > 0) return;
+    const allProducts = await db.select({ id: products.id, nameEn: products.nameEn }).from(products);
+    for (const p of allProducts) {
+      const images = STATIC_IMAGE_SEED[p.nameEn] ?? [];
+      for (let i = 0; i < images.length; i++) {
+        await db.insert(productImages).values({ productId: p.id, imageUrl: images[i], sortOrder: i });
+      }
+    }
+    console.log("Seeded static product images");
+  } catch (e) {
+    console.warn("Image seed skipped:", String(e));
+  }
+}
+void seedStaticImages();
 
 const router = Router();
 
@@ -42,17 +99,28 @@ function mapProduct(p: { id: number; name: string; nameEn: string; emoji: string
   };
 }
 
+async function getProductImages(productId: number) {
+  const imgs = await db.select().from(productImages)
+    .where(eq(productImages.productId, productId))
+    .orderBy(asc(productImages.sortOrder), asc(productImages.id));
+  return imgs.map(i => ({ id: i.id, url: i.imageUrl, sort_order: i.sortOrder }));
+}
+
 async function getProductWithDetails(id: number) {
   const [product] = await db.select().from(products).where(eq(products.id, id));
   if (!product) return null;
-  const vars = await db.select().from(varieties).where(eq(varieties.productId, id)).orderBy(asc(varieties.id));
+  const [vars, pBenefits, images] = await Promise.all([
+    db.select().from(varieties).where(eq(varieties.productId, id)).orderBy(asc(varieties.id)),
+    db.select().from(productBenefits).where(eq(productBenefits.productId, id)),
+    getProductImages(id),
+  ]);
   const varWithBenefits = await Promise.all(vars.map(async v => {
     const vb = await getVarietyBenefitsData(v.id);
     return mapVariety(v, vb);
   }));
-  const pBenefits = await db.select().from(productBenefits).where(eq(productBenefits.productId, id));
   return {
     ...mapProduct(product),
+    images,
     varieties: varWithBenefits,
     benefits: pBenefits.filter(b => b.type === "benefit").map(b => ({ id: b.id, text: b.benefitText })),
     disadvantages: pBenefits.filter(b => b.type === "disadvantage").map(b => ({ id: b.id, text: b.benefitText })),
@@ -69,14 +137,18 @@ async function getAllProductsWithDetails(category?: string, search?: string) {
   query = query.orderBy(asc(products.id));
   const rows = await query;
   return Promise.all(rows.map(async p => {
-    const vars = await db.select().from(varieties).where(eq(varieties.productId, p.id)).orderBy(asc(varieties.id));
+    const [vars, pBenefits, images] = await Promise.all([
+      db.select().from(varieties).where(eq(varieties.productId, p.id)).orderBy(asc(varieties.id)),
+      db.select().from(productBenefits).where(eq(productBenefits.productId, p.id)),
+      getProductImages(p.id),
+    ]);
     const varWithBenefits = await Promise.all(vars.map(async v => {
       const vb = await getVarietyBenefitsData(v.id);
       return mapVariety(v, vb);
     }));
-    const pBenefits = await db.select().from(productBenefits).where(eq(productBenefits.productId, p.id));
     return {
       ...mapProduct(p),
+      images,
       varieties: varWithBenefits,
       benefits: pBenefits.filter(b => b.type === "benefit").map(b => ({ id: b.id, text: b.benefitText })),
       disadvantages: pBenefits.filter(b => b.type === "disadvantage").map(b => ({ id: b.id, text: b.benefitText })),
@@ -349,6 +421,66 @@ router.delete("/products/:id/varieties/:varietyId", async (req, res) => {
     if (!existing) { res.status(404).json({ error: "Variety not found" }); return; }
     await db.delete(varieties).where(eq(varieties.id, varietyId));
     res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+// ── Product Images ────────────────────────────────────────────────────────────
+
+router.get("/products/:id/images", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const imgs = await getProductImages(id);
+    res.json(imgs);
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+router.post("/products/:id/images", upload.array("images", 5), async (req, res) => {
+  try {
+    const productId = parseInt(req.params.id);
+    const [existing] = await db.select({ id: products.id }).from(products).where(eq(products.id, productId));
+    if (!existing) { res.status(404).json({ error: "Product not found" }); return; }
+
+    const currentCount = (await db.select({ id: productImages.id }).from(productImages).where(eq(productImages.productId, productId))).length;
+    const files = (req.files as Express.Multer.File[]) ?? [];
+    if (files.length === 0) { res.status(400).json({ error: "No images uploaded" }); return; }
+    if (currentCount + files.length > 5) {
+      res.status(400).json({ error: `Maximum 5 images allowed. Currently has ${currentCount}.` }); return;
+    }
+
+    const maxOrder = currentCount;
+    const inserted = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const imageUrl = await uploadToSupabase(file.buffer, file.originalname, file.mimetype);
+      const [row] = await db.insert(productImages).values({
+        productId, imageUrl, sortOrder: maxOrder + i,
+      }).returning();
+      inserted.push({ id: row.id, url: row.imageUrl, sort_order: row.sortOrder });
+    }
+    res.status(201).json(inserted);
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+router.delete("/products/images/:imageId", async (req, res) => {
+  try {
+    const imageId = parseInt(req.params.imageId);
+    const [existing] = await db.select().from(productImages).where(eq(productImages.id, imageId));
+    if (!existing) { res.status(404).json({ error: "Image not found" }); return; }
+    await db.delete(productImages).where(eq(productImages.id, imageId));
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+router.patch("/products/:id/images/reorder", async (req, res) => {
+  try {
+    const productId = parseInt(req.params.id);
+    const { order } = req.body as { order: number[] };
+    for (let i = 0; i < order.length; i++) {
+      await db.update(productImages)
+        .set({ sortOrder: i })
+        .where(and(eq(productImages.id, order[i]), eq(productImages.productId, productId)));
+    }
+    res.json(await getProductImages(productId));
   } catch (e) { res.status(500).json({ error: String(e) }); }
 });
 

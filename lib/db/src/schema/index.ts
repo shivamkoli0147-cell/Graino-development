@@ -6,3 +6,4 @@ export * from "./product_benefits";
 export * from "./variety_benefits";
 export * from "./orders";
 export * from "./order_items";
+export * from "./product_images";

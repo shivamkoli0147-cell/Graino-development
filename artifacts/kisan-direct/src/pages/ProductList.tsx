@@ -177,36 +177,64 @@ export function ProductList({ cart, onAddToCart, onViewProduct, customer, onOpen
                   }}
                 >
                   {/* Image/emoji area */}
-                  <div style={{
-                    background: product.bg_color as string || "linear-gradient(135deg,#e8f5e8,#d1fae5)",
-                    padding: "20px 12px 14px", textAlign: "center",
-                    position: "relative",
-                  }}>
-                    <div style={{ fontSize: 40 }}>{product.emoji as string}</div>
-                    <div style={{
-                      fontWeight: 800, fontSize: 13, color: "#1C1C1C",
-                      marginTop: 6, fontFamily: "'Baloo 2', sans-serif",
-                    }}>
-                      {product.name as string}
-                    </div>
-                    <div style={{ fontSize: 10, color: "#888", fontWeight: 500, fontFamily: "'Baloo 2', sans-serif" }}>
-                      {product.name_en as string}
-                    </div>
-
-                    {/* In-cart badge */}
-                    {inCartCount > 0 && (
-                      <div style={{
-                        position: "absolute", top: 8, right: 8,
-                        background: "#1B4332", color: "white",
-                        borderRadius: "50%", width: 22, height: 22,
-                        fontSize: 11, fontWeight: 800,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        boxShadow: "0 2px 6px rgba(27,67,50,0.4)",
-                      }}>
-                        {inCartCount}
+                  {(() => {
+                    const firstImg = ((product as Product & { images?: { id: number; url: string }[] }).images ?? [])[0];
+                    return firstImg ? (
+                      <div style={{ position: "relative", height: 130, overflow: "hidden", background: "#f0f0f0" }}>
+                        <img
+                          src={firstImg.url}
+                          alt={product.name as string}
+                          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                        />
+                        <div style={{
+                          position: "absolute", bottom: 0, left: 0, right: 0,
+                          background: "linear-gradient(to top, rgba(0,0,0,0.6), transparent)",
+                          padding: "18px 10px 6px",
+                        }}>
+                          <div style={{ fontWeight: 800, fontSize: 13, color: "white",
+                            fontFamily: "'Baloo 2', sans-serif" }}>{product.name as string}</div>
+                          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.75)", fontFamily: "'Baloo 2', sans-serif" }}>
+                            {product.name_en as string}
+                          </div>
+                        </div>
+                        {inCartCount > 0 && (
+                          <div style={{
+                            position: "absolute", top: 8, right: 8,
+                            background: "#1B4332", color: "white",
+                            borderRadius: "50%", width: 22, height: 22,
+                            fontSize: 11, fontWeight: 800,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            boxShadow: "0 2px 6px rgba(27,67,50,0.4)",
+                          }}>{inCartCount}</div>
+                        )}
                       </div>
-                    )}
-                  </div>
+                    ) : (
+                      <div style={{
+                        background: product.bg_color as string || "linear-gradient(135deg,#e8f5e8,#d1fae5)",
+                        padding: "20px 12px 14px", textAlign: "center",
+                        position: "relative",
+                      }}>
+                        <div style={{ fontSize: 40 }}>{product.emoji as string}</div>
+                        <div style={{ fontWeight: 800, fontSize: 13, color: "#1C1C1C",
+                          marginTop: 6, fontFamily: "'Baloo 2', sans-serif" }}>
+                          {product.name as string}
+                        </div>
+                        <div style={{ fontSize: 10, color: "#888", fontWeight: 500, fontFamily: "'Baloo 2', sans-serif" }}>
+                          {product.name_en as string}
+                        </div>
+                        {inCartCount > 0 && (
+                          <div style={{
+                            position: "absolute", top: 8, right: 8,
+                            background: "#1B4332", color: "white",
+                            borderRadius: "50%", width: 22, height: 22,
+                            fontSize: 11, fontWeight: 800,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            boxShadow: "0 2px 6px rgba(27,67,50,0.4)",
+                          }}>{inCartCount}</div>
+                        )}
+                      </div>
+                    );
+                  })()}
 
                   {/* Info + CTA */}
                   <div style={{ padding: "10px 11px 12px" }}>
@@ -262,4 +290,5 @@ type Variety = { id: number; in_stock: boolean | number; price_per_kg: number; n
 type Product = {
   id: number; name: string; name_en: string; emoji: string; bg_color: string;
   category: string; min_kg: number; varieties: Variety[]; benefits: string[];
+  images?: { id: number; url: string; sort_order: number }[];
 };

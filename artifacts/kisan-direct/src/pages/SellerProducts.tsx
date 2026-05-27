@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useGetProducts,
@@ -151,6 +151,108 @@ function TagsInput({ label, items, color, onAdd, onRemove }: {
           fontWeight: 800, fontSize: 15, cursor: "pointer",
         }}>＋</button>
       </div>
+    </div>
+  );
+}
+
+// ─── Image Manager (only for existing products) ────────────────────────────────
+type ProductImageItem = { id: number; url: string; sort_order: number };
+
+function ImageManager({ productId }: { productId: number }) {
+  const [images, setImages] = useState<ProductImageItem[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const fetchImages = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/products/${productId}/images`);
+      if (res.ok) setImages(await res.json());
+    } catch { /* ignore */ }
+  }, [productId]);
+
+  useEffect(() => { void fetchImages(); }, [fetchImages]);
+
+  const handleUpload = async (files: FileList) => {
+    if (images.length >= 5) { setError("अधिकतम 5 images allowed"); return; }
+    const toUpload = Array.from(files).slice(0, 5 - images.length);
+    setUploading(true); setError(null);
+    try {
+      const formData = new FormData();
+      toUpload.forEach(f => formData.append("images", f));
+      const res = await fetch(`/api/products/${productId}/images`, { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || "Upload failed"); }
+      else { await fetchImages(); }
+    } catch (e) { setError("Upload failed: " + String(e)); }
+    finally { setUploading(false); if (fileInputRef.current) fileInputRef.current.value = ""; }
+  };
+
+  const handleDelete = async (imageId: number) => {
+    try {
+      await fetch(`/api/products/images/${imageId}`, { method: "DELETE" });
+      await fetchImages();
+    } catch { setError("Delete failed"); }
+  };
+
+  return (
+    <div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
+        {images.map((img, idx) => (
+          <div key={img.id} style={{ position: "relative" }}>
+            <img
+              src={img.url}
+              alt={`Image ${idx + 1}`}
+              style={{ width: 76, height: 76, objectFit: "cover", borderRadius: 10, display: "block", border: "1.5px solid #E5DDD0" }}
+            />
+            <div style={{
+              position: "absolute", top: 3, left: 5,
+              background: "rgba(0,0,0,0.55)", borderRadius: 6,
+              padding: "1px 5px", color: "white", fontSize: 9, fontWeight: 700,
+            }}>{idx + 1}</div>
+            <button
+              onClick={() => handleDelete(img.id)}
+              style={{
+                position: "absolute", top: -6, right: -6,
+                width: 20, height: 20, borderRadius: "50%",
+                background: "#dc2626", color: "white", border: "2px solid white",
+                cursor: "pointer", fontSize: 12, fontWeight: 800,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                lineHeight: 1, padding: 0,
+              }}>×</button>
+          </div>
+        ))}
+        {images.length < 5 && (
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            style={{
+              width: 76, height: 76, borderRadius: 10,
+              border: "2px dashed #C5D8C5", background: "#F7FBF7",
+              cursor: uploading ? "default" : "pointer",
+              display: "flex", flexDirection: "column",
+              alignItems: "center", justifyContent: "center", gap: 3,
+              color: "#4A9B4A", fontSize: 10, fontWeight: 700,
+              fontFamily: "'Baloo 2', sans-serif",
+            }}>
+            {uploading ? <span style={{ fontSize: 18 }}>⏳</span> : <><span style={{ fontSize: 22 }}>📷</span>Add</>}
+          </button>
+        )}
+      </div>
+      <input
+        ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp"
+        multiple style={{ display: "none" }}
+        onChange={e => { if (e.target.files?.length) void handleUpload(e.target.files); }}
+      />
+      <div style={{ fontSize: 11, color: "#999", fontFamily: "'Baloo 2', sans-serif" }}>
+        {images.length}/5 images · JPG/PNG/WebP · max 10MB each
+      </div>
+      {error && (
+        <div style={{ marginTop: 6, fontSize: 12, color: "#dc2626", background: "#FEE2E2",
+          borderRadius: 8, padding: "6px 10px", fontFamily: "'Baloo 2', sans-serif" }}>
+          ❌ {error}
+        </div>
+      )}
     </div>
   );
 }
@@ -351,6 +453,26 @@ function ProductFormView({ form, onSave, onCancel, onDelete, saving, deleting }:
             </div>
           </div>
         </div>
+
+        {/* Images — only when editing existing product */}
+        {f.id && (
+          <div style={{ background: "white", borderRadius: 16, padding: 16, marginBottom: 12 }}>
+            <div style={{ fontWeight: 800, fontSize: 15, color: "#1C1C1C", marginBottom: 4 }}>
+              📸 Product Images
+            </div>
+            <div style={{ fontSize: 12, color: "#888", marginBottom: 12, fontFamily: "'Baloo 2', sans-serif" }}>
+              अधिकतम 5 फ़ोटो। पहली image card पर दिखेगी।
+            </div>
+            <ImageManager productId={f.id} />
+          </div>
+        )}
+        {!f.id && (
+          <div style={{ background: "#F0FDF4", borderRadius: 16, padding: 14, marginBottom: 12, border: "1.5px dashed #4A9B4A" }}>
+            <div style={{ fontSize: 13, color: "#2D6A2D", fontWeight: 600, fontFamily: "'Baloo 2', sans-serif" }}>
+              📸 Images — Product save करने के बाद upload कर सकते हैं
+            </div>
+          </div>
+        )}
 
         {/* Product-level benefits / disadvantages */}
         <div style={{ background: "white", borderRadius: 16, padding: 16, marginBottom: 12 }}>
