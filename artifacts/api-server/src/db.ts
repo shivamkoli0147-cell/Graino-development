@@ -1,3 +1,4 @@
+import "./config.js";
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import * as schema from "@workspace/db/schema";
@@ -5,16 +6,21 @@ import {
   villages, customers, products, varieties,
   productBenefits, varietyBenefits, orders, orderItems,
 } from "@workspace/db/schema";
-import { eq, sql, count } from "drizzle-orm";
+import { eq, count } from "drizzle-orm";
 
 const { Pool } = pg;
 
-if (!process.env.DATABASE_URL) {
-  console.error("[db] ❌  DATABASE_URL is not set. Add it to Replit Secrets.");
+const DATABASE_URL = process.env.DATABASE_URL;
+if (!DATABASE_URL) {
+  console.error("[db] ❌  DATABASE_URL is not set. Check config.js in project root.");
   process.exit(1);
 }
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const pool = new Pool({
+  connectionString: DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+});
+
 export const db = drizzle(pool, { schema });
 
 export async function initDb() {
