@@ -87,37 +87,7 @@ export function ProductDetail({ productId, cart, onBack, onCartChange }: Product
       </div>
 
       <div style={{ flex: 1, overflowY: "auto", padding: "16px 16px 24px" }}>
-        {/* Benefits */}
-        {(p.benefits?.length ?? 0) > 0 && (
-          <div style={{ marginBottom: 12 }}>
-            <div style={{ fontWeight: 800, fontSize: 14, color: "#1C1C1C", marginBottom: 8 }}>✅ फ़ायदे</div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-              {p.benefits!.map((b, i) => (
-                <span key={i} style={{
-                  background: "#E8F5E8", color: "#2D6A2D", borderRadius: 20,
-                  padding: "4px 12px", fontSize: 12, fontWeight: 600,
-                }}>{getBenefitText(b)}</span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Disadvantages */}
-        {(p.disadvantages?.length ?? 0) > 0 && (
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ fontWeight: 800, fontSize: 14, color: "#1C1C1C", marginBottom: 8 }}>⚠️ नुकसान</div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-              {p.disadvantages!.map((b, i) => (
-                <span key={i} style={{
-                  background: "#FEF9C3", color: "#92400E", borderRadius: 20,
-                  padding: "4px 12px", fontSize: 12, fontWeight: 600,
-                }}>{getBenefitText(b)}</span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Varieties */}
+          {/* Varieties */}
         <div style={{ fontWeight: 800, fontSize: 14, color: "#1C1C1C", marginBottom: 10 }}>किस्में चुनें</div>
         {varieties.length === 0 ? (
           <div style={{ textAlign: "center", padding: 32, color: "#777", background: "white", borderRadius: 16 }}>
@@ -157,34 +127,6 @@ export function ProductDetail({ productId, cart, onBack, onCartChange }: Product
                         <div style={{ fontSize: 10, color: "#777" }}>per kg</div>
                       </div>
                     </div>
-
-                    {/* Variety benefits */}
-                    {isOpen && (v.benefits?.length ?? 0) > 0 && (
-                      <div style={{ marginTop: 10 }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: "#2D6A2D", marginBottom: 4 }}>✅ फ़ायदे</div>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                          {v.benefits!.map((b, i) => (
-                            <span key={i} style={{
-                              background: "#E8F5E8", color: "#2D6A2D", borderRadius: 16,
-                              padding: "2px 10px", fontSize: 11, fontWeight: 600,
-                            }}>{getBenefitText(b)}</span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {isOpen && (v.disadvantages?.length ?? 0) > 0 && (
-                      <div style={{ marginTop: 8 }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: "#92400E", marginBottom: 4 }}>⚠️ नुकसान</div>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                          {v.disadvantages!.map((b, i) => (
-                            <span key={i} style={{
-                              background: "#FEF9C3", color: "#92400E", borderRadius: 16,
-                              padding: "2px 10px", fontSize: 11, fontWeight: 600,
-                            }}>{getBenefitText(b)}</span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
 
                     {/* Qty + Cart */}
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12 }}>

@@ -7,7 +7,6 @@ import { ProductDetail } from "@/pages/ProductDetail";
 import { CartPage } from "@/pages/CartPage";
 import { OrdersPage } from "@/pages/OrdersPage";
 import { CustomerProfile } from "@/pages/CustomerProfile";
-import { AddressSetup } from "@/pages/AddressSetup";
 import { SellerAuth } from "@/pages/SellerAuth";
 import { SellerDashboard } from "@/pages/SellerDashboard";
 import { SellerOrders } from "@/pages/SellerOrders";
@@ -33,18 +32,12 @@ function GrainoApp() {
   const [showSplash, setShowSplash] = useState(true);
   const [mode, setMode] = useState<AppMode>("customer");
 
-  // ── Customer state ──────────────────────────────────────────────────────────
   const [customer, setCustomer] = useState<CustomerSession | null>(getCustomerSession);
-  const [showAddressSetup, setShowAddressSetup] = useState<boolean>(() => {
-    const c = getCustomerSession();
-    return !!c && !c.address;
-  });
   const [customerTab, setCustomerTab] = useState<CustomerTab>("products");
   const [viewProductId, setViewProductId] = useState<number | null>(null);
   const [cart, setCart] = useState<Cart>({});
   const [showProfile, setShowProfile] = useState(false);
 
-  // ── Seller state ────────────────────────────────────────────────────────────
   const [sellerAuthed, setSellerAuthed] = useState(isSellerSession);
   const [sellerTab, setSellerTab] = useState<SellerTab>("dashboard");
 
@@ -69,12 +62,6 @@ function GrainoApp() {
   const handleLoginSuccess = (c: CustomerSession) => {
     setCustomerSession(c);
     setCustomer(c);
-    if (!c.address) setShowAddressSetup(true);
-  };
-
-  const handleAddressComplete = (c: CustomerSession) => {
-    setCustomer(c);
-    setShowAddressSetup(false);
   };
 
   const goToSeller = () => {
@@ -90,19 +77,12 @@ function GrainoApp() {
         fontFamily: "'Baloo 2', sans-serif",
         overflow: "hidden",
       }}>
-        {/* Splash screen */}
         {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
 
         {mode === "customer" ? (
           <>
             {!customer ? (
               <CustomerAuth onSuccess={handleLoginSuccess} />
-            ) : showAddressSetup ? (
-              <AddressSetup
-                customer={customer}
-                onComplete={handleAddressComplete}
-                onSkip={() => setShowAddressSetup(false)}
-              />
             ) : viewProductId ? (
               <ProductDetail
                 productId={viewProductId} cart={cart}
@@ -142,14 +122,14 @@ function GrainoApp() {
               </>
             )}
 
-            {showProfile && customer && !showAddressSetup && (
+            {showProfile && customer && (
               <CustomerProfile
                 customer={customer}
                 onUpdate={handleCustomerUpdate}
                 onLogout={() => {
                   clearCustomerSession();
                   setCustomer(null); setCart({});
-                  setShowProfile(false); setShowAddressSetup(false);
+                  setShowProfile(false);
                 }}
                 onClose={() => setShowProfile(false)}
                 onGoSeller={goToSeller}
