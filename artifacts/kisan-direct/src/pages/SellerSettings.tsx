@@ -72,91 +72,117 @@ export function SellerSettings({ onBack }: SellerSettingsProps) {
   };
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: "#F7F4EF" }}>
+    <div style={{
+      flex: 1, display: "flex", flexDirection: "column",
+      overflow: "hidden", background: "#F7F4EF",
+      width: "100%", boxSizing: "border-box",
+    }}>
       {/* Header */}
       <div style={{
         background: "linear-gradient(135deg,#1a3d1a,#2D6A2D)",
-        padding: "20px 16px 20px", flexShrink: 0,
+        padding: "16px 16px 16px", flexShrink: 0,
         display: "flex", alignItems: "center", gap: 12,
       }}>
         <button onClick={onBack} style={{
           background: "rgba(255,255,255,0.15)", border: "none", borderRadius: 10,
           padding: "7px 12px", color: "white", fontFamily: "'Baloo 2', sans-serif",
-          fontWeight: 700, fontSize: 14, cursor: "pointer",
+          fontWeight: 700, fontSize: 14, cursor: "pointer", flexShrink: 0,
         }}>←</button>
-        <div>
-          <div style={{ color: "white", fontSize: 20, fontWeight: 800 }}>⚙️ Manage Settings</div>
-          <div style={{ color: "rgba(255,255,255,0.65)", fontSize: 12, marginTop: 1 }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ color: "white", fontSize: 18, fontWeight: 800 }}>⚙️ Manage Settings</div>
+          <div style={{ color: "rgba(255,255,255,0.65)", fontSize: 11, marginTop: 1 }}>
             Villages & Categories manage करें
           </div>
         </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: "auto", padding: "16px 16px 32px", display: "flex", flexDirection: "column", gap: 16 }}>
+      {/* Scrollable content */}
+      <div style={{
+        flex: 1, overflowY: "auto", overflowX: "hidden",
+        padding: "14px 14px 28px", display: "flex",
+        flexDirection: "column", gap: 14, width: "100%", boxSizing: "border-box",
+      }}>
 
-        {/* Villages Section */}
-        <div style={{ background: "white", borderRadius: 18, overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
+        {/* ── Villages Section ─────────────────────────────────── */}
+        <div style={{
+          background: "white", borderRadius: 16,
+          boxShadow: "0 2px 10px rgba(0,0,0,0.06)",
+          width: "100%", boxSizing: "border-box", overflow: "hidden",
+        }}>
+          {/* Section header */}
           <div style={{
             background: "linear-gradient(135deg,#E8F5E8,#d1fae5)",
-            padding: "14px 16px", borderBottom: "1px solid #E5DDD0",
+            padding: "12px 14px", borderBottom: "1px solid #E5DDD0",
           }}>
-            <div style={{ fontWeight: 800, fontSize: 16, color: "#1a3d1a" }}>🏘 Delivery Villages</div>
+            <div style={{ fontWeight: 800, fontSize: 15, color: "#1a3d1a" }}>🏘 Delivery Villages</div>
             <div style={{ fontSize: 12, color: "#2D6A2D", marginTop: 2 }}>
               {villages.length} गांव · Customer इन्हें देख सकते हैं
             </div>
           </div>
 
-          <div style={{ padding: "12px 16px 14px" }}>
+          {/* Add input — always visible at top */}
+          <div style={{ padding: "12px 14px 10px", borderBottom: "1px solid #F0EDE8" }}>
             {villageErr && (
-              <div style={{ fontSize: 12, color: "#dc2626", marginBottom: 8, fontFamily: "'Baloo 2', sans-serif" }}>
-                ⚠ {villageErr}
-              </div>
+              <div style={{
+                fontSize: 12, color: "#dc2626", marginBottom: 6,
+                fontFamily: "'Baloo 2', sans-serif",
+              }}>⚠ {villageErr}</div>
             )}
-            <div style={{ display: "flex", gap: 8 }}>
+            <div style={{
+              display: "flex", gap: 8, width: "100%", boxSizing: "border-box",
+            }}>
               <input
                 value={villageInput}
                 onChange={e => { setVillageInput(e.target.value); setVillageErr(""); }}
                 onKeyDown={e => e.key === "Enter" && void addVillage()}
                 placeholder="नया गांव का नाम..."
                 style={{
-                  flex: 1, border: "1.5px solid #E5DDD0", borderRadius: 12,
-                  padding: "10px 14px", fontFamily: "'Baloo 2', sans-serif",
+                  flex: 1, minWidth: 0, border: "1.5px solid #E5DDD0", borderRadius: 10,
+                  padding: "9px 12px", fontFamily: "'Baloo 2', sans-serif",
                   fontSize: 14, outline: "none", background: "#FAFAF8",
+                  boxSizing: "border-box",
                 }}
               />
               <button
                 onClick={() => void addVillage()}
                 disabled={villageLoading || !villageInput.trim()}
                 style={{
+                  flexShrink: 0,
                   background: villageLoading || !villageInput.trim() ? "#E5DDD0" : "#2D6A2D",
-                  color: villageLoading || !villageInput.trim() ? "#999" : "white",
-                  border: "none", borderRadius: 12, padding: "10px 18px",
-                  fontFamily: "'Baloo 2', sans-serif", fontWeight: 800, fontSize: 16,
+                  color: villageLoading || !villageInput.trim() ? "#aaa" : "white",
+                  border: "none", borderRadius: 10, padding: "9px 16px",
+                  fontFamily: "'Baloo 2', sans-serif", fontWeight: 800, fontSize: 18,
                   cursor: villageLoading || !villageInput.trim() ? "default" : "pointer",
+                  lineHeight: 1,
                 }}
-              >＋</button>
+              >+</button>
             </div>
           </div>
 
-          <div style={{ padding: "0 16px 16px", display: "flex", flexDirection: "column", gap: 6 }}>
+          {/* Village list */}
+          <div style={{ padding: "8px 14px 12px", display: "flex", flexDirection: "column", gap: 6 }}>
             {villages.length === 0 && (
-              <div style={{ fontSize: 13, color: "#999", textAlign: "center", padding: "12px 0" }}>
-                कोई गांव नहीं है, नया जोड़ें
+              <div style={{ fontSize: 13, color: "#aaa", textAlign: "center", padding: "12px 0" }}>
+                कोई गांव नहीं है, नया जोड़ें ↑
               </div>
             )}
             {villages.map(v => (
               <div key={v.id} style={{
                 display: "flex", justifyContent: "space-between", alignItems: "center",
-                padding: "10px 14px", background: "#F7FBF7", borderRadius: 12,
-                border: "1.5px solid #E8F5E8",
+                padding: "9px 12px", background: "#F7FBF7", borderRadius: 10,
+                border: "1.5px solid #E8F5E8", gap: 8,
               }}>
-                <span style={{ fontWeight: 700, fontSize: 14, color: "#1C1C1C", fontFamily: "'Baloo 2', sans-serif" }}>
+                <span style={{
+                  fontWeight: 700, fontSize: 14, color: "#1C1C1C",
+                  fontFamily: "'Baloo 2', sans-serif", minWidth: 0,
+                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                }}>
                   📍 {v.name}
                 </span>
                 <button
                   onClick={() => void removeVillage(v.id)}
                   style={{
-                    background: "#FEE2E2", color: "#dc2626", border: "none",
+                    flexShrink: 0, background: "#FEE2E2", color: "#dc2626", border: "none",
                     borderRadius: 8, width: 28, height: 28, cursor: "pointer",
                     fontSize: 14, fontWeight: 800, display: "flex",
                     alignItems: "center", justifyContent: "center",
@@ -167,69 +193,86 @@ export function SellerSettings({ onBack }: SellerSettingsProps) {
           </div>
         </div>
 
-        {/* Categories Section */}
-        <div style={{ background: "white", borderRadius: 18, overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
+        {/* ── Categories Section ───────────────────────────────── */}
+        <div style={{
+          background: "white", borderRadius: 16,
+          boxShadow: "0 2px 10px rgba(0,0,0,0.06)",
+          width: "100%", boxSizing: "border-box", overflow: "hidden",
+        }}>
+          {/* Section header */}
           <div style={{
             background: "linear-gradient(135deg,#FEF9C3,#fef3c7)",
-            padding: "14px 16px", borderBottom: "1px solid #E5DDD0",
+            padding: "12px 14px", borderBottom: "1px solid #E5DDD0",
           }}>
-            <div style={{ fontWeight: 800, fontSize: 16, color: "#92400E" }}>🏷 Product Categories</div>
+            <div style={{ fontWeight: 800, fontSize: 15, color: "#92400E" }}>🏷 Product Categories</div>
             <div style={{ fontSize: 12, color: "#B45309", marginTop: 2 }}>
               {categories.length} categories · Products add करते समय दिखती हैं
             </div>
           </div>
 
-          <div style={{ padding: "12px 16px 14px" }}>
+          {/* Add input — always visible at top */}
+          <div style={{ padding: "12px 14px 10px", borderBottom: "1px solid #F0EDE8" }}>
             {categoryErr && (
-              <div style={{ fontSize: 12, color: "#dc2626", marginBottom: 8, fontFamily: "'Baloo 2', sans-serif" }}>
-                ⚠ {categoryErr}
-              </div>
+              <div style={{
+                fontSize: 12, color: "#dc2626", marginBottom: 6,
+                fontFamily: "'Baloo 2', sans-serif",
+              }}>⚠ {categoryErr}</div>
             )}
-            <div style={{ display: "flex", gap: 8 }}>
+            <div style={{
+              display: "flex", gap: 8, width: "100%", boxSizing: "border-box",
+            }}>
               <input
                 value={categoryInput}
                 onChange={e => { setCategoryInput(e.target.value); setCategoryErr(""); }}
                 onKeyDown={e => e.key === "Enter" && void addCategory()}
                 placeholder="नई category का नाम..."
                 style={{
-                  flex: 1, border: "1.5px solid #E5DDD0", borderRadius: 12,
-                  padding: "10px 14px", fontFamily: "'Baloo 2', sans-serif",
+                  flex: 1, minWidth: 0, border: "1.5px solid #E5DDD0", borderRadius: 10,
+                  padding: "9px 12px", fontFamily: "'Baloo 2', sans-serif",
                   fontSize: 14, outline: "none", background: "#FAFAF8",
+                  boxSizing: "border-box",
                 }}
               />
               <button
                 onClick={() => void addCategory()}
                 disabled={categoryLoading || !categoryInput.trim()}
                 style={{
+                  flexShrink: 0,
                   background: categoryLoading || !categoryInput.trim() ? "#E5DDD0" : "#D97706",
-                  color: categoryLoading || !categoryInput.trim() ? "#999" : "white",
-                  border: "none", borderRadius: 12, padding: "10px 18px",
-                  fontFamily: "'Baloo 2', sans-serif", fontWeight: 800, fontSize: 16,
+                  color: categoryLoading || !categoryInput.trim() ? "#aaa" : "white",
+                  border: "none", borderRadius: 10, padding: "9px 16px",
+                  fontFamily: "'Baloo 2', sans-serif", fontWeight: 800, fontSize: 18,
                   cursor: categoryLoading || !categoryInput.trim() ? "default" : "pointer",
+                  lineHeight: 1,
                 }}
-              >＋</button>
+              >+</button>
             </div>
           </div>
 
-          <div style={{ padding: "0 16px 16px", display: "flex", flexDirection: "column", gap: 6 }}>
+          {/* Category list */}
+          <div style={{ padding: "8px 14px 12px", display: "flex", flexDirection: "column", gap: 6 }}>
             {categories.length === 0 && (
-              <div style={{ fontSize: 13, color: "#999", textAlign: "center", padding: "12px 0" }}>
-                कोई category नहीं है, नई जोड़ें
+              <div style={{ fontSize: 13, color: "#aaa", textAlign: "center", padding: "12px 0" }}>
+                कोई category नहीं है, नई जोड़ें ↑
               </div>
             )}
             {categories.map(c => (
               <div key={c.id} style={{
                 display: "flex", justifyContent: "space-between", alignItems: "center",
-                padding: "10px 14px", background: "#FFFBEB", borderRadius: 12,
-                border: "1.5px solid #FEF3C7",
+                padding: "9px 12px", background: "#FFFBEB", borderRadius: 10,
+                border: "1.5px solid #FEF3C7", gap: 8,
               }}>
-                <span style={{ fontWeight: 700, fontSize: 14, color: "#1C1C1C", fontFamily: "'Baloo 2', sans-serif" }}>
+                <span style={{
+                  fontWeight: 700, fontSize: 14, color: "#1C1C1C",
+                  fontFamily: "'Baloo 2', sans-serif", minWidth: 0,
+                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                }}>
                   🏷 {c.name}
                 </span>
                 <button
                   onClick={() => void removeCategory(c.id)}
                   style={{
-                    background: "#FEE2E2", color: "#dc2626", border: "none",
+                    flexShrink: 0, background: "#FEE2E2", color: "#dc2626", border: "none",
                     borderRadius: 8, width: 28, height: 28, cursor: "pointer",
                     fontSize: 14, fontWeight: 800, display: "flex",
                     alignItems: "center", justifyContent: "center",
