@@ -6,10 +6,81 @@ import {
   productBenefits, varietyBenefits, orders, orderItems, productImages, categories,
 } from "@workspace/db/schema";
 import { eq, and, ilike, or, sql, count, sum, countDistinct, asc, desc, inArray, ne } from "drizzle-orm";
-import { uploadBufferToObjectStorage, deleteFromObjectStorage } from "../replit_integrations/object_storage/uploadHelper.js";
+import { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_STORAGE_BUCKET } from "../config.js";
 
-// ── Multer (memory storage for upload) ───────────────────────────────────────
+// ── Multer (memory storage for Supabase upload) ───────────────────────────────
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+
+// ── Supabase bucket auto-create ────────────────────────────────────────────────
+async function ensureSupabaseBucket(): Promise<void> {
+  try {
+    const checkRes = await fetch(`${SUPABASE_URL}/storage/v1/bucket/${SUPABASE_STORAGE_BUCKET}`, {
+      headers: { "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
+    });
+    if (checkRes.ok) {
+      console.log(`[storage] Bucket "${SUPABASE_STORAGE_BUCKET}" already exists.`);
+      return;
+    }
+    const createRes = await fetch(`${SUPABASE_URL}/storage/v1/bucket`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ id: SUPABASE_STORAGE_BUCKET, name: SUPABASE_STORAGE_BUCKET, public: true }),
+    });
+    if (createRes.ok) {
+      console.log(`[storage] Bucket "${SUPABASE_STORAGE_BUCKET}" created successfully.`);
+    } else {
+      const text = await createRes.text();
+      console.error(`[storage] Failed to create bucket: ${createRes.status} ${text}`);
+    }
+  } catch (e) {
+    console.error("[storage] ensureSupabaseBucket error:", String(e));
+  }
+}
+void ensureSupabaseBucket();
+
+// ── Supabase Storage upload helper ────────────────────────────────────────────
+async function uploadToSupabase(buffer: Buffer, filename: string, mimetype: string): Promise<string> {
+  const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const path = `products/${Date.now()}-${safeName}`;
+  const storageUrl = `${SUPABASE_URL}/storage/v1/object/${SUPABASE_STORAGE_BUCKET}/${path}`;
+  const res = await fetch(storageUrl, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      "Content-Type": mimetype,
+      "x-upsert": "true",
+    },
+    body: buffer,
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Supabase upload failed: ${res.status} ${text}`);
+  }
+  return `${SUPABASE_URL}/storage/v1/object/public/${SUPABASE_STORAGE_BUCKET}/${path}`;
+}
+
+// ── Supabase Storage delete helper ────────────────────────────────────────────
+async function deleteFromSupabase(imageUrl: string): Promise<void> {
+  try {
+    const marker = `/object/public/${SUPABASE_STORAGE_BUCKET}/`;
+    const idx = imageUrl.indexOf(marker);
+    if (idx === -1) return;
+    const filePath = imageUrl.slice(idx + marker.length);
+    const deleteRes = await fetch(`${SUPABASE_URL}/storage/v1/object/${SUPABASE_STORAGE_BUCKET}/${filePath}`, {
+      method: "DELETE",
+      headers: { "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
+    });
+    if (!deleteRes.ok) {
+      const text = await deleteRes.text();
+      console.warn(`[storage] Delete warning: ${deleteRes.status} ${text}`);
+    }
+  } catch (e) {
+    console.warn("[storage] deleteFromSupabase error:", String(e));
+  }
+}
 
 // ── Seed static product images (runs once on startup if table empty) ───────────
 const STATIC_IMAGE_SEED: Record<string, string[]> = {
@@ -455,7 +526,7 @@ router.post("/products/:id/images", upload.array("images", 5), async (req, res) 
     const inserted = [];
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const imageUrl = await uploadBufferToObjectStorage(file.buffer, file.originalname, file.mimetype);
+      const imageUrl = await uploadToSupabase(file.buffer, file.originalname, file.mimetype);
       const [row] = await db.insert(productImages).values({
         productId, imageUrl, sortOrder: maxOrder + i,
       }).returning();
@@ -471,7 +542,7 @@ router.delete("/products/images/:imageId", async (req, res) => {
     const [existing] = await db.select().from(productImages).where(eq(productImages.id, imageId));
     if (!existing) { res.status(404).json({ error: "Image not found" }); return; }
     await db.delete(productImages).where(eq(productImages.id, imageId));
-    void deleteFromObjectStorage(existing.imageUrl);
+    void deleteFromSupabase(existing.imageUrl);
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: String(e) }); }
 });

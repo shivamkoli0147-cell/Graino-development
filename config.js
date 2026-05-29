@@ -1,6 +1,7 @@
-// config.js — DATABASE_URL and other secrets are set by Replit automatically.
-// This file is kept for import compatibility but no longer hardcodes any credentials.
-if (!process.env.DATABASE_URL) {
-  console.error("[config] ❌  DATABASE_URL is not set. Ensure Replit PostgreSQL is provisioned.");
-  process.exit(1);
+export const config = {
+  DATABASE_URL: "postgresql://postgres.gnujbijlnynurmpacsoa:GrainoDevelopment12345@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres",
+};
+
+for (const [key, value] of Object.entries(config)) {
+  process.env[key] = value;
 }

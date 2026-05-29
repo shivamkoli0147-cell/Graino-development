@@ -5,7 +5,6 @@ import pinoHttp from "pino-http";
 import router from "./routes/index.js";
 import { logger } from "./lib/logger.js";
 import { initDb } from "./db.js";
-import { registerObjectStorageRoutes } from "./replit_integrations/object_storage/index.js";
 
 const app: Express = express();
 
@@ -31,8 +30,6 @@ app.use(
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-registerObjectStorageRoutes(app);
 
 app.use("/api", router);
 
