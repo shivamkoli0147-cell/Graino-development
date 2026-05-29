@@ -240,13 +240,8 @@ export function ProductList({ cart, onAddToCart, onViewProduct, customer, onOpen
                   <div style={{ padding: "10px 11px 12px" }}>
                     {cheapest ? (
                       <>
-                        <div style={{ fontSize: 10, color: "#999", fontFamily: "'Baloo 2', sans-serif" }}>से शुरू</div>
-                        <div style={{ fontWeight: 800, fontSize: 16, color: "#1B4332",
-                          fontFamily: "'Baloo 2', sans-serif" }}>
-                          {formatINR(cheapest.price_per_kg)}<span style={{ fontSize: 11, fontWeight: 500, color: "#777" }}>/kg</span>
-                        </div>
                         <div style={{ fontSize: 10, color: "#4A9B4A", fontWeight: 600,
-                          marginTop: 1, fontFamily: "'Baloo 2', sans-serif" }}>
+                          fontFamily: "'Baloo 2', sans-serif" }}>
                           {inStockVarieties.length} किस्में उपलब्ध
                         </div>
                       </>
