@@ -349,9 +349,6 @@ router.put("/customers/:id", async (req, res) => {
     const { name, address, lat, lng, village } = req.body as {
       name?: string; address?: string; lat?: number; lng?: number; village?: string;
     };
-    if (village && !ALLOWED_VILLAGES.includes(village)) {
-      res.status(400).json({ error: "Invalid village" }); return;
-    }
     const [existing] = await db.select().from(customers).where(eq(customers.id, id));
     if (!existing) { res.status(404).json({ error: "Customer not found" }); return; }
     await db.update(customers).set({
@@ -373,9 +370,6 @@ router.patch("/customers/:id", async (req, res) => {
     const { village, name, address, lat, lng } = req.body as {
       village?: string; name?: string; address?: string; lat?: number; lng?: number;
     };
-    if (village && !ALLOWED_VILLAGES.includes(village)) {
-      res.status(400).json({ error: "Invalid village" }); return;
-    }
     const [existing] = await db.select().from(customers).where(eq(customers.id, id));
     if (!existing) { res.status(404).json({ error: "Not found" }); return; }
     const patch: Record<string, unknown> = {};
