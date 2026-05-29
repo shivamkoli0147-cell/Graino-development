@@ -31,8 +31,6 @@ export function SellerSettings({ onBack }: SellerSettingsProps) {
   const [categoryLoading, setCategoryLoading] = useState(false);
   const [villageErr, setVillageErr] = useState("");
   const [categoryErr, setCategoryErr] = useState("");
-  const [confirmDeleteVillage, setConfirmDeleteVillage] = useState<number | null>(null);
-  const [confirmDeleteCategory, setConfirmDeleteCategory] = useState<number | null>(null);
 
   const { toast, show: showToast } = useToast();
 
@@ -72,10 +70,9 @@ export function SellerSettings({ onBack }: SellerSettingsProps) {
   };
 
   const removeVillage = async (id: number, name: string) => {
-    setConfirmDeleteVillage(null);
-    await fetch(`/api/settings/villages/${id}`, { method: "DELETE" });
-    await fetchVillages();
+    setVillages(prev => prev.filter(v => v.id !== id));
     showToast(`🗑 "${name}" हटाया गया`, "delete");
+    await fetch(`/api/settings/villages/${id}`, { method: "DELETE" });
   };
 
   const addCategory = async () => {
@@ -102,10 +99,9 @@ export function SellerSettings({ onBack }: SellerSettingsProps) {
   };
 
   const removeCategory = async (id: number, name: string) => {
-    setConfirmDeleteCategory(null);
-    await fetch(`/api/settings/categories/${id}`, { method: "DELETE" });
-    await fetchCategories();
+    setCategories(prev => prev.filter(c => c.id !== id));
     showToast(`🗑 "${name}" हटाई गई`, "delete");
+    await fetch(`/api/settings/categories/${id}`, { method: "DELETE" });
   };
 
   const toastBg =
@@ -114,9 +110,10 @@ export function SellerSettings({ onBack }: SellerSettingsProps) {
 
   return (
     <div style={{
-      flex: 1, display: "flex", flexDirection: "column",
+      flex: 1, minHeight: 0,
+      display: "flex", flexDirection: "column",
       overflow: "hidden", background: "#F7F4EF",
-      width: "100%", boxSizing: "border-box", position: "relative",
+      width: "100%", boxSizing: "border-box",
     }}>
 
       {/* ── Toast ──────────────────────────────────────────────── */}
@@ -134,7 +131,10 @@ export function SellerSettings({ onBack }: SellerSettingsProps) {
       )}
 
       {/* ── Header ─────────────────────────────────────────────── */}
-      <div style={{ background: "linear-gradient(135deg,#1a3d1a,#2D6A2D)", flexShrink: 0, willChange: "transform", transform: "translateZ(0)", zIndex: 100 }}>
+      <div style={{
+        background: "linear-gradient(135deg,#1a3d1a,#2D6A2D)",
+        flexShrink: 0, willChange: "transform", transform: "translateZ(0)", zIndex: 100,
+      }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 16px 0" }}>
           <button onClick={onBack} style={{
             background: "rgba(255,255,255,0.15)", border: "none", borderRadius: 10,
@@ -178,8 +178,9 @@ export function SellerSettings({ onBack }: SellerSettingsProps) {
 
       {/* ── Villages Tab ────────────────────────────────────────── */}
       {activeTab === "villages" && (
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-          {/* Add input — always pinned at top */}
+        <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+
+          {/* Add input — pinned at top */}
           <div style={{
             padding: "12px 14px 10px", background: "white",
             borderBottom: "1px solid #F0EDE8", flexShrink: 0,
@@ -188,7 +189,7 @@ export function SellerSettings({ onBack }: SellerSettingsProps) {
               <div style={{ fontSize: 12, color: "#dc2626", marginBottom: 6,
                 fontFamily: "'Baloo 2', sans-serif" }}>⚠ {villageErr}</div>
             )}
-            <div style={{ display: "flex", gap: 8, width: "100%", boxSizing: "border-box" }}>
+            <div style={{ display: "flex", gap: 8 }}>
               <input
                 value={villageInput}
                 onChange={e => { setVillageInput(e.target.value); setVillageErr(""); }}
@@ -220,10 +221,12 @@ export function SellerSettings({ onBack }: SellerSettingsProps) {
             </div>
           </div>
 
-          {/* Village list */}
+          {/* Village list — scrollable */}
           <div style={{
-            flex: 1, overflowY: "auto", overflowX: "hidden", WebkitOverflowScrolling: "touch",
-            padding: "10px 14px 24px", display: "flex", flexDirection: "column", gap: 7,
+            flex: 1, minHeight: 0,
+            overflowY: "auto", overflowX: "hidden",
+            WebkitOverflowScrolling: "touch",
+            padding: "10px 14px 24px",
           }}>
             {villages.length === 0 ? (
               <div style={{
@@ -235,16 +238,37 @@ export function SellerSettings({ onBack }: SellerSettingsProps) {
                 <div style={{ fontSize: 13 }}>ऊपर नाम लिखकर + दबाएं</div>
               </div>
             ) : (
-              villages.map(v => (
-                <VillageRow
-                  key={v.id}
-                  village={v}
-                  confirming={confirmDeleteVillage === v.id}
-                  onDeleteTap={() => setConfirmDeleteVillage(v.id)}
-                  onConfirm={() => void removeVillage(v.id, v.name)}
-                  onCancel={() => setConfirmDeleteVillage(null)}
-                />
-              ))
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {villages.map(v => (
+                  <div key={v.id} style={{
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                    gap: 8, background: "white", borderRadius: 12,
+                    border: "1.5px solid #E8F5E8",
+                    boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+                    padding: "11px 12px",
+                    boxSizing: "border-box",
+                  }}>
+                    <span style={{
+                      fontWeight: 700, fontSize: 14, color: "#1C1C1C",
+                      fontFamily: "'Baloo 2', sans-serif",
+                      flex: 1, minWidth: 0,
+                      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    }}>
+                      📍 {v.name}
+                    </span>
+                    <button
+                      onClick={() => void removeVillage(v.id, v.name)}
+                      style={{
+                        flexShrink: 0, background: "#FEE2E2", color: "#dc2626",
+                        border: "none", borderRadius: 8, width: 32, height: 32,
+                        cursor: "pointer", fontSize: 16, fontWeight: 800,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        lineHeight: 1,
+                      }}
+                    >×</button>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         </div>
@@ -252,8 +276,9 @@ export function SellerSettings({ onBack }: SellerSettingsProps) {
 
       {/* ── Categories Tab ──────────────────────────────────────── */}
       {activeTab === "categories" && (
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-          {/* Add input — always pinned at top */}
+        <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+
+          {/* Add input — pinned at top */}
           <div style={{
             padding: "12px 14px 10px", background: "white",
             borderBottom: "1px solid #F0EDE8", flexShrink: 0,
@@ -262,7 +287,7 @@ export function SellerSettings({ onBack }: SellerSettingsProps) {
               <div style={{ fontSize: 12, color: "#dc2626", marginBottom: 6,
                 fontFamily: "'Baloo 2', sans-serif" }}>⚠ {categoryErr}</div>
             )}
-            <div style={{ display: "flex", gap: 8, width: "100%", boxSizing: "border-box" }}>
+            <div style={{ display: "flex", gap: 8 }}>
               <input
                 value={categoryInput}
                 onChange={e => { setCategoryInput(e.target.value); setCategoryErr(""); }}
@@ -294,10 +319,12 @@ export function SellerSettings({ onBack }: SellerSettingsProps) {
             </div>
           </div>
 
-          {/* Category list */}
+          {/* Category list — scrollable */}
           <div style={{
-            flex: 1, overflowY: "auto", overflowX: "hidden", WebkitOverflowScrolling: "touch",
-            padding: "10px 14px 24px", display: "flex", flexDirection: "column", gap: 7,
+            flex: 1, minHeight: 0,
+            overflowY: "auto", overflowX: "hidden",
+            WebkitOverflowScrolling: "touch",
+            padding: "10px 14px 24px",
           }}>
             {categories.length === 0 ? (
               <div style={{
@@ -309,141 +336,38 @@ export function SellerSettings({ onBack }: SellerSettingsProps) {
                 <div style={{ fontSize: 13 }}>ऊपर नाम लिखकर + दबाएं</div>
               </div>
             ) : (
-              categories.map(c => (
-                <CategoryRow
-                  key={c.id}
-                  category={c}
-                  confirming={confirmDeleteCategory === c.id}
-                  onDeleteTap={() => setConfirmDeleteCategory(c.id)}
-                  onConfirm={() => void removeCategory(c.id, c.name)}
-                  onCancel={() => setConfirmDeleteCategory(null)}
-                />
-              ))
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {categories.map(c => (
+                  <div key={c.id} style={{
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                    gap: 8, background: "white", borderRadius: 12,
+                    border: "1.5px solid #FEF3C7",
+                    boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+                    padding: "11px 12px",
+                    boxSizing: "border-box",
+                  }}>
+                    <span style={{
+                      fontWeight: 700, fontSize: 14, color: "#1C1C1C",
+                      fontFamily: "'Baloo 2', sans-serif",
+                      flex: 1, minWidth: 0,
+                      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    }}>
+                      🏷 {c.name}
+                    </span>
+                    <button
+                      onClick={() => void removeCategory(c.id, c.name)}
+                      style={{
+                        flexShrink: 0, background: "#FEE2E2", color: "#dc2626",
+                        border: "none", borderRadius: 8, width: 32, height: 32,
+                        cursor: "pointer", fontSize: 16, fontWeight: 800,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        lineHeight: 1,
+                      }}
+                    >×</button>
+                  </div>
+                ))}
+              </div>
             )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function VillageRow({ village, confirming, onDeleteTap, onConfirm, onCancel }: {
-  village: Village;
-  confirming: boolean;
-  onDeleteTap: () => void;
-  onConfirm: () => void;
-  onCancel: () => void;
-}) {
-  return (
-    <div style={{
-      background: "white", borderRadius: 12,
-      border: confirming ? "1.5px solid #FCA5A5" : "1.5px solid #E8F5E8",
-      boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
-      overflow: "hidden", transition: "border-color 0.15s",
-    }}>
-      <div style={{
-        display: "flex", justifyContent: "space-between", alignItems: "center",
-        padding: "11px 12px", gap: 8,
-      }}>
-        <span style={{
-          fontWeight: 700, fontSize: 14, color: "#1C1C1C",
-          fontFamily: "'Baloo 2', sans-serif", minWidth: 0,
-          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-        }}>
-          📍 {village.name}
-        </span>
-        {!confirming && (
-          <button onClick={onDeleteTap} style={{
-            flexShrink: 0, background: "#FEE2E2", color: "#dc2626",
-            border: "none", borderRadius: 8, width: 30, height: 30,
-            cursor: "pointer", fontSize: 15, fontWeight: 800,
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}>×</button>
-        )}
-      </div>
-      {confirming && (
-        <div style={{
-          padding: "8px 12px 10px", background: "#FEF2F2",
-          borderTop: "1px solid #FCA5A5",
-          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
-        }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: "#dc2626",
-            fontFamily: "'Baloo 2', sans-serif" }}>
-            पक्का हटाएं?
-          </span>
-          <div style={{ display: "flex", gap: 6 }}>
-            <button onClick={onCancel} style={{
-              background: "#F3F4F6", color: "#555", border: "none",
-              borderRadius: 8, padding: "5px 12px", fontSize: 12,
-              fontFamily: "'Baloo 2', sans-serif", fontWeight: 700, cursor: "pointer",
-            }}>नहीं</button>
-            <button onClick={onConfirm} style={{
-              background: "#dc2626", color: "white", border: "none",
-              borderRadius: 8, padding: "5px 12px", fontSize: 12,
-              fontFamily: "'Baloo 2', sans-serif", fontWeight: 800, cursor: "pointer",
-            }}>हाँ, हटाओ</button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function CategoryRow({ category, confirming, onDeleteTap, onConfirm, onCancel }: {
-  category: Category;
-  confirming: boolean;
-  onDeleteTap: () => void;
-  onConfirm: () => void;
-  onCancel: () => void;
-}) {
-  return (
-    <div style={{
-      background: "white", borderRadius: 12,
-      border: confirming ? "1.5px solid #FCA5A5" : "1.5px solid #FEF3C7",
-      boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
-      overflow: "hidden", transition: "border-color 0.15s",
-    }}>
-      <div style={{
-        display: "flex", justifyContent: "space-between", alignItems: "center",
-        padding: "11px 12px", gap: 8,
-      }}>
-        <span style={{
-          fontWeight: 700, fontSize: 14, color: "#1C1C1C",
-          fontFamily: "'Baloo 2', sans-serif", minWidth: 0,
-          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-        }}>
-          🏷 {category.name}
-        </span>
-        {!confirming && (
-          <button onClick={onDeleteTap} style={{
-            flexShrink: 0, background: "#FEE2E2", color: "#dc2626",
-            border: "none", borderRadius: 8, width: 30, height: 30,
-            cursor: "pointer", fontSize: 15, fontWeight: 800,
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}>×</button>
-        )}
-      </div>
-      {confirming && (
-        <div style={{
-          padding: "8px 12px 10px", background: "#FEF2F2",
-          borderTop: "1px solid #FCA5A5",
-          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
-        }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: "#dc2626",
-            fontFamily: "'Baloo 2', sans-serif" }}>
-            पक्का हटाएं?
-          </span>
-          <div style={{ display: "flex", gap: 6 }}>
-            <button onClick={onCancel} style={{
-              background: "#F3F4F6", color: "#555", border: "none",
-              borderRadius: 8, padding: "5px 12px", fontSize: 12,
-              fontFamily: "'Baloo 2', sans-serif", fontWeight: 700, cursor: "pointer",
-            }}>नहीं</button>
-            <button onClick={onConfirm} style={{
-              background: "#dc2626", color: "white", border: "none",
-              borderRadius: 8, padding: "5px 12px", fontSize: 12,
-              fontFamily: "'Baloo 2', sans-serif", fontWeight: 800, cursor: "pointer",
-            }}>हाँ, हटाओ</button>
           </div>
         </div>
       )}
