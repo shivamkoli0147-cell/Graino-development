@@ -11,11 +11,40 @@ import { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_STORAGE_BUCKET } from
 // ── Multer (memory storage for Supabase upload) ───────────────────────────────
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
+// ── Supabase bucket auto-create ────────────────────────────────────────────────
+async function ensureSupabaseBucket(): Promise<void> {
+  try {
+    // Check if bucket exists
+    const checkRes = await fetch(`${SUPABASE_URL}/storage/v1/bucket/${SUPABASE_STORAGE_BUCKET}`, {
+      headers: { "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
+    });
+    if (checkRes.ok) {
+      console.log(`[storage] Bucket "${SUPABASE_STORAGE_BUCKET}" already exists.`);
+      return;
+    }
+    // Create bucket if it doesn't exist
+    const createRes = await fetch(`${SUPABASE_URL}/storage/v1/bucket`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ id: SUPABASE_STORAGE_BUCKET, name: SUPABASE_STORAGE_BUCKET, public: true }),
+    });
+    if (createRes.ok) {
+      console.log(`[storage] Bucket "${SUPABASE_STORAGE_BUCKET}" created successfully.`);
+    } else {
+      const text = await createRes.text();
+      console.error(`[storage] Failed to create bucket: ${createRes.status} ${text}`);
+    }
+  } catch (e) {
+    console.error("[storage] ensureSupabaseBucket error:", String(e));
+  }
+}
+void ensureSupabaseBucket();
+
 // ── Supabase Storage upload helper ────────────────────────────────────────────
 async function uploadToSupabase(buffer: Buffer, filename: string, mimetype: string): Promise<string> {
-  if (SUPABASE_SERVICE_ROLE_KEY === "ADD_YOUR_SERVICE_ROLE_KEY_HERE") {
-    throw new Error("Supabase service role key not configured. Please add it to artifacts/api-server/src/config.ts");
-  }
   const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, "_");
   const path = `products/${Date.now()}-${safeName}`;
   const storageUrl = `${SUPABASE_URL}/storage/v1/object/${SUPABASE_STORAGE_BUCKET}/${path}`;
@@ -33,6 +62,27 @@ async function uploadToSupabase(buffer: Buffer, filename: string, mimetype: stri
     throw new Error(`Supabase upload failed: ${res.status} ${text}`);
   }
   return `${SUPABASE_URL}/storage/v1/object/public/${SUPABASE_STORAGE_BUCKET}/${path}`;
+}
+
+// ── Supabase Storage delete helper ────────────────────────────────────────────
+async function deleteFromSupabase(imageUrl: string): Promise<void> {
+  try {
+    // Extract the path after the bucket name
+    const marker = `/object/public/${SUPABASE_STORAGE_BUCKET}/`;
+    const idx = imageUrl.indexOf(marker);
+    if (idx === -1) return; // not a Supabase URL, skip
+    const filePath = imageUrl.slice(idx + marker.length);
+    const deleteRes = await fetch(`${SUPABASE_URL}/storage/v1/object/${SUPABASE_STORAGE_BUCKET}/${filePath}`, {
+      method: "DELETE",
+      headers: { "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
+    });
+    if (!deleteRes.ok) {
+      const text = await deleteRes.text();
+      console.warn(`[storage] Delete warning: ${deleteRes.status} ${text}`);
+    }
+  } catch (e) {
+    console.warn("[storage] deleteFromSupabase error:", String(e));
+  }
 }
 
 // ── Seed static product images (runs once on startup if table empty) ───────────
@@ -498,6 +548,7 @@ router.delete("/products/images/:imageId", async (req, res) => {
     const [existing] = await db.select().from(productImages).where(eq(productImages.id, imageId));
     if (!existing) { res.status(404).json({ error: "Image not found" }); return; }
     await db.delete(productImages).where(eq(productImages.id, imageId));
+    void deleteFromSupabase(existing.imageUrl);
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: String(e) }); }
 });
