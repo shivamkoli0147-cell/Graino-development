@@ -20,7 +20,8 @@ export function BottomNav({ tabs, active, onSelect }: BottomNavProps) {
       gridTemplateColumns: `repeat(${tabs.length},1fr)`,
       padding: "8px 0 18px",
       flexShrink: 0,
-      zIndex: 50,
+      zIndex: 200,
+      position: "relative",
       boxShadow: "0 -4px 16px rgba(0,0,0,0.06)",
     }}>
       {tabs.map((t) => {
@@ -53,8 +54,8 @@ export function BottomNav({ tabs, active, onSelect }: BottomNavProps) {
 
             <div style={{
               fontSize: 22, position: "relative",
-              filter: isActive ? "none" : "grayscale(0.4)",
-              opacity: isActive ? 1 : 0.55,
+              filter: isActive ? "none" : "grayscale(0.2)",
+              opacity: isActive ? 1 : 0.72,
               transition: "all 0.15s ease",
             }}>
               {t.icon}
