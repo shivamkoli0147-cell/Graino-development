@@ -60,7 +60,7 @@ function GrainoApp() {
   };
 
   const handleLoginSuccess = (c: CustomerSession) => {
-    setCustomerSession(c);
+    // session already saved to localStorage inside CustomerAuth — just update React state
     setCustomer(c);
   };
 

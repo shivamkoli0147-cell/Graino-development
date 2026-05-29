@@ -49,6 +49,8 @@ export function getCartCount(cart: Cart): number {
   return Object.keys(cart).length;
 }
 
+const SESSION_EXPIRY_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
 export type CustomerSession = {
   id: number;
   name: string;
@@ -57,17 +59,26 @@ export type CustomerSession = {
   address?: string;
   lat?: number;
   lng?: number;
+  loginAt?: number; // unix ms — used for 30-day expiry
 };
 
 export function getCustomerSession(): CustomerSession | null {
   try {
     const raw = localStorage.getItem("kd_customer");
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+    const session: CustomerSession = JSON.parse(raw);
+    // Auto-expire sessions older than 30 days
+    if (session.loginAt && Date.now() - session.loginAt > SESSION_EXPIRY_MS) {
+      localStorage.removeItem("kd_customer");
+      return null;
+    }
+    return session;
   } catch { return null; }
 }
 
 export function setCustomerSession(c: CustomerSession) {
-  localStorage.setItem("kd_customer", JSON.stringify(c));
+  const withTimestamp: CustomerSession = { ...c, loginAt: c.loginAt ?? Date.now() };
+  localStorage.setItem("kd_customer", JSON.stringify(withTimestamp));
 }
 
 export function clearCustomerSession() {
