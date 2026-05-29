@@ -54,13 +54,13 @@ export function CustomerProfile({ customer, onUpdate, onLogout, onClose, onGoSel
       {/* Backdrop */}
       <div onClick={onClose} style={{
         position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)",
-        zIndex: 900, backdropFilter: "blur(2px)",
+        zIndex: 1100, backdropFilter: "blur(2px)",
       }} />
 
       {/* Panel */}
       <div style={{
         position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)",
-        width: "100%", maxWidth: 390, zIndex: 901,
+        width: "100%", maxWidth: 390, zIndex: 1101,
         background: "white", borderRadius: "24px 24px 0 0",
         boxShadow: "0 -8px 40px rgba(0,0,0,0.2)",
         display: "flex", flexDirection: "column",
