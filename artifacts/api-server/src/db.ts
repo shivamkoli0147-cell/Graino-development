@@ -3,7 +3,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import * as schema from "@workspace/db/schema";
 import {
-  villages, customers, products, varieties,
+  villages, categories, customers, products, varieties,
   productBenefits, varietyBenefits, orders, orderItems,
 } from "@workspace/db/schema";
 import { eq, count } from "drizzle-orm";
@@ -33,6 +33,13 @@ async function seedIfEmpty() {
     await db.insert(villages).values(
       ["Pichor","Bamori","Datia","Indergarh","Bhander","Dabra","Karera","Lahar","Mohna","Shivpuri"]
         .map(name => ({ name }))
+    );
+  }
+
+  const [categoryRow] = await db.select({ c: count() }).from(categories);
+  if (categoryRow.c === 0) {
+    await db.insert(categories).values(
+      ["अनाज","दालें","तिलहन","मसाले","सब्जी","फल","अन्य"].map(name => ({ name }))
     );
   }
 

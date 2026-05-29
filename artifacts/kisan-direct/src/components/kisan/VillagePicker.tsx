@@ -1,4 +1,4 @@
-import { VILLAGES } from "../../lib/utils";
+import { useState, useEffect } from "react";
 
 interface VillagePickerProps {
   currentVillage: string;
@@ -7,6 +7,13 @@ interface VillagePickerProps {
 }
 
 export function VillagePicker({ currentVillage, onSelect, onClose }: VillagePickerProps) {
+  const [villages, setVillages] = useState<string[]>([]);
+  useEffect(() => {
+    fetch("/api/settings/villages")
+      .then(r => r.json())
+      .then((rows: { id: number; name: string }[]) => setVillages(rows.map(r => r.name)))
+      .catch(() => {});
+  }, []);
   return (
     <>
       <div

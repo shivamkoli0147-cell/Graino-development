@@ -47,7 +47,6 @@ type ApiProduct = {
 };
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
-const CATEGORIES = ["अनाज","दालें","तिलहन","मसाले","सब्जी","फल","अन्य"];
 const EMOJI_OPTIONS = ["🌾","🟢","🟡","🥜","🌽","🌿","🍅","🧅","🧄","🌰","🫘","🥦","🍋","🍇","🍎","🫚","🌶️","🫛"];
 const BG_COLORS = [
   { label: "हरा", value: "linear-gradient(135deg,#dcfce7,#d1fae5)" },
@@ -347,8 +346,8 @@ function VarietyEditor({ variety, index, onUpdate, onDelete, canDelete }: {
 }
 
 // ─── Product Form View ──────────────────────────────────────────────────────────
-function ProductFormView({ form, onSave, onCancel, onDelete, saving, deleting }: {
-  form: ProductForm; onSave: (f: ProductForm) => void;
+function ProductFormView({ form, categories, onSave, onCancel, onDelete, saving, deleting }: {
+  form: ProductForm; categories: string[]; onSave: (f: ProductForm) => void;
   onCancel: () => void; onDelete?: () => void;
   saving: boolean; deleting: boolean;
 }) {
@@ -430,7 +429,7 @@ function ProductFormView({ form, onSave, onCancel, onDelete, saving, deleting }:
                   padding: "9px 10px", fontFamily: "'Baloo 2',sans-serif", fontSize: 14,
                   outline: "none", background: "#FAFAF8", cursor: "pointer",
                 }}>
-                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                {categories.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div>
@@ -578,6 +577,14 @@ export function SellerProducts({ onBack: _onBack }: SellerProductsProps) {
   const updateProduct = useUpdateProduct();
   const deleteProduct = useDeleteProduct();
 
+  const [formCategories, setFormCategories] = useState<string[]>(["अनाज","दालें","तिलहन","मसाले","सब्जी","फल","अन्य"]);
+  useEffect(() => {
+    fetch("/api/settings/categories")
+      .then(r => r.json())
+      .then((rows: { id: number; name: string }[]) => { if (rows.length) setFormCategories(rows.map(r => r.name)); })
+      .catch(() => {});
+  }, []);
+
   const [editing, setEditing] = useState<ProductForm | null>(null);
   const [filterCat, setFilterCat] = useState("सब");
   const [toast, setToast] = useState<string | null>(null);
@@ -637,6 +644,7 @@ export function SellerProducts({ onBack: _onBack }: SellerProductsProps) {
     return (
       <ProductFormView
         form={editing}
+        categories={formCategories}
         onSave={handleSave}
         onCancel={() => setEditing(null)}
         onDelete={editing.id ? () => handleDelete(editing.id!) : undefined}

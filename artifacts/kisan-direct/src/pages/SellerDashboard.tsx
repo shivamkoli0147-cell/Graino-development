@@ -5,9 +5,10 @@ interface SellerDashboardProps {
   onLogout: () => void;
   onManageOrders: () => void;
   onManageProducts: () => void;
+  onManageSettings: () => void;
 }
 
-export function SellerDashboard({ onLogout, onManageOrders, onManageProducts }: SellerDashboardProps) {
+export function SellerDashboard({ onLogout, onManageOrders, onManageProducts, onManageSettings }: SellerDashboardProps) {
   const { data: stats, isLoading, refetch } = useGetDashboardStats();
 
   const s = stats as DashboardStats | undefined;
@@ -48,6 +49,8 @@ export function SellerDashboard({ onLogout, onManageOrders, onManageProducts }: 
               color="#2D6A2D" onClick={onManageOrders} badge={s?.new_orders} />
             <ActionCard emoji="🌾" label="Products" sub="Stock और prices update करो"
               color="#1a3d1a" onClick={onManageProducts} />
+            <ActionCard emoji="⚙️" label="Settings" sub="Villages & categories manage करो"
+              color="#6B4F12" onClick={onManageSettings} />
           </div>
         </div>
 

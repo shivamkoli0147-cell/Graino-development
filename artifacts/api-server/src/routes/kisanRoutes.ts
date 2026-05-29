@@ -3,7 +3,7 @@ import multer from "multer";
 import { db } from "../db.js";
 import {
   villages, customers, products, varieties,
-  productBenefits, varietyBenefits, orders, orderItems, productImages,
+  productBenefits, varietyBenefits, orders, orderItems, productImages, categories,
 } from "@workspace/db/schema";
 import { eq, and, ilike, or, sql, count, sum, countDistinct, asc, desc, inArray, ne } from "drizzle-orm";
 import { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_STORAGE_BUCKET } from "../config.js";
@@ -115,7 +115,6 @@ void seedStaticImages();
 
 const router = Router();
 
-const ALLOWED_VILLAGES = ["Pichor","Bamori","Datia","Indergarh","Bhander","Dabra","Karera","Lahar","Mohna","Shivpuri"];
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -628,7 +627,8 @@ router.post("/orders", async (req, res) => {
       items: { variety_id: number; product_name: string; variety_name: string; price_per_kg: number; quantity_kg: number }[]
     };
     if (!customer_id || !village || !items.length) { res.status(400).json({ error: "Required fields missing" }); return; }
-    if (!ALLOWED_VILLAGES.includes(village)) { res.status(400).json({ error: "Delivery not available here" }); return; }
+    const villageRows = await db.select({ name: villages.name }).from(villages);
+    if (!villageRows.some(v => v.name === village)) { res.status(400).json({ error: "Delivery not available here" }); return; }
     const total = items.reduce((s, i) => s + i.price_per_kg * i.quantity_kg, 0);
     const [inserted] = await db.insert(orders).values({
       customerId: customer_id, village, address: address || null,
@@ -719,12 +719,68 @@ router.get("/dashboard/stats", async (_req, res) => {
     res.json({
       new_orders: newOrders,
       today_earnings: todayEarnings,
-      village_count: Math.max(villagesServed, ALLOWED_VILLAGES.length),
+      village_count: villagesServed,
       total_orders_today: totalOrdersToday,
       low_stock_count: 0,
       stock_summary: stockSummary,
       slot_breakdown: slotBreakdown,
     });
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+// ── Settings: Villages ────────────────────────────────────────────────────────
+
+router.get("/settings/villages", async (_req, res) => {
+  try {
+    const rows = await db.select().from(villages).orderBy(asc(villages.name));
+    res.json(rows);
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+router.post("/settings/villages", async (req, res) => {
+  try {
+    const { name } = req.body as { name: string };
+    if (!name?.trim()) { res.status(400).json({ error: "Name required" }); return; }
+    const existing = await db.select().from(villages).where(eq(villages.name, name.trim()));
+    if (existing.length) { res.status(400).json({ error: "Village already exists" }); return; }
+    const [row] = await db.insert(villages).values({ name: name.trim() }).returning();
+    res.status(201).json(row);
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+router.delete("/settings/villages/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    await db.delete(villages).where(eq(villages.id, id));
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+// ── Settings: Categories ──────────────────────────────────────────────────────
+
+router.get("/settings/categories", async (_req, res) => {
+  try {
+    const rows = await db.select().from(categories).orderBy(asc(categories.name));
+    res.json(rows);
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+router.post("/settings/categories", async (req, res) => {
+  try {
+    const { name } = req.body as { name: string };
+    if (!name?.trim()) { res.status(400).json({ error: "Name required" }); return; }
+    const existing = await db.select().from(categories).where(eq(categories.name, name.trim()));
+    if (existing.length) { res.status(400).json({ error: "Category already exists" }); return; }
+    const [row] = await db.insert(categories).values({ name: name.trim() }).returning();
+    res.status(201).json(row);
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+router.delete("/settings/categories/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    await db.delete(categories).where(eq(categories.id, id));
+    res.json({ success: true });
   } catch (e) { res.status(500).json({ error: String(e) }); }
 });
 

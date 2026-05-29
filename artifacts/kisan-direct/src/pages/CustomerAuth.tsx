@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useCustomerAuth } from "@workspace/api-client-react";
-import { setCustomerSession, VILLAGES, type CustomerSession } from "../lib/utils";
+import { setCustomerSession, type CustomerSession } from "../lib/utils";
 
 interface CustomerAuthProps {
   onSuccess: (customer: CustomerSession) => void;
@@ -13,6 +13,14 @@ export function CustomerAuth({ onSuccess }: CustomerAuthProps) {
   const [name, setName] = useState("");
   const [village, setVillage] = useState("");
   const [error, setError] = useState("");
+  const [villages, setVillages] = useState<string[]>([]);
+
+  useEffect(() => {
+    fetch("/api/settings/villages")
+      .then(r => r.json())
+      .then((rows: { id: number; name: string }[]) => setVillages(rows.map(r => r.name)))
+      .catch(() => {});
+  }, []);
 
   const authMutation = useCustomerAuth();
 

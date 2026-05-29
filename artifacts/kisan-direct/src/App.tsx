@@ -11,6 +11,7 @@ import { SellerAuth } from "@/pages/SellerAuth";
 import { SellerDashboard } from "@/pages/SellerDashboard";
 import { SellerOrders } from "@/pages/SellerOrders";
 import { SellerProducts } from "@/pages/SellerProducts";
+import { SellerSettings } from "@/pages/SellerSettings";
 import { BottomNav } from "@/components/kisan/BottomNav";
 import {
   getCustomerSession, setCustomerSession, clearCustomerSession,
@@ -26,7 +27,7 @@ const queryClient = new QueryClient({
 
 type AppMode = "customer" | "seller";
 type CustomerTab = "products" | "cart" | "orders";
-type SellerTab = "dashboard" | "orders" | "products";
+type SellerTab = "dashboard" | "orders" | "products" | "settings";
 
 function GrainoApp() {
   const [showSplash, setShowSplash] = useState(true);
@@ -167,6 +168,7 @@ function GrainoApp() {
                     }}
                     onManageOrders={() => setSellerTab("orders")}
                     onManageProducts={() => setSellerTab("products")}
+                    onManageSettings={() => setSellerTab("settings")}
                   />
                 )}
                 {sellerTab === "orders" && (
@@ -175,6 +177,9 @@ function GrainoApp() {
                 {sellerTab === "products" && (
                   <SellerProducts onBack={() => setSellerTab("dashboard")} />
                 )}
+                {sellerTab === "settings" && (
+                  <SellerSettings onBack={() => setSellerTab("dashboard")} />
+                )}
                 <BottomNav
                   active={sellerTab}
                   onSelect={id => setSellerTab(id as SellerTab)}
@@ -182,6 +187,7 @@ function GrainoApp() {
                     { id: "dashboard", icon: "📊", label: "Dashboard" },
                     { id: "orders", icon: "📋", label: "Orders" },
                     { id: "products", icon: "🌾", label: "Products" },
+                    { id: "settings", icon: "⚙️", label: "Settings" },
                   ]}
                 />
               </>
