@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SplashScreen } from "@/pages/SplashScreen";
 import { CustomerAuth } from "@/pages/CustomerAuth";
+import { AddressSetup } from "@/pages/AddressSetup";
 import { ProductList } from "@/pages/ProductList";
 import { ProductDetail } from "@/pages/ProductDetail";
 import { CartPage } from "@/pages/CartPage";
@@ -33,6 +34,10 @@ function GrainoApp() {
   const [mode, setMode] = useState<AppMode>("customer");
 
   const [customer, setCustomer] = useState<CustomerSession | null>(getCustomerSession);
+  const [showAddressSetup, setShowAddressSetup] = useState(() => {
+    const s = getCustomerSession();
+    return !!s && !s.address;
+  });
   const [customerTab, setCustomerTab] = useState<CustomerTab>("products");
   const [viewProductId, setViewProductId] = useState<number | null>(null);
   const [cart, setCart] = useState<Cart>({});
@@ -62,6 +67,8 @@ function GrainoApp() {
   const handleLoginSuccess = (c: CustomerSession) => {
     // session already saved to localStorage inside CustomerAuth — just update React state
     setCustomer(c);
+    // show address setup if this is a new user with no address
+    if (!c.address) setShowAddressSetup(true);
   };
 
   const goToSeller = () => {
@@ -83,6 +90,15 @@ function GrainoApp() {
           <>
             {!customer ? (
               <CustomerAuth onSuccess={handleLoginSuccess} />
+            ) : showAddressSetup ? (
+              <AddressSetup
+                customer={customer}
+                onComplete={(updated) => {
+                  setCustomer(updated);
+                  setShowAddressSetup(false);
+                }}
+                onSkip={() => setShowAddressSetup(false)}
+              />
             ) : viewProductId ? (
               <ProductDetail
                 productId={viewProductId} cart={cart}

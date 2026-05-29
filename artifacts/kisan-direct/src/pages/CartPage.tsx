@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useCreateOrder } from "@workspace/api-client-react";
 import { formatINR, getCartTotal, DELIVERY_SLOTS, type Cart, type CartItem, type CustomerSession } from "../lib/utils";
 
@@ -21,22 +21,46 @@ export function CartPage({ cart, customer, onCartChange, onClearCart, onOrderSuc
   const [ordered, setOrdered] = useState(false);
   const [orderId, setOrderId] = useState<number | null>(null);
   const [showSlotError, setShowSlotError] = useState(false);
+
+  const [phone, setPhone] = useState(customer.phone || "");
+  const [address, setAddress] = useState(customer.address || "");
+  const [landmark, setLandmark] = useState("");
+  const [showAddressError, setShowAddressError] = useState(false);
+  const [showPhoneError, setShowPhoneError] = useState(false);
+
+  const detailsRef = useRef<HTMLDivElement>(null);
   const createOrder = useCreateOrder();
 
   const items = Object.entries(cart);
   const total = getCartTotal(cart);
 
-  const deliveryAddress = customer.address || `${customer.village} गांव`;
+  const finalDeliveryAddress = [address.trim(), landmark.trim()].filter(Boolean).join(", ") || customer.village;
 
   const placeOrder = () => {
-    if (!selectedSlot) { setShowSlotError(true); return; }
-    setShowSlotError(false);
+    let hasError = false;
+
+    const addrEmpty = !address.trim();
+    const phoneInvalid = !/^\d{10}$/.test(phone.trim());
+
+    setShowAddressError(addrEmpty);
+    setShowPhoneError(phoneInvalid);
+    if (!selectedSlot) setShowSlotError(true);
+
+    if (addrEmpty || phoneInvalid || !selectedSlot) {
+      hasError = true;
+      if (addrEmpty || phoneInvalid) {
+        detailsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
+
+    if (hasError) return;
+
     createOrder.mutate(
       {
         data: {
           customer_id: customer.id,
           village: customer.village,
-          address: deliveryAddress,
+          address: finalDeliveryAddress,
           delivery_slot: selectedSlot as "morning" | "afternoon" | "evening",
           items: items.map(([, item]) => ({
             variety_id: item.varietyId,
@@ -60,29 +84,40 @@ export function CartPage({ cart, customer, onCartChange, onClearCart, onOrderSuc
   if (ordered) {
     const slot = DELIVERY_SLOTS.find(s => s.id === selectedSlot);
     return (
-      <div className="slide-up" style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center",
-        justifyContent: "center", padding: 32, background: "#F7F4EF", textAlign: "center" }}>
-        <div style={{ fontSize: 64, marginBottom: 16 }}>✅</div>
+      <div className="slide-up" style={{
+        flex: 1, display: "flex", flexDirection: "column", alignItems: "center",
+        justifyContent: "center", padding: 28, background: "#F7F4EF", textAlign: "center",
+      }}>
+        <div style={{ fontSize: 64, marginBottom: 12 }}>✅</div>
         <div style={{ fontWeight: 800, fontSize: 22, color: "#2D6A2D" }}>Order हो गया!</div>
-        <div style={{ fontSize: 14, color: "#777", marginTop: 8, fontWeight: 500 }}>
-          Order #{orderId} · Rohit जल्द पहुंचेगा
+        <div style={{ fontSize: 14, color: "#777", marginTop: 6, fontWeight: 500 }}>
+          Rohit जल्द आएंगे 📞
         </div>
-        {slot && (
-          <div style={{
-            marginTop: 14, background: "#DCFCE7", borderRadius: 14,
-            padding: "10px 20px", fontSize: 14, fontWeight: 700, color: "#15803d",
-          }}>
-            {slot.label} {slot.time} को delivery होगी
-          </div>
-        )}
+
+        {/* Confirmation card */}
         <div style={{
-          marginTop: 10, background: "#F0F9FF", borderRadius: 14,
-          padding: "10px 16px", fontSize: 12, fontWeight: 600, color: "#0369a1",
+          marginTop: 18, background: "white", borderRadius: 18, padding: "18px 20px",
+          width: "100%", textAlign: "left", border: "1.5px solid #E5DDD0",
+          boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
         }}>
-          📍 {deliveryAddress}
+          <div style={{ fontWeight: 800, fontSize: 13, color: "#1B4332", marginBottom: 12, letterSpacing: 0.3 }}>
+            📋 Order #{orderId} — Details
+          </div>
+
+          <Row label="📱 Phone" value={phone} />
+          <Row label="📍 Address" value={finalDeliveryAddress} />
+          {slot && <Row label="🕐 Slot" value={`${slot.label} · ${slot.time}`} />}
+
+          <div style={{
+            marginTop: 12, background: "#DCFCE7", borderRadius: 12,
+            padding: "10px 14px", fontSize: 13, fontWeight: 700, color: "#15803d", textAlign: "center",
+          }}>
+            {slot ? `${slot.label} ${slot.time} को delivery होगी` : "जल्द delivery होगी"}
+          </div>
         </div>
+
         <button onClick={onOrderSuccess} className="btn-press" style={{
-          marginTop: 28, background: "#2D6A2D", color: "white", border: "none",
+          marginTop: 24, background: "#2D6A2D", color: "white", border: "none",
           borderRadius: 16, padding: "14px 32px", fontFamily: "'Baloo 2', sans-serif",
           fontWeight: 700, fontSize: 15, cursor: "pointer",
         }}>
@@ -94,8 +129,10 @@ export function CartPage({ cart, customer, onCartChange, onClearCart, onOrderSuc
 
   if (!items.length) {
     return (
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center",
-        justifyContent: "center", padding: 32, background: "#F7F4EF", textAlign: "center" }}>
+      <div style={{
+        flex: 1, display: "flex", flexDirection: "column", alignItems: "center",
+        justifyContent: "center", padding: 32, background: "#F7F4EF", textAlign: "center",
+      }}>
         <div style={{ fontSize: 56 }}>🛒</div>
         <div style={{ fontWeight: 700, fontSize: 18, color: "#777", marginTop: 16 }}>Cart खाली है</div>
         <div style={{ fontSize: 13, color: "#aaa", marginTop: 6 }}>Products tab से items add करो</div>
@@ -106,16 +143,16 @@ export function CartPage({ cart, customer, onCartChange, onClearCart, onOrderSuc
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: "#F7F4EF" }}>
       {/* Header */}
-      <div style={{ background: "white", padding: "16px 16px 14px", flexShrink: 0,
-        boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
+      <div style={{ background: "white", padding: "16px 16px 14px", flexShrink: 0, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
         <div style={{ fontWeight: 800, fontSize: 20, color: "#1C1C1C" }}>🛒 Cart</div>
         <div style={{ fontSize: 12, color: "#777", fontWeight: 500, marginTop: 2 }}>
           {customer.name} · {customer.village}
         </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px 8px" }}>
-        {/* Items */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px 16px" }}>
+
+        {/* Cart items */}
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 14 }}>
           {items.map(([key, item]) => (
             <div key={key} style={{
@@ -150,22 +187,67 @@ export function CartPage({ cart, customer, onCartChange, onClearCart, onOrderSuc
           ))}
         </div>
 
-        {/* Delivery Address (auto-filled from profile) */}
-        <div style={{ background: "white", borderRadius: 16, padding: 14, marginBottom: 14,
-          border: "1.5px solid #BBF7D0" }}>
-          <div style={{ fontWeight: 700, fontSize: 13, color: "#15803d", marginBottom: 6, display: "flex", gap: 6, alignItems: "center" }}>
-            <span>📍</span><span>Delivery Address</span>
+        {/* ── Order Details Confirm करें ── */}
+        <div ref={detailsRef} style={{
+          background: "white", borderRadius: 16, padding: 16, marginBottom: 14,
+          border: (showAddressError || showPhoneError)
+            ? "2px solid #dc2626"
+            : "1.5px solid #BBF7D0",
+          transition: "border-color 0.2s",
+        }}>
+          <div style={{ fontWeight: 800, fontSize: 14, color: "#1C1C1C", marginBottom: 14 }}>
+            📋 Order Details Confirm करें
           </div>
-          <div style={{ fontSize: 13, color: "#1C1C1C", fontWeight: 600, lineHeight: 1.5 }}>
-            {deliveryAddress}
+
+          {/* Phone */}
+          <div style={{ marginBottom: 14 }}>
+            <div style={labelStyle}>📱 फ़ोन नंबर (Delivery के लिए)</div>
+            <input
+              value={phone}
+              onChange={e => { setPhone(e.target.value.replace(/\D/g, "").slice(0, 10)); setShowPhoneError(false); }}
+              type="tel" inputMode="numeric"
+              placeholder="10 अंकों का नंबर"
+              style={{
+                ...inputStyle,
+                border: showPhoneError ? "1.5px solid #dc2626" : "1.5px solid #E5DDD0",
+                background: showPhoneError ? "#FFF5F5" : "#FAFAF8",
+                fontSize: 16, letterSpacing: 1.5, fontWeight: 700,
+              }}
+            />
+            {showPhoneError && (
+              <div style={errorStyle}>⚠️ सही 10-digit फोन नंबर डालें</div>
+            )}
           </div>
-          {customer.lat && customer.lng && (
-            <div style={{ fontSize: 11, color: "#4A9B4A", marginTop: 4, fontWeight: 600 }}>
-              ✓ GPS location saved · {customer.lat.toFixed(4)}, {customer.lng.toFixed(4)}
-            </div>
-          )}
-          <div style={{ fontSize: 11, color: "#777", marginTop: 2 }}>
-            Profile में जाकर address बदल सकते हो
+
+          {/* Address */}
+          <div style={{ marginBottom: 14 }}>
+            <div style={labelStyle}>🏠 पूरा पता *</div>
+            <textarea
+              value={address}
+              onChange={e => { setAddress(e.target.value); setShowAddressError(false); }}
+              placeholder="गली, मोहल्ला, घर नंबर — जैसे: राम गली नंबर 3, बड़ा बाजार के पास"
+              rows={3}
+              style={{
+                ...inputStyle,
+                border: showAddressError ? "1.5px solid #dc2626" : "1.5px solid #E5DDD0",
+                background: showAddressError ? "#FFF5F5" : "#FAFAF8",
+                resize: "none", lineHeight: 1.55,
+              }}
+            />
+            {showAddressError && (
+              <div style={errorStyle}>⚠️ पता डालना ज़रूरी है</div>
+            )}
+          </div>
+
+          {/* Landmark */}
+          <div>
+            <div style={labelStyle}>🏛️ Landmark (optional)</div>
+            <input
+              value={landmark}
+              onChange={e => setLandmark(e.target.value)}
+              placeholder="जैसे: शिव मंदिर के पास, नीला मकान"
+              style={{ ...inputStyle, border: "1.5px solid #E5DDD0", background: "#FAFAF8" }}
+            />
           </div>
         </div>
 
@@ -185,8 +267,10 @@ export function CartPage({ cart, customer, onCartChange, onClearCart, onOrderSuc
               const selected = selectedSlot === slot.id;
               const colors = SLOT_COLORS[slot.id] || SLOT_COLORS.morning;
               return (
-                <button key={slot.id} onClick={() => { setSelectedSlot(slot.id); setShowSlotError(false); }}
-                  className="btn-press" style={{
+                <button key={slot.id}
+                  onClick={() => { setSelectedSlot(slot.id); setShowSlotError(false); }}
+                  className="btn-press"
+                  style={{
                     display: "flex", alignItems: "center", justifyContent: "space-between",
                     padding: "12px 16px", borderRadius: 14,
                     background: selected ? colors.bg : "#FAFAF8",
@@ -221,7 +305,7 @@ export function CartPage({ cart, customer, onCartChange, onClearCart, onOrderSuc
           )}
         </div>
 
-        {/* Summary */}
+        {/* Summary + Place Order */}
         <div style={{ background: "linear-gradient(135deg,#2D6A2D,#4A9B4A)", borderRadius: 20, padding: 20 }}>
           <div style={{ display: "flex", justifyContent: "space-between", color: "rgba(255,255,255,0.8)", fontSize: 13, marginBottom: 8 }}>
             <span>{items.length} items</span>
@@ -240,18 +324,40 @@ export function CartPage({ cart, customer, onCartChange, onClearCart, onOrderSuc
           }}>
             {createOrder.isPending ? "Order हो रहा है..." : "Order करो →"}
           </button>
-          {!selectedSlot && (
-            <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 11, textAlign: "center", marginTop: 8 }}>
-              ↑ पहले delivery time चुनें
-            </div>
-          )}
           {selectedSlot && (
             <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, textAlign: "center", marginTop: 8 }}>
               {DELIVERY_SLOTS.find(s => s.id === selectedSlot)?.label} {DELIVERY_SLOTS.find(s => s.id === selectedSlot)?.time} · Payment on Delivery
             </div>
           )}
         </div>
+
       </div>
     </div>
   );
 }
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "flex-start" }}>
+      <span style={{ fontSize: 12, color: "#777", fontWeight: 600, whiteSpace: "nowrap", minWidth: 70 }}>{label}</span>
+      <span style={{ fontSize: 12, color: "#1C1C1C", fontWeight: 700, flex: 1 }}>{value}</span>
+    </div>
+  );
+}
+
+const labelStyle: React.CSSProperties = {
+  fontSize: 12, fontWeight: 700, color: "#555", marginBottom: 6,
+  fontFamily: "'Baloo 2',sans-serif",
+};
+
+const inputStyle: React.CSSProperties = {
+  width: "100%", boxSizing: "border-box",
+  borderRadius: 12, padding: "11px 14px",
+  fontFamily: "'Baloo 2',sans-serif", fontSize: 14, outline: "none",
+  transition: "border-color 0.2s, background 0.2s",
+};
+
+const errorStyle: React.CSSProperties = {
+  fontSize: 12, color: "#dc2626", fontWeight: 700, marginTop: 5,
+  fontFamily: "'Baloo 2',sans-serif",
+};
