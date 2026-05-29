@@ -50,6 +50,7 @@ A full-stack mobile-first agriculture selling web app for Rohit Mukati (single s
 - Baloo 2 Google font
 - 10 delivery villages: Pichor, Bamori, Datia, Indergarh, Bhander, Dabra, Karera, Lahar, Mohna, Shivpuri
 - Seller: Rohit Mukati
+- **Always use the hardcoded Supabase DATABASE_URL in `config.js` — do not replace it with Replit's built-in database or any environment variable. The connection string must remain hardcoded.**
 
 ## Gotchas
 
