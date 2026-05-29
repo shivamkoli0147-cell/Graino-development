@@ -184,9 +184,8 @@ export function CustomerAuth({ onSuccess }: CustomerAuthProps) {
 
       {/* ── Bottom floating card ── */}
       <div style={{
-        position: "relative", zIndex: 10,
-        flex: "0 0 auto",
-        margin: "0 12px 28px",
+        position: "absolute", zIndex: 10,
+        bottom: 28, left: 12, right: 12,
         borderRadius: "24px 24px 18px 18px",
         background: "#1a2e22",
         border: "1px solid rgba(255,255,255,0.08)",
