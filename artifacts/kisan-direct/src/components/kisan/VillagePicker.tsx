@@ -6,14 +6,22 @@ interface VillagePickerProps {
   onClose: () => void;
 }
 
+const FALLBACK_VILLAGES = [
+  "Pichor", "Bamori", "Datia", "Sirsod", "Lahar",
+  "Dabra", "Mungaoli", "Khategaon", "Indergarh", "Bhander",
+];
+
 export function VillagePicker({ currentVillage, onSelect, onClose }: VillagePickerProps) {
   const [villages, setVillages] = useState<string[]>([]);
 
   useEffect(() => {
     fetch("/api/settings/villages")
       .then(r => r.json())
-      .then((rows: { id: number; name: string }[]) => setVillages(rows.map(r => r.name)))
-      .catch(() => {});
+      .then((rows: { id: number; name: string }[]) => {
+        const names = rows.map(r => r.name);
+        setVillages(names.length > 0 ? names : FALLBACK_VILLAGES);
+      })
+      .catch(() => setVillages(FALLBACK_VILLAGES));
   }, []);
 
   return (

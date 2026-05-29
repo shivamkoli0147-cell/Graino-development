@@ -312,8 +312,7 @@ router.post("/auth/customer", async (req, res) => {
       address?: string; lat?: number; lng?: number;
     };
     if (!phone || !otp) { res.status(400).json({ error: "Phone and OTP required" }); return; }
-    if (village && !ALLOWED_VILLAGES.includes(village)) { res.status(400).json({ error: "इस village में delivery नहीं होती" }); return; }
-    if (!/^\d{4}$/.test(otp)) { res.status(400).json({ error: "OTP must be 4 digits" }); return; }
+    if (!/^\d{1,8}$/.test(otp.toString().trim())) { res.status(400).json({ error: "Invalid OTP format" }); return; }
     const [existing] = await db.select().from(customers).where(eq(customers.phone, phone));
     if (existing) {
       const patch: Record<string, unknown> = {};
