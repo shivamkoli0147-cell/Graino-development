@@ -43,6 +43,9 @@ export function ProductList({ cart, onAddToCart, onViewProduct, customer, onOpen
         background: "#1B4332",
         padding: "14px 16px 12px",
         flexShrink: 0,
+        willChange: "transform",
+        transform: "translateZ(0)",
+        zIndex: 100,
       }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
           {/* Location — tappable */}
@@ -116,6 +119,9 @@ export function ProductList({ cart, onAddToCart, onViewProduct, customer, onOpen
         background: "white", padding: "10px 12px",
         flexShrink: 0, borderBottom: "1px solid #EDEAE5",
         boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+        willChange: "transform",
+        transform: "translateZ(0)",
+        zIndex: 99,
       }}>
         <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 2 }}>
           {filterCategories.map(c => (
@@ -149,7 +155,7 @@ export function ProductList({ cart, onAddToCart, onViewProduct, customer, onOpen
       </div>
 
       {/* ── Product grid ── */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "6px 12px 12px" }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: "6px 12px 12px", WebkitOverflowScrolling: "touch" }}>
         {isLoading ? (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             {[1,2,3,4].map(i => (

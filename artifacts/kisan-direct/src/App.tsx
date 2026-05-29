@@ -85,12 +85,15 @@ function GrainoApp() {
   };
 
   return (
-    <div style={{ display: "flex", justifyContent: "center", background: "#1B4332", minHeight: "100vh" }}>
+    <div style={{ display: "flex", justifyContent: "center", background: "#1B4332", height: "100dvh" }}>
       <div style={{
-        width: "100%", maxWidth: 390, background: "#F4F6F3", height: "100vh",
+        width: "100%", maxWidth: 390, background: "#F4F6F3",
+        height: "100dvh",
         display: "flex", flexDirection: "column", position: "relative",
         fontFamily: "'Baloo 2', sans-serif",
         overflow: "hidden",
+        willChange: "transform",
+        transform: "translateZ(0)",
       }}>
         {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
 

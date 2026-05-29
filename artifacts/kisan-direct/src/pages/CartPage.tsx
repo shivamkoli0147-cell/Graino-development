@@ -188,14 +188,14 @@ export function CartPage({ cart, customer, onCartChange, onClearCart, onOrderSuc
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: "#F7F4EF" }}>
       {/* Header */}
-      <div style={{ background: "white", padding: "16px 16px 14px", flexShrink: 0, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
+      <div style={{ background: "white", padding: "16px 16px 14px", flexShrink: 0, boxShadow: "0 1px 4px rgba(0,0,0,0.06)", willChange: "transform", transform: "translateZ(0)", zIndex: 100 }}>
         <div style={{ fontWeight: 800, fontSize: 20, color: "#1C1C1C" }}>🛒 Cart</div>
         <div style={{ fontSize: 12, color: "#777", fontWeight: 500, marginTop: 2 }}>
           {customer.name || "नाम नहीं"} · {customer.village || "गांव नहीं"}
         </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px 16px" }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px 16px", WebkitOverflowScrolling: "touch" }}>
 
         {/* Cart items */}
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 14 }}>

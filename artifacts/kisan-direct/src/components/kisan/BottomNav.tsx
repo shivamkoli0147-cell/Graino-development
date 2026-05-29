@@ -20,9 +20,11 @@ export function BottomNav({ tabs, active, onSelect }: BottomNavProps) {
       gridTemplateColumns: `repeat(${tabs.length},1fr)`,
       padding: "8px 0 18px",
       flexShrink: 0,
-      zIndex: 200,
+      zIndex: 1000,
       position: "relative",
       boxShadow: "0 -4px 16px rgba(0,0,0,0.06)",
+      willChange: "transform",
+      transform: "translateZ(0)",
     }}>
       {tabs.map((t) => {
         const isActive = active === t.id;

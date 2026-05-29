@@ -181,7 +181,7 @@ export function ProductDetail({ productId, cart, onBack, onCartChange }: Product
     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: "#F4F6F3" }}>
 
       {/* ── Image Carousel / Header ── */}
-      <div style={{ position: "relative", flexShrink: 0 }}>
+      <div style={{ position: "relative", flexShrink: 0, willChange: "transform", transform: "translateZ(0)", zIndex: 100 }}>
         <ImageCarousel images={images} emoji={p.emoji} bgColor={p.bg_color} />
 
         {/* Back button overlay */}
@@ -211,6 +211,7 @@ export function ProductDetail({ productId, cart, onBack, onCartChange }: Product
       <div style={{
         background: "white", padding: "14px 16px 12px",
         flexShrink: 0, borderBottom: "1px solid #EDEAE5",
+        willChange: "transform", transform: "translateZ(0)", zIndex: 99,
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ fontSize: 32 }}>{p.emoji}</span>
@@ -226,7 +227,7 @@ export function ProductDetail({ productId, cart, onBack, onCartChange }: Product
       </div>
 
       {/* ── Varieties ── */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "14px 14px 24px" }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: "14px 14px 24px", WebkitOverflowScrolling: "touch" }}>
         <div style={{ fontWeight: 800, fontSize: 14, color: "#1C1C1C",
           marginBottom: 10, fontFamily: "'Baloo 2', sans-serif" }}>
           किस्में चुनें

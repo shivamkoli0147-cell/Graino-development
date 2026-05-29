@@ -135,6 +135,7 @@ export function SellerOrders({ onBack }: SellerOrdersProps) {
       <div style={{
         background: "linear-gradient(135deg,#1a3d1a,#2D6A2D)",
         padding: "14px 14px 0", flexShrink: 0,
+        willChange: "transform", transform: "translateZ(0)", zIndex: 100,
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
           <button onClick={onBack} className="btn-press" style={{
@@ -203,7 +204,7 @@ export function SellerOrders({ onBack }: SellerOrdersProps) {
       </div>
 
       {/* ── Tab body ────────────────────────────────────────────────────────────── */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "12px 14px 24px" }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: "12px 14px 24px", WebkitOverflowScrolling: "touch" }}>
         {isLoading ? (
           <div style={{ textAlign: "center", padding: 60, color: "#888", fontSize: 14 }}>
             <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>

@@ -25,7 +25,7 @@ export function SellerDashboard({ onLogout, onManageOrders, onManageProducts, on
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: "#F7F4EF" }}>
       {/* Header */}
-      <div style={{ background: "linear-gradient(135deg,#1a3d1a,#2D6A2D)", padding: "20px 16px 20px", flexShrink: 0 }}>
+      <div style={{ background: "linear-gradient(135deg,#1a3d1a,#2D6A2D)", padding: "20px 16px 20px", flexShrink: 0, willChange: "transform", transform: "translateZ(0)", zIndex: 100 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
             <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 12, fontWeight: 600 }}>नमस्ते 🙏</div>
@@ -49,7 +49,7 @@ export function SellerDashboard({ onLogout, onManageOrders, onManageProducts, on
         )}
       </div>
 
-      <div style={{ flex: 1, overflowY: "auto", padding: "16px 16px 24px" }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: "16px 16px 24px", WebkitOverflowScrolling: "touch" }}>
         {/* Quick actions */}
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontWeight: 800, fontSize: 15, color: "#1C1C1C", marginBottom: 10 }}>Quick Actions</div>

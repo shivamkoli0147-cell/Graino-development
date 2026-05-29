@@ -134,7 +134,7 @@ export function SellerSettings({ onBack }: SellerSettingsProps) {
       )}
 
       {/* ── Header ─────────────────────────────────────────────── */}
-      <div style={{ background: "linear-gradient(135deg,#1a3d1a,#2D6A2D)", flexShrink: 0 }}>
+      <div style={{ background: "linear-gradient(135deg,#1a3d1a,#2D6A2D)", flexShrink: 0, willChange: "transform", transform: "translateZ(0)", zIndex: 100 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 16px 0" }}>
           <button onClick={onBack} style={{
             background: "rgba(255,255,255,0.15)", border: "none", borderRadius: 10,
@@ -222,7 +222,7 @@ export function SellerSettings({ onBack }: SellerSettingsProps) {
 
           {/* Village list */}
           <div style={{
-            flex: 1, overflowY: "auto", overflowX: "hidden",
+            flex: 1, overflowY: "auto", overflowX: "hidden", WebkitOverflowScrolling: "touch",
             padding: "10px 14px 24px", display: "flex", flexDirection: "column", gap: 7,
           }}>
             {villages.length === 0 ? (
@@ -296,7 +296,7 @@ export function SellerSettings({ onBack }: SellerSettingsProps) {
 
           {/* Category list */}
           <div style={{
-            flex: 1, overflowY: "auto", overflowX: "hidden",
+            flex: 1, overflowY: "auto", overflowX: "hidden", WebkitOverflowScrolling: "touch",
             padding: "10px 14px 24px", display: "flex", flexDirection: "column", gap: 7,
           }}>
             {categories.length === 0 ? (

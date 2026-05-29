@@ -125,6 +125,7 @@ export function OrdersPage({ customer, onRequestReturn }: OrdersPageProps) {
       <div style={{
         background: "white", padding: "14px 16px 12px", flexShrink: 0,
         boxShadow: "0 1px 4px rgba(0,0,0,0.07)",
+        willChange: "transform", transform: "translateZ(0)", zIndex: 100,
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ fontWeight: 800, fontSize: 19, color: "#1C1C1C" }}>📋 मेरे Orders</div>
@@ -142,6 +143,7 @@ export function OrdersPage({ customer, onRequestReturn }: OrdersPageProps) {
           background: "white", borderTop: "1px solid #F0EDE8",
           padding: "10px 16px", flexShrink: 0,
           display: "flex", gap: 8, overflowX: "auto",
+          willChange: "transform", transform: "translateZ(0)", zIndex: 99,
         }}>
           {counts.pending > 0 && (
             <SummaryChip
@@ -171,7 +173,7 @@ export function OrdersPage({ customer, onRequestReturn }: OrdersPageProps) {
       )}
 
       {/* ── Order list ────────────────────────────────────────────────────────── */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "12px 14px 24px" }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: "12px 14px 24px", WebkitOverflowScrolling: "touch" }}>
         {!list.length ? (
           <div style={{ textAlign: "center", padding: "60px 24px", color: "#777" }}>
             <div style={{ fontSize: 52 }}>📦</div>

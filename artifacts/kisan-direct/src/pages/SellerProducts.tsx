@@ -372,6 +372,7 @@ function ProductFormView({ form, categories, onSave, onCancel, onDelete, saving,
         background: "white", borderBottom: "1px solid #E5DDD0",
         padding: "14px 16px", display: "flex", alignItems: "center",
         justifyContent: "space-between", flexShrink: 0,
+        willChange: "transform", transform: "translateZ(0)", zIndex: 100,
       }}>
         <button onClick={onCancel} style={{
           background: "none", border: "none", cursor: "pointer",
@@ -390,7 +391,7 @@ function ProductFormView({ form, categories, onSave, onCancel, onDelete, saving,
         </button>
       </div>
 
-      <div style={{ flex: 1, overflowY: "auto", padding: "16px" }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: "16px", WebkitOverflowScrolling: "touch" }}>
 
         {/* Basic Info */}
         <div style={{ background: "white", borderRadius: 16, padding: 16, marginBottom: 12 }}>
@@ -674,6 +675,7 @@ export function SellerProducts({ onBack: _onBack }: SellerProductsProps) {
         background: "white", borderBottom: "1px solid #E5DDD0",
         padding: "14px 16px", flexShrink: 0,
         display: "flex", justifyContent: "space-between", alignItems: "center",
+        willChange: "transform", transform: "translateZ(0)", zIndex: 100,
       }}>
         <div style={{ fontWeight: 800, fontSize: 18, color: "#1C1C1C" }}>
           🛒 Products ({allProducts.length})
@@ -690,6 +692,7 @@ export function SellerProducts({ onBack: _onBack }: SellerProductsProps) {
         <div style={{
           background: "white", padding: "8px 16px 10px",
           borderBottom: "1px solid #E5DDD0", flexShrink: 0,
+          willChange: "transform", transform: "translateZ(0)", zIndex: 99,
         }}>
           <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 2 }}>
             {categories.map(c => (
@@ -705,7 +708,7 @@ export function SellerProducts({ onBack: _onBack }: SellerProductsProps) {
         </div>
       )}
 
-      <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px 24px" }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px 24px", WebkitOverflowScrolling: "touch" }}>
         {isLoading ? (
           <div style={{ textAlign: "center", padding: 40, color: "#777" }}>
             <div style={{ fontSize: 32 }}>🌾</div>
