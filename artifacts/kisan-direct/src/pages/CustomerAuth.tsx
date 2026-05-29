@@ -30,8 +30,8 @@ export function CustomerAuth({ onSuccess }: CustomerAuthProps) {
     authMutation.mutate(
       { data: { phone, otp, name: name.trim(), village } },
       {
-        onSuccess: (result) => {
-          const c = result.customer as { id: number; name: string; phone: string; village: string; address?: string | null; lat?: number | null; lng?: number | null };
+        onSuccess: (result: unknown) => {
+          const c = (result as { customer: { id: number; name: string; phone: string; village: string; address?: string | null; lat?: number | null; lng?: number | null } }).customer;
           const session = {
             id: c.id, name: c.name, phone: c.phone, village: c.village,
             address: c.address || undefined,
@@ -149,18 +149,18 @@ export function CustomerAuth({ onSuccess }: CustomerAuthProps) {
           {step === "otp" && (
             <>
               <div style={{
-                background: "rgba(245,158,11,0.15)", borderRadius: 12, padding: "10px 14px",
-                fontSize: 12, color: "#FCD34D", fontWeight: 600, marginBottom: 16,
-                fontFamily: "'Baloo 2', sans-serif", border: "1px solid rgba(245,158,11,0.25)",
+                background: "rgba(255,255,255,0.08)", borderRadius: 12, padding: "10px 14px",
+                fontSize: 12, color: "rgba(255,255,255,0.6)", fontWeight: 600, marginBottom: 16,
+                fontFamily: "'Baloo 2', sans-serif", border: "1px solid rgba(255,255,255,0.12)",
               }}>
-                Test OTP: <strong>1234</strong> (कोई भी 4 अंक चलेंगे)
+                📱 Rohit आपको OTP बताएंगे — उनसे contact करें
               </div>
 
               <div style={{ marginBottom: 16 }}>
                 <div style={labelSty}>4-Digit OTP *</div>
                 <input value={otp}
                   onChange={e => setOtp(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                  placeholder="1234" type="tel" inputMode="numeric"
+                  placeholder="••••" type="tel" inputMode="numeric"
                   style={{ ...glassSty, letterSpacing: 12, fontSize: 24, fontWeight: 800, textAlign: "center" }} />
               </div>
 

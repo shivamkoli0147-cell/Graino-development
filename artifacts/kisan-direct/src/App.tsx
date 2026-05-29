@@ -64,19 +64,19 @@ function GrainoApp() {
     setCustomer(c);
   };
 
-  const handleVillageChange = async (village: string) => {
-    if (!customer) return;
-    const updated: CustomerSession = { ...customer, village };
-    setCustomerSession(updated);
-    setCustomer(updated);
-    try {
-      await fetch(`/api/customers/${customer.id}`, {
+  const handleVillageChange = useCallback(async (village: string) => {
+    setCustomer(prev => {
+      if (!prev) return prev;
+      const updated: CustomerSession = { ...prev, village };
+      setCustomerSession(updated);
+      fetch(`/api/customers/${prev.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ village }),
-      });
-    } catch { /* silent — already saved to localStorage */ }
-  };
+      }).catch(() => {});
+      return updated;
+    });
+  }, []);
 
   const handleLoginSuccess = (c: CustomerSession) => {
     // session already saved to localStorage inside CustomerAuth — just update React state

@@ -82,7 +82,7 @@ export function CartPage({ cart, customer, onCartChange, onClearCart, onOrderSuc
         },
       },
       {
-        onSuccess: (order) => {
+        onSuccess: (order: unknown) => {
           setOrderId((order as { id: number }).id);
           setOrdered(true);
           onClearCart();

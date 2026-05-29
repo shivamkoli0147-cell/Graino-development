@@ -467,7 +467,7 @@ router.get("/products/:id/images", async (req, res) => {
 
 router.post("/products/:id/images", upload.array("images", 5), async (req, res) => {
   try {
-    const productId = parseInt(req.params.id);
+    const productId = parseInt(req.params["id"] as string);
     const [existing] = await db.select({ id: products.id }).from(products).where(eq(products.id, productId));
     if (!existing) { res.status(404).json({ error: "Product not found" }); return; }
 
