@@ -19,8 +19,6 @@ export function timeAgo(dateStr: string): string {
   return `${Math.floor(diff / 86400)} दिन पहले`;
 }
 
-export const VILLAGES = ["Pichor","Bamori","Datia","Indergarh","Bhander","Dabra","Karera","Lahar","Mohna","Shivpuri"];
-
 export const DELIVERY_SLOTS = [
   { id: "morning",   label: "🌅 सुबह",    time: "8:00 – 11:00 AM" },
   { id: "afternoon", label: "☀️ दोपहर",   time: "12:00 – 3:00 PM" },

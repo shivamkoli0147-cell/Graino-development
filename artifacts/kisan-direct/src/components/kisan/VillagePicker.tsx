@@ -50,7 +50,7 @@ export function VillagePicker({ currentVillage, onSelect, onClose }: VillagePick
         </div>
 
         <div style={{ padding: "4px 12px 32px", display: "flex", flexDirection: "column", gap: 3 }}>
-          {VILLAGES.map(v => {
+          {villages.map(v => {
             const sel = v === currentVillage;
             return (
               <button

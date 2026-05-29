@@ -141,7 +141,7 @@ export function CustomerAuth({ onSuccess }: CustomerAuthProps) {
                 <div style={labelSty}>गांव चुनें *</div>
                 <select value={village} onChange={e => setVillage(e.target.value)} style={glassSty}>
                   <option value="" style={{ background: "#1B4332", color: "white" }}>-- गांव select करो --</option>
-                  {VILLAGES.map(v => (
+                  {villages.map(v => (
                     <option key={v} value={v} style={{ background: "#1B4332", color: "white" }}>{v}</option>
                   ))}
                 </select>

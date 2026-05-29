@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { useGetDashboardStats } from "@workspace/api-client-react";
 import { formatINR } from "../lib/utils";
 import { SellerAnalytics } from "./SellerAnalytics";
@@ -11,8 +12,15 @@ interface SellerDashboardProps {
 
 export function SellerDashboard({ onLogout, onManageOrders, onManageProducts, onManageSettings }: SellerDashboardProps) {
   const { data: stats, isLoading, refetch } = useGetDashboardStats();
-
   const s = stats as DashboardStats | undefined;
+
+  const [coverageVillages, setCoverageVillages] = useState<string[]>([]);
+  useEffect(() => {
+    fetch("/api/settings/villages")
+      .then(r => r.json())
+      .then((rows: { id: number; name: string }[]) => setCoverageVillages(rows.map(r => r.name)))
+      .catch(() => {});
+  }, []);
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: "#F7F4EF" }}>
@@ -113,14 +121,16 @@ export function SellerDashboard({ onLogout, onManageOrders, onManageProducts, on
         )}
 
         {/* Village info */}
-        <div style={{ marginTop: 16, background: "linear-gradient(135deg,#E8F5E8,#d1fae5)", borderRadius: 16, padding: 16 }}>
-          <div style={{ fontWeight: 700, fontSize: 13, color: "#2D6A2D", marginBottom: 4 }}>
-            🗺️ Delivery Coverage
+        {coverageVillages.length > 0 && (
+          <div style={{ marginTop: 16, background: "linear-gradient(135deg,#E8F5E8,#d1fae5)", borderRadius: 16, padding: 16 }}>
+            <div style={{ fontWeight: 700, fontSize: 13, color: "#2D6A2D", marginBottom: 4 }}>
+              🗺️ Delivery Coverage · {coverageVillages.length} गांव
+            </div>
+            <div style={{ fontSize: 12, color: "#555", lineHeight: 1.6 }}>
+              {coverageVillages.join(", ")}
+            </div>
           </div>
-          <div style={{ fontSize: 12, color: "#555", lineHeight: 1.6 }}>
-            Pichor, Bamori, Datia, Indergarh, Bhander, Dabra, Karera, Lahar, Mohna, Shivpuri
-          </div>
-        </div>
+        )}
 
         <button onClick={() => refetch()} className="btn-press" style={{
           marginTop: 16, width: "100%", background: "#F0EDE8", border: "none",

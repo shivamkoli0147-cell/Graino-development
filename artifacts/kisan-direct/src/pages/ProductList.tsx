@@ -1,9 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useGetProducts } from "@workspace/api-client-react";
 import { formatINR, type Cart, type CustomerSession } from "../lib/utils";
 import { VillagePicker } from "../components/kisan/VillagePicker";
-
-const CATEGORIES = ["सब", "अनाज", "दालें", "तिलहन", "मसाले"];
 
 interface ProductListProps {
   cart: Cart;
@@ -18,6 +16,16 @@ interface ProductListProps {
 export function ProductList({ cart, onAddToCart, onViewProduct, customer, onOpenProfile, onVillageChange }: ProductListProps) {
   const [category, setCategory] = useState("सब");
   const [search, setSearch] = useState("");
+  const [filterCategories, setFilterCategories] = useState<string[]>(["सब"]);
+
+  useEffect(() => {
+    fetch("/api/settings/categories")
+      .then(r => r.json())
+      .then((rows: { id: number; name: string }[]) => {
+        if (rows.length) setFilterCategories(["सब", ...rows.map(r => r.name)]);
+      })
+      .catch(() => {});
+  }, []);
   const [showVillagePicker, setShowVillagePicker] = useState(false);
   const { data: products, isLoading } = useGetProducts({
     category: category === "सब" ? undefined : category,
@@ -110,7 +118,7 @@ export function ProductList({ cart, onAddToCart, onViewProduct, customer, onOpen
         boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
       }}>
         <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 2 }}>
-          {CATEGORIES.map(c => (
+          {filterCategories.map(c => (
             <button key={c} onClick={() => setCategory(c)} className="btn-press" style={{
               flexShrink: 0, padding: "6px 16px", borderRadius: 20,
               background: category === c ? "#1B4332" : "#F0F4F0",
