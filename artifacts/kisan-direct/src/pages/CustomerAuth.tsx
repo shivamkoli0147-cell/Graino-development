@@ -186,12 +186,12 @@ export function CustomerAuth({ onSuccess }: CustomerAuthProps) {
       <div style={{
         position: "relative", zIndex: 10,
         flex: "0 0 auto",
-        margin: "0 10px 10px",
+        margin: "0 12px 28px",
         borderRadius: "24px 24px 18px 18px",
         background: "#1a2e22",
         border: "1px solid rgba(255,255,255,0.08)",
         boxShadow: "0 -4px 32px rgba(0,0,0,0.5), 0 2px 24px rgba(0,0,0,0.3)",
-        padding: "16px 20px 28px",
+        padding: "16px 20px 24px",
         backdropFilter: "blur(20px)",
         WebkitBackdropFilter: "blur(20px)",
       }}>
@@ -226,11 +226,11 @@ export function CustomerAuth({ onSuccess }: CustomerAuthProps) {
             }}>
               <div style={{
                 padding: "13px 16px",
-                background: "rgba(255,255,255,0.1)",
-                borderRight: "1.5px solid rgba(255,255,255,0.25)",
+                background: "rgba(245,158,11,0.18)",
+                borderRight: "2px solid rgba(245,158,11,0.35)",
                 fontFamily: "'Baloo 2', sans-serif", fontWeight: 800,
-                fontSize: 15, color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap",
-                letterSpacing: 0.5,
+                fontSize: 16, color: "#F59E0B", whiteSpace: "nowrap",
+                letterSpacing: 1, flexShrink: 0,
               }}>+91</div>
               <input
                 value={phone}
