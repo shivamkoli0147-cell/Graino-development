@@ -186,7 +186,7 @@ export function CustomerAuth({ onSuccess }: CustomerAuthProps) {
       <div style={{
         position: "relative", zIndex: 10,
         flex: "0 0 auto",
-        margin: "0 10px 16px",
+        margin: "0 10px 10px",
         borderRadius: "24px 24px 18px 18px",
         background: "#1a2e22",
         border: "1px solid rgba(255,255,255,0.08)",
@@ -225,11 +225,12 @@ export function CustomerAuth({ onSuccess }: CustomerAuthProps) {
               borderRadius: 14, overflow: "hidden", marginBottom: 16,
             }}>
               <div style={{
-                padding: "13px 14px",
-                background: "rgba(255,255,255,0.06)",
-                borderRight: "1.5px solid rgba(255,255,255,0.1)",
-                fontFamily: "'Baloo 2', sans-serif", fontWeight: 700,
-                fontSize: 15, color: "rgba(255,255,255,0.6)", whiteSpace: "nowrap",
+                padding: "13px 16px",
+                background: "rgba(255,255,255,0.1)",
+                borderRight: "1.5px solid rgba(255,255,255,0.25)",
+                fontFamily: "'Baloo 2', sans-serif", fontWeight: 800,
+                fontSize: 15, color: "rgba(255,255,255,0.92)", whiteSpace: "nowrap",
+                letterSpacing: 0.5,
               }}>+91</div>
               <input
                 value={phone}
