@@ -218,19 +218,19 @@ export function CustomerAuth({ onSuccess }: CustomerAuthProps) {
 
             {/* Phone input */}
             <div style={{
-              display: "flex", alignItems: "center",
+              display: "flex", alignItems: "stretch",
               background: "rgba(255,255,255,0.06)",
               border: "1.5px solid rgba(255,255,255,0.12)",
               borderRadius: 14, overflow: "hidden", marginBottom: 16,
             }}>
-              <div style={{
-                padding: "17px 20px",
-                background: "rgba(245,158,11,0.18)",
-                borderRight: "2px solid rgba(245,158,11,0.35)",
-                fontFamily: "'Baloo 2', sans-serif", fontWeight: 800,
-                fontSize: 16, color: "#F59E0B", whiteSpace: "nowrap",
-                letterSpacing: 1, flexShrink: 0, lineHeight: 1,
-              }}>+91</div>
+              <span style={{
+                width: 68, flexShrink: 0,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                background: "#F59E0B",
+                borderRight: "2px solid rgba(0,0,0,0.15)",
+                fontFamily: "'Baloo 2', sans-serif", fontWeight: 900,
+                fontSize: 16, color: "#1B4332",
+              }}>+91</span>
               <input
                 value={phone}
                 onChange={e => { setPhone(e.target.value.replace(/\D/g, "").slice(0, 10)); setError(""); }}
@@ -243,7 +243,7 @@ export function CustomerAuth({ onSuccess }: CustomerAuthProps) {
                   padding: "17px 14px", fontSize: 18,
                   fontFamily: "'Baloo 2', sans-serif",
                   fontWeight: 700, letterSpacing: 1.5,
-                  background: "transparent", color: "white", lineHeight: 1,
+                  background: "transparent", color: "white",
                 }}
               />
             </div>
