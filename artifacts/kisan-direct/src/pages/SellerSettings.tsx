@@ -7,7 +7,11 @@ interface SellerSettingsProps {
   onBack: () => void;
 }
 
+type SettingsTab = "villages" | "categories";
+
 export function SellerSettings({ onBack }: SellerSettingsProps) {
+  const [activeTab, setActiveTab] = useState<SettingsTab>("villages");
+
   const [villages, setVillages] = useState<Village[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [villageInput, setVillageInput] = useState("");
@@ -77,68 +81,85 @@ export function SellerSettings({ onBack }: SellerSettingsProps) {
       overflow: "hidden", background: "#F7F4EF",
       width: "100%", boxSizing: "border-box",
     }}>
-      {/* Header */}
+
+      {/* ── Header ────────────────────────────────────────────── */}
       <div style={{
         background: "linear-gradient(135deg,#1a3d1a,#2D6A2D)",
-        padding: "16px 16px 16px", flexShrink: 0,
-        display: "flex", alignItems: "center", gap: 12,
+        flexShrink: 0,
       }}>
-        <button onClick={onBack} style={{
-          background: "rgba(255,255,255,0.15)", border: "none", borderRadius: 10,
-          padding: "7px 12px", color: "white", fontFamily: "'Baloo 2', sans-serif",
-          fontWeight: 700, fontSize: 14, cursor: "pointer", flexShrink: 0,
-        }}>←</button>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ color: "white", fontSize: 18, fontWeight: 800 }}>⚙️ Manage Settings</div>
-          <div style={{ color: "rgba(255,255,255,0.65)", fontSize: 11, marginTop: 1 }}>
-            Villages & Categories manage करें
+        <div style={{
+          display: "flex", alignItems: "center", gap: 12,
+          padding: "16px 16px 0",
+        }}>
+          <button onClick={onBack} style={{
+            background: "rgba(255,255,255,0.15)", border: "none", borderRadius: 10,
+            padding: "7px 12px", color: "white", fontFamily: "'Baloo 2', sans-serif",
+            fontWeight: 700, fontSize: 14, cursor: "pointer", flexShrink: 0,
+          }}>←</button>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ color: "white", fontSize: 17, fontWeight: 800 }}>⚙️ Settings</div>
+            <div style={{ color: "rgba(255,255,255,0.65)", fontSize: 11, marginTop: 1 }}>
+              Villages & Categories manage करें
+            </div>
           </div>
+        </div>
+
+        {/* ── Sub-tabs ──────────────────────────────────────────── */}
+        <div style={{ display: "flex", padding: "10px 16px 0", gap: 0 }}>
+          {([
+            { id: "villages" as SettingsTab, label: "🏘 Villages", count: villages.length },
+            { id: "categories" as SettingsTab, label: "🏷 Categories", count: categories.length },
+          ]).map(t => (
+            <button
+              key={t.id}
+              onClick={() => setActiveTab(t.id)}
+              style={{
+                flex: 1, border: "none", cursor: "pointer",
+                padding: "9px 4px 11px",
+                background: activeTab === t.id ? "white" : "transparent",
+                borderRadius: activeTab === t.id ? "12px 12px 0 0" : 0,
+                fontFamily: "'Baloo 2', sans-serif",
+                transition: "background 0.15s",
+              }}
+            >
+              <div style={{ fontSize: 13, fontWeight: 800,
+                color: activeTab === t.id ? "#1a3d1a" : "rgba(255,255,255,0.8)" }}>
+                {t.label}
+              </div>
+              <div style={{ fontSize: 10, marginTop: 1,
+                color: activeTab === t.id ? "#2D6A2D" : "rgba(255,255,255,0.55)",
+                fontWeight: 600 }}>
+                {t.count} {t.id === "villages" ? "गांव" : "categories"}
+              </div>
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Scrollable content */}
-      <div style={{
-        flex: 1, overflowY: "auto", overflowX: "hidden",
-        padding: "14px 14px 28px", display: "flex",
-        flexDirection: "column", gap: 14, width: "100%", boxSizing: "border-box",
-      }}>
-
-        {/* ── Villages Section ─────────────────────────────────── */}
+      {/* ── Villages Tab ──────────────────────────────────────── */}
+      {activeTab === "villages" && (
         <div style={{
-          background: "white", borderRadius: 16,
-          boxShadow: "0 2px 10px rgba(0,0,0,0.06)",
-          width: "100%", boxSizing: "border-box", overflow: "hidden",
+          flex: 1, display: "flex", flexDirection: "column",
+          overflow: "hidden", width: "100%", boxSizing: "border-box",
         }}>
-          {/* Section header */}
+          {/* Add input */}
           <div style={{
-            background: "linear-gradient(135deg,#E8F5E8,#d1fae5)",
-            padding: "12px 14px", borderBottom: "1px solid #E5DDD0",
+            padding: "14px 14px 12px", background: "white",
+            borderBottom: "1px solid #F0EDE8", flexShrink: 0,
           }}>
-            <div style={{ fontWeight: 800, fontSize: 15, color: "#1a3d1a" }}>🏘 Delivery Villages</div>
-            <div style={{ fontSize: 12, color: "#2D6A2D", marginTop: 2 }}>
-              {villages.length} गांव · Customer इन्हें देख सकते हैं
-            </div>
-          </div>
-
-          {/* Add input — always visible at top */}
-          <div style={{ padding: "12px 14px 10px", borderBottom: "1px solid #F0EDE8" }}>
             {villageErr && (
-              <div style={{
-                fontSize: 12, color: "#dc2626", marginBottom: 6,
-                fontFamily: "'Baloo 2', sans-serif",
-              }}>⚠ {villageErr}</div>
+              <div style={{ fontSize: 12, color: "#dc2626", marginBottom: 6,
+                fontFamily: "'Baloo 2', sans-serif" }}>⚠ {villageErr}</div>
             )}
-            <div style={{
-              display: "flex", gap: 8, width: "100%", boxSizing: "border-box",
-            }}>
+            <div style={{ display: "flex", gap: 8, width: "100%", boxSizing: "border-box" }}>
               <input
                 value={villageInput}
                 onChange={e => { setVillageInput(e.target.value); setVillageErr(""); }}
                 onKeyDown={e => e.key === "Enter" && void addVillage()}
-                placeholder="नया गांव का नाम..."
+                placeholder="नया गांव का नाम लिखें..."
                 style={{
                   flex: 1, minWidth: 0, border: "1.5px solid #E5DDD0", borderRadius: 10,
-                  padding: "9px 12px", fontFamily: "'Baloo 2', sans-serif",
+                  padding: "10px 12px", fontFamily: "'Baloo 2', sans-serif",
                   fontSize: 14, outline: "none", background: "#FAFAF8",
                   boxSizing: "border-box",
                 }}
@@ -150,8 +171,8 @@ export function SellerSettings({ onBack }: SellerSettingsProps) {
                   flexShrink: 0,
                   background: villageLoading || !villageInput.trim() ? "#E5DDD0" : "#2D6A2D",
                   color: villageLoading || !villageInput.trim() ? "#aaa" : "white",
-                  border: "none", borderRadius: 10, padding: "9px 16px",
-                  fontFamily: "'Baloo 2', sans-serif", fontWeight: 800, fontSize: 18,
+                  border: "none", borderRadius: 10, padding: "10px 18px",
+                  fontFamily: "'Baloo 2', sans-serif", fontWeight: 800, fontSize: 17,
                   cursor: villageLoading || !villageInput.trim() ? "default" : "pointer",
                   lineHeight: 1,
                 }}
@@ -159,76 +180,75 @@ export function SellerSettings({ onBack }: SellerSettingsProps) {
             </div>
           </div>
 
-          {/* Village list */}
-          <div style={{ padding: "8px 14px 12px", display: "flex", flexDirection: "column", gap: 6 }}>
-            {villages.length === 0 && (
-              <div style={{ fontSize: 13, color: "#aaa", textAlign: "center", padding: "12px 0" }}>
-                कोई गांव नहीं है, नया जोड़ें ↑
-              </div>
-            )}
-            {villages.map(v => (
-              <div key={v.id} style={{
-                display: "flex", justifyContent: "space-between", alignItems: "center",
-                padding: "9px 12px", background: "#F7FBF7", borderRadius: 10,
-                border: "1.5px solid #E8F5E8", gap: 8,
+          {/* Village list — scrollable */}
+          <div style={{
+            flex: 1, overflowY: "auto", overflowX: "hidden",
+            padding: "10px 14px 20px",
+            display: "flex", flexDirection: "column", gap: 7,
+          }}>
+            {villages.length === 0 ? (
+              <div style={{
+                textAlign: "center", padding: "40px 20px",
+                color: "#aaa", fontSize: 14, fontFamily: "'Baloo 2', sans-serif",
               }}>
-                <span style={{
-                  fontWeight: 700, fontSize: 14, color: "#1C1C1C",
-                  fontFamily: "'Baloo 2', sans-serif", minWidth: 0,
-                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                }}>
-                  📍 {v.name}
-                </span>
-                <button
-                  onClick={() => void removeVillage(v.id)}
-                  style={{
-                    flexShrink: 0, background: "#FEE2E2", color: "#dc2626", border: "none",
-                    borderRadius: 8, width: 28, height: 28, cursor: "pointer",
-                    fontSize: 14, fontWeight: 800, display: "flex",
-                    alignItems: "center", justifyContent: "center",
-                  }}
-                >×</button>
+                <div style={{ fontSize: 36, marginBottom: 8 }}>🏘</div>
+                कोई गांव नहीं है<br />ऊपर से नया गांव जोड़ें
               </div>
-            ))}
+            ) : (
+              villages.map(v => (
+                <div key={v.id} style={{
+                  display: "flex", justifyContent: "space-between", alignItems: "center",
+                  padding: "12px 14px", background: "white", borderRadius: 12,
+                  border: "1.5px solid #E8F5E8", gap: 8,
+                  boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+                }}>
+                  <span style={{
+                    fontWeight: 700, fontSize: 14, color: "#1C1C1C",
+                    fontFamily: "'Baloo 2', sans-serif", minWidth: 0,
+                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                  }}>
+                    📍 {v.name}
+                  </span>
+                  <button
+                    onClick={() => void removeVillage(v.id)}
+                    style={{
+                      flexShrink: 0, background: "#FEE2E2", color: "#dc2626",
+                      border: "none", borderRadius: 8, width: 30, height: 30,
+                      cursor: "pointer", fontSize: 15, fontWeight: 800,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}
+                  >×</button>
+                </div>
+              ))
+            )}
           </div>
         </div>
+      )}
 
-        {/* ── Categories Section ───────────────────────────────── */}
+      {/* ── Categories Tab ────────────────────────────────────── */}
+      {activeTab === "categories" && (
         <div style={{
-          background: "white", borderRadius: 16,
-          boxShadow: "0 2px 10px rgba(0,0,0,0.06)",
-          width: "100%", boxSizing: "border-box", overflow: "hidden",
+          flex: 1, display: "flex", flexDirection: "column",
+          overflow: "hidden", width: "100%", boxSizing: "border-box",
         }}>
-          {/* Section header */}
+          {/* Add input */}
           <div style={{
-            background: "linear-gradient(135deg,#FEF9C3,#fef3c7)",
-            padding: "12px 14px", borderBottom: "1px solid #E5DDD0",
+            padding: "14px 14px 12px", background: "white",
+            borderBottom: "1px solid #F0EDE8", flexShrink: 0,
           }}>
-            <div style={{ fontWeight: 800, fontSize: 15, color: "#92400E" }}>🏷 Product Categories</div>
-            <div style={{ fontSize: 12, color: "#B45309", marginTop: 2 }}>
-              {categories.length} categories · Products add करते समय दिखती हैं
-            </div>
-          </div>
-
-          {/* Add input — always visible at top */}
-          <div style={{ padding: "12px 14px 10px", borderBottom: "1px solid #F0EDE8" }}>
             {categoryErr && (
-              <div style={{
-                fontSize: 12, color: "#dc2626", marginBottom: 6,
-                fontFamily: "'Baloo 2', sans-serif",
-              }}>⚠ {categoryErr}</div>
+              <div style={{ fontSize: 12, color: "#dc2626", marginBottom: 6,
+                fontFamily: "'Baloo 2', sans-serif" }}>⚠ {categoryErr}</div>
             )}
-            <div style={{
-              display: "flex", gap: 8, width: "100%", boxSizing: "border-box",
-            }}>
+            <div style={{ display: "flex", gap: 8, width: "100%", boxSizing: "border-box" }}>
               <input
                 value={categoryInput}
                 onChange={e => { setCategoryInput(e.target.value); setCategoryErr(""); }}
                 onKeyDown={e => e.key === "Enter" && void addCategory()}
-                placeholder="नई category का नाम..."
+                placeholder="नई category का नाम लिखें..."
                 style={{
                   flex: 1, minWidth: 0, border: "1.5px solid #E5DDD0", borderRadius: 10,
-                  padding: "9px 12px", fontFamily: "'Baloo 2', sans-serif",
+                  padding: "10px 12px", fontFamily: "'Baloo 2', sans-serif",
                   fontSize: 14, outline: "none", background: "#FAFAF8",
                   boxSizing: "border-box",
                 }}
@@ -240,8 +260,8 @@ export function SellerSettings({ onBack }: SellerSettingsProps) {
                   flexShrink: 0,
                   background: categoryLoading || !categoryInput.trim() ? "#E5DDD0" : "#D97706",
                   color: categoryLoading || !categoryInput.trim() ? "#aaa" : "white",
-                  border: "none", borderRadius: 10, padding: "9px 16px",
-                  fontFamily: "'Baloo 2', sans-serif", fontWeight: 800, fontSize: 18,
+                  border: "none", borderRadius: 10, padding: "10px 18px",
+                  fontFamily: "'Baloo 2', sans-serif", fontWeight: 800, fontSize: 17,
                   cursor: categoryLoading || !categoryInput.trim() ? "default" : "pointer",
                   lineHeight: 1,
                 }}
@@ -249,41 +269,51 @@ export function SellerSettings({ onBack }: SellerSettingsProps) {
             </div>
           </div>
 
-          {/* Category list */}
-          <div style={{ padding: "8px 14px 12px", display: "flex", flexDirection: "column", gap: 6 }}>
-            {categories.length === 0 && (
-              <div style={{ fontSize: 13, color: "#aaa", textAlign: "center", padding: "12px 0" }}>
-                कोई category नहीं है, नई जोड़ें ↑
-              </div>
-            )}
-            {categories.map(c => (
-              <div key={c.id} style={{
-                display: "flex", justifyContent: "space-between", alignItems: "center",
-                padding: "9px 12px", background: "#FFFBEB", borderRadius: 10,
-                border: "1.5px solid #FEF3C7", gap: 8,
+          {/* Category list — scrollable */}
+          <div style={{
+            flex: 1, overflowY: "auto", overflowX: "hidden",
+            padding: "10px 14px 20px",
+            display: "flex", flexDirection: "column", gap: 7,
+          }}>
+            {categories.length === 0 ? (
+              <div style={{
+                textAlign: "center", padding: "40px 20px",
+                color: "#aaa", fontSize: 14, fontFamily: "'Baloo 2', sans-serif",
               }}>
-                <span style={{
-                  fontWeight: 700, fontSize: 14, color: "#1C1C1C",
-                  fontFamily: "'Baloo 2', sans-serif", minWidth: 0,
-                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                }}>
-                  🏷 {c.name}
-                </span>
-                <button
-                  onClick={() => void removeCategory(c.id)}
-                  style={{
-                    flexShrink: 0, background: "#FEE2E2", color: "#dc2626", border: "none",
-                    borderRadius: 8, width: 28, height: 28, cursor: "pointer",
-                    fontSize: 14, fontWeight: 800, display: "flex",
-                    alignItems: "center", justifyContent: "center",
-                  }}
-                >×</button>
+                <div style={{ fontSize: 36, marginBottom: 8 }}>🏷</div>
+                कोई category नहीं है<br />ऊपर से नई category जोड़ें
               </div>
-            ))}
+            ) : (
+              categories.map(c => (
+                <div key={c.id} style={{
+                  display: "flex", justifyContent: "space-between", alignItems: "center",
+                  padding: "12px 14px", background: "white", borderRadius: 12,
+                  border: "1.5px solid #FEF3C7", gap: 8,
+                  boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+                }}>
+                  <span style={{
+                    fontWeight: 700, fontSize: 14, color: "#1C1C1C",
+                    fontFamily: "'Baloo 2', sans-serif", minWidth: 0,
+                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                  }}>
+                    🏷 {c.name}
+                  </span>
+                  <button
+                    onClick={() => void removeCategory(c.id)}
+                    style={{
+                      flexShrink: 0, background: "#FEE2E2", color: "#dc2626",
+                      border: "none", borderRadius: 8, width: 30, height: 30,
+                      cursor: "pointer", fontSize: 15, fontWeight: 800,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}
+                  >×</button>
+                </div>
+              ))
+            )}
           </div>
         </div>
+      )}
 
-      </div>
     </div>
   );
 }
