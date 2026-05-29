@@ -1,0 +1,1 @@
+- [KisanDirect migration](kisandirect-migration.md) — Supabase DB/Storage replaced with Replit PostgreSQL + Object Storage; root config.js must not set DATABASE_URL (Replit injects it).
