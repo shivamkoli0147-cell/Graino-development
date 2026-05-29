@@ -115,6 +115,7 @@ void seedStaticImages();
 
 const router = Router();
 
+const ALLOWED_VILLAGES = ["Pichor","Bamori","Datia","Indergarh","Bhander","Dabra","Karera","Lahar","Mohna","Shivpuri"];
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
