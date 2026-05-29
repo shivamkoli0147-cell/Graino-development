@@ -100,7 +100,10 @@ function GrainoApp() {
         {mode === "customer" ? (
           <>
             {!customer ? (
-              <CustomerAuth onSuccess={handleLoginSuccess} />
+              <CustomerAuth
+                onSuccess={handleLoginSuccess}
+                onSellerLogin={() => { setMode("seller"); setSellerAuthed(true); }}
+              />
             ) : viewProductId ? (
               <ProductDetail
                 productId={viewProductId} cart={cart}

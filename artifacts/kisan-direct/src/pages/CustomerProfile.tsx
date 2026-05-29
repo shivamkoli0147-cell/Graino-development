@@ -22,7 +22,6 @@ export function CustomerProfile({ customer, onUpdate, onLogout, onClose, onGoSel
   const [showVillagePicker, setShowVillagePicker] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [sellerTaps, setSellerTaps] = useState(0);
 
   const handleSave = async () => {
     setSaving(true);
@@ -46,12 +45,6 @@ export function CustomerProfile({ customer, onUpdate, onLogout, onClose, onGoSel
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 1800);
-  };
-
-  const handleSellerTap = () => {
-    const next = sellerTaps + 1;
-    setSellerTaps(next);
-    if (next >= 5) { setSellerTaps(0); onGoSeller(); }
   };
 
   const initial = (customer.name || "?")[0].toUpperCase();
@@ -174,14 +167,10 @@ export function CustomerProfile({ customer, onUpdate, onLogout, onClose, onGoSel
             Logout करें
           </button>
 
-          {/* Hidden seller access — tap 5× */}
           <div style={{ textAlign: "center" }}>
-            <button onClick={handleSellerTap} style={{
-              background: "none", border: "none", cursor: "pointer",
-              color: "#CCC", fontSize: 11, fontFamily: "'Baloo 2',sans-serif",
-            }}>
-              {sellerTaps > 0 ? `${5 - sellerTaps} और बार tap करें...` : "KisanDirect v1.0"}
-            </button>
+            <span style={{ color: "#CCC", fontSize: 11, fontFamily: "'Baloo 2',sans-serif" }}>
+              KisanDirect v1.0
+            </span>
           </div>
         </div>
       </div>

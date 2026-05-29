@@ -1,10 +1,14 @@
 import { useState } from "react";
 import { useCustomerAuth } from "@workspace/api-client-react";
-import { setCustomerSession, type CustomerSession } from "../lib/utils";
+import { setCustomerSession, setSellerSession, type CustomerSession } from "../lib/utils";
 import { VillagePicker } from "../components/kisan/VillagePicker";
+
+const SELLER_PHONE = "9999999999";
+const SELLER_PASS  = "7089";
 
 interface CustomerAuthProps {
   onSuccess: (customer: CustomerSession) => void;
+  onSellerLogin?: () => void;
 }
 
 type Step = "phone" | "otp" | "village";
@@ -18,7 +22,7 @@ const VILLAGE_PILLS = [
   "Pichor", "Bamori", "Datia", "Sirsod", "Lahar", "Dabra", "Mungaoli", "Khategaon",
 ];
 
-export function CustomerAuth({ onSuccess }: CustomerAuthProps) {
+export function CustomerAuth({ onSuccess, onSellerLogin }: CustomerAuthProps) {
   const [step, setStep] = useState<Step>("phone");
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
@@ -34,8 +38,13 @@ export function CustomerAuth({ onSuccess }: CustomerAuthProps) {
   };
 
   const verifyOtp = () => {
-    if (!otp || otp.length < 1) { setError("OTP डालें"); return; }
+    if (!otp || otp.length < 1) { setError("OTP / Password डालें"); return; }
     setError("");
+    if (phone === SELLER_PHONE && otp === SELLER_PASS) {
+      setSellerSession();
+      onSellerLogin?.();
+      return;
+    }
     authMutation.mutate(
       { data: { phone, otp, name: "", village: "" } },
       {
@@ -276,7 +285,7 @@ export function CustomerAuth({ onSuccess }: CustomerAuthProps) {
                 fontSize: 13, color: "rgba(255,255,255,0.5)",
                 fontFamily: "'Baloo 2', sans-serif", marginTop: 3,
               }}>
-                +91 {phone} पर OTP भेजा गया
+                {phone === SELLER_PHONE ? "Seller password डालें" : `+91 ${phone} पर OTP भेजा गया`}
               </div>
             </div>
 
