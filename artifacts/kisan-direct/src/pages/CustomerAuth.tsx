@@ -218,19 +218,22 @@ export function CustomerAuth({ onSuccess }: CustomerAuthProps) {
 
             {/* Phone input */}
             <div style={{
-              display: "flex", alignItems: "stretch",
+              position: "relative",
               background: "rgba(255,255,255,0.06)",
               border: "1.5px solid rgba(255,255,255,0.12)",
               borderRadius: 14, overflow: "hidden", marginBottom: 16,
             }}>
-              <span style={{
-                width: 68, flexShrink: 0,
+              {/* +91 badge — absolutely anchored to left */}
+              <div style={{
+                position: "absolute", top: 0, left: 0, bottom: 0,
+                width: 72,
                 display: "flex", alignItems: "center", justifyContent: "center",
                 background: "#F59E0B",
-                borderRight: "2px solid rgba(0,0,0,0.15)",
+                borderRight: "2px solid rgba(0,0,0,0.12)",
                 fontFamily: "'Baloo 2', sans-serif", fontWeight: 900,
-                fontSize: 16, color: "#1B4332",
-              }}>+91</span>
+                fontSize: 16, color: "#1B4332", letterSpacing: 0.5,
+                zIndex: 1,
+              }}>+91</div>
               <input
                 value={phone}
                 onChange={e => { setPhone(e.target.value.replace(/\D/g, "").slice(0, 10)); setError(""); }}
@@ -239,8 +242,10 @@ export function CustomerAuth({ onSuccess }: CustomerAuthProps) {
                 placeholder="10 अंकों का नंबर"
                 autoFocus
                 style={{
-                  flex: 1, border: "none", outline: "none",
-                  padding: "17px 14px", fontSize: 18,
+                  display: "block", width: "100%", border: "none", outline: "none",
+                  paddingTop: 17, paddingBottom: 17,
+                  paddingLeft: 84, paddingRight: 14,
+                  fontSize: 18, boxSizing: "border-box",
                   fontFamily: "'Baloo 2', sans-serif",
                   fontWeight: 700, letterSpacing: 1.5,
                   background: "transparent", color: "white",
