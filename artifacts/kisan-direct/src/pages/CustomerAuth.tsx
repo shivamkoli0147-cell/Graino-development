@@ -176,7 +176,7 @@ export function CustomerAuth({ onSuccess }: CustomerAuthProps) {
                 color: "rgba(245,158,11,0.9)",
                 fontFamily: "'Baloo 2', sans-serif",
                 whiteSpace: "nowrap",
-              }}>📍 {v}</span>
+              }}>{v}</span>
             ))}
           </div>
         </div>
