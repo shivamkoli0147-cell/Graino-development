@@ -106,35 +106,7 @@ export function SellerSettings({ onBack }: SellerSettingsProps) {
             </div>
           </div>
 
-          <div style={{ padding: "12px 16px", display: "flex", flexDirection: "column", gap: 6 }}>
-            {villages.length === 0 && (
-              <div style={{ fontSize: 13, color: "#999", textAlign: "center", padding: "16px 0" }}>
-                कोई गांव नहीं है, नया जोड़ें
-              </div>
-            )}
-            {villages.map(v => (
-              <div key={v.id} style={{
-                display: "flex", justifyContent: "space-between", alignItems: "center",
-                padding: "10px 14px", background: "#F7FBF7", borderRadius: 12,
-                border: "1.5px solid #E8F5E8",
-              }}>
-                <span style={{ fontWeight: 700, fontSize: 14, color: "#1C1C1C", fontFamily: "'Baloo 2', sans-serif" }}>
-                  📍 {v.name}
-                </span>
-                <button
-                  onClick={() => void removeVillage(v.id)}
-                  style={{
-                    background: "#FEE2E2", color: "#dc2626", border: "none",
-                    borderRadius: 8, width: 28, height: 28, cursor: "pointer",
-                    fontSize: 14, fontWeight: 800, display: "flex",
-                    alignItems: "center", justifyContent: "center",
-                  }}
-                >×</button>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ padding: "0 16px 16px" }}>
+          <div style={{ padding: "12px 16px 14px" }}>
             {villageErr && (
               <div style={{ fontSize: 12, color: "#dc2626", marginBottom: 8, fontFamily: "'Baloo 2', sans-serif" }}>
                 ⚠ {villageErr}
@@ -165,6 +137,34 @@ export function SellerSettings({ onBack }: SellerSettingsProps) {
               >＋</button>
             </div>
           </div>
+
+          <div style={{ padding: "0 16px 16px", display: "flex", flexDirection: "column", gap: 6 }}>
+            {villages.length === 0 && (
+              <div style={{ fontSize: 13, color: "#999", textAlign: "center", padding: "12px 0" }}>
+                कोई गांव नहीं है, नया जोड़ें
+              </div>
+            )}
+            {villages.map(v => (
+              <div key={v.id} style={{
+                display: "flex", justifyContent: "space-between", alignItems: "center",
+                padding: "10px 14px", background: "#F7FBF7", borderRadius: 12,
+                border: "1.5px solid #E8F5E8",
+              }}>
+                <span style={{ fontWeight: 700, fontSize: 14, color: "#1C1C1C", fontFamily: "'Baloo 2', sans-serif" }}>
+                  📍 {v.name}
+                </span>
+                <button
+                  onClick={() => void removeVillage(v.id)}
+                  style={{
+                    background: "#FEE2E2", color: "#dc2626", border: "none",
+                    borderRadius: 8, width: 28, height: 28, cursor: "pointer",
+                    fontSize: 14, fontWeight: 800, display: "flex",
+                    alignItems: "center", justifyContent: "center",
+                  }}
+                >×</button>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Categories Section */}
@@ -179,35 +179,7 @@ export function SellerSettings({ onBack }: SellerSettingsProps) {
             </div>
           </div>
 
-          <div style={{ padding: "12px 16px", display: "flex", flexDirection: "column", gap: 6 }}>
-            {categories.length === 0 && (
-              <div style={{ fontSize: 13, color: "#999", textAlign: "center", padding: "16px 0" }}>
-                कोई category नहीं है, नई जोड़ें
-              </div>
-            )}
-            {categories.map(c => (
-              <div key={c.id} style={{
-                display: "flex", justifyContent: "space-between", alignItems: "center",
-                padding: "10px 14px", background: "#FFFBEB", borderRadius: 12,
-                border: "1.5px solid #FEF3C7",
-              }}>
-                <span style={{ fontWeight: 700, fontSize: 14, color: "#1C1C1C", fontFamily: "'Baloo 2', sans-serif" }}>
-                  🏷 {c.name}
-                </span>
-                <button
-                  onClick={() => void removeCategory(c.id)}
-                  style={{
-                    background: "#FEE2E2", color: "#dc2626", border: "none",
-                    borderRadius: 8, width: 28, height: 28, cursor: "pointer",
-                    fontSize: 14, fontWeight: 800, display: "flex",
-                    alignItems: "center", justifyContent: "center",
-                  }}
-                >×</button>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ padding: "0 16px 16px" }}>
+          <div style={{ padding: "12px 16px 14px" }}>
             {categoryErr && (
               <div style={{ fontSize: 12, color: "#dc2626", marginBottom: 8, fontFamily: "'Baloo 2', sans-serif" }}>
                 ⚠ {categoryErr}
@@ -237,6 +209,34 @@ export function SellerSettings({ onBack }: SellerSettingsProps) {
                 }}
               >＋</button>
             </div>
+          </div>
+
+          <div style={{ padding: "0 16px 16px", display: "flex", flexDirection: "column", gap: 6 }}>
+            {categories.length === 0 && (
+              <div style={{ fontSize: 13, color: "#999", textAlign: "center", padding: "12px 0" }}>
+                कोई category नहीं है, नई जोड़ें
+              </div>
+            )}
+            {categories.map(c => (
+              <div key={c.id} style={{
+                display: "flex", justifyContent: "space-between", alignItems: "center",
+                padding: "10px 14px", background: "#FFFBEB", borderRadius: 12,
+                border: "1.5px solid #FEF3C7",
+              }}>
+                <span style={{ fontWeight: 700, fontSize: 14, color: "#1C1C1C", fontFamily: "'Baloo 2', sans-serif" }}>
+                  🏷 {c.name}
+                </span>
+                <button
+                  onClick={() => void removeCategory(c.id)}
+                  style={{
+                    background: "#FEE2E2", color: "#dc2626", border: "none",
+                    borderRadius: 8, width: 28, height: 28, cursor: "pointer",
+                    fontSize: 14, fontWeight: 800, display: "flex",
+                    alignItems: "center", justifyContent: "center",
+                  }}
+                >×</button>
+              </div>
+            ))}
           </div>
         </div>
 
