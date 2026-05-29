@@ -225,11 +225,13 @@ export function CustomerAuth({ onSuccess }: CustomerAuthProps) {
               borderRadius: 14, overflow: "hidden", marginBottom: 16,
             }}>
               <div style={{
-                padding: "13px 16px",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                alignSelf: "stretch",
+                padding: "0 16px",
                 background: "rgba(245,158,11,0.18)",
                 borderRight: "2px solid rgba(245,158,11,0.35)",
                 fontFamily: "'Baloo 2', sans-serif", fontWeight: 800,
-                fontSize: 16, color: "#F59E0B", whiteSpace: "nowrap",
+                fontSize: 15, color: "#F59E0B", whiteSpace: "nowrap",
                 letterSpacing: 1, flexShrink: 0,
               }}>+91</div>
               <input
