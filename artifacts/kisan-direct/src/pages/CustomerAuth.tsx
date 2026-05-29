@@ -213,7 +213,7 @@ export function CustomerAuth({ onSuccess }: CustomerAuthProps) {
                 fontSize: 13, color: "rgba(255,255,255,0.5)",
                 fontFamily: "'Baloo 2', sans-serif", marginTop: 3,
               }}>
-                Login या Register करें — बिल्कुल free
+                Login या Register करें
               </div>
             </div>
 
@@ -258,12 +258,6 @@ export function CustomerAuth({ onSuccess }: CustomerAuthProps) {
 
             <GoldBtn onClick={goToOtp} label="आगे बढ़ें →" />
 
-            <div style={{
-              textAlign: "center", marginTop: 14, fontSize: 12,
-              color: "rgba(255,255,255,0.35)", fontFamily: "'Baloo 2', sans-serif",
-            }}>
-              📱 Rohit आपको OTP बताएंगे
-            </div>
           </>
         )}
 
@@ -278,7 +272,7 @@ export function CustomerAuth({ onSuccess }: CustomerAuthProps) {
                 fontSize: 13, color: "rgba(255,255,255,0.5)",
                 fontFamily: "'Baloo 2', sans-serif", marginTop: 3,
               }}>
-                +91 {phone} पर Rohit से OTP लें
+                +91 {phone} पर OTP भेजा गया
               </div>
             </div>
 
