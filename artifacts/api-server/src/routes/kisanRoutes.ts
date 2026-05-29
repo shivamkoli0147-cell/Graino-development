@@ -293,15 +293,46 @@ router.post("/auth/seller", (req, res) => {
 router.put("/customers/:id", async (req, res) => {
   try {
     const id = parseInt(req.params.id);
-    const { name, address, lat, lng } = req.body as { name?: string; address?: string; lat?: number; lng?: number };
+    const { name, address, lat, lng, village } = req.body as {
+      name?: string; address?: string; lat?: number; lng?: number; village?: string;
+    };
+    if (village && !ALLOWED_VILLAGES.includes(village)) {
+      res.status(400).json({ error: "Invalid village" }); return;
+    }
     const [existing] = await db.select().from(customers).where(eq(customers.id, id));
     if (!existing) { res.status(404).json({ error: "Customer not found" }); return; }
     await db.update(customers).set({
       name: name || existing.name,
-      address: address || existing.address,
+      village: village || existing.village,
+      address: address !== undefined ? address : existing.address,
       lat: lat ?? existing.lat,
       lng: lng ?? existing.lng,
     }).where(eq(customers.id, id));
+    const [updated] = await db.select().from(customers).where(eq(customers.id, id));
+    res.json(updated);
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+// ── Customer village / partial update ─────────────────────────────────────────
+router.patch("/customers/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { village, name, address, lat, lng } = req.body as {
+      village?: string; name?: string; address?: string; lat?: number; lng?: number;
+    };
+    if (village && !ALLOWED_VILLAGES.includes(village)) {
+      res.status(400).json({ error: "Invalid village" }); return;
+    }
+    const [existing] = await db.select().from(customers).where(eq(customers.id, id));
+    if (!existing) { res.status(404).json({ error: "Not found" }); return; }
+    const patch: Record<string, unknown> = {};
+    if (village !== undefined) patch.village = village;
+    if (name !== undefined) patch.name = name;
+    if (address !== undefined) patch.address = address;
+    if (lat !== undefined) patch.lat = lat;
+    if (lng !== undefined) patch.lng = lng;
+    if (Object.keys(patch).length === 0) { res.json(existing); return; }
+    await db.update(customers).set(patch).where(eq(customers.id, id));
     const [updated] = await db.select().from(customers).where(eq(customers.id, id));
     res.json(updated);
   } catch (e) { res.status(500).json({ error: String(e) }); }

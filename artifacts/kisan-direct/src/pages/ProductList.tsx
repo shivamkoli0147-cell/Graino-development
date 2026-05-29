@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useGetProducts } from "@workspace/api-client-react";
 import { formatINR, type Cart, type CustomerSession } from "../lib/utils";
+import { VillagePicker } from "../components/kisan/VillagePicker";
 
 const CATEGORIES = ["सब", "अनाज", "दालें", "तिलहन", "मसाले"];
 
@@ -11,11 +12,13 @@ interface ProductListProps {
   onViewProduct: (id: number) => void;
   customer?: CustomerSession | null;
   onOpenProfile?: () => void;
+  onVillageChange?: (village: string) => void;
 }
 
-export function ProductList({ cart, onAddToCart, onViewProduct, customer, onOpenProfile }: ProductListProps) {
+export function ProductList({ cart, onAddToCart, onViewProduct, customer, onOpenProfile, onVillageChange }: ProductListProps) {
   const [category, setCategory] = useState("सब");
   const [search, setSearch] = useState("");
+  const [showVillagePicker, setShowVillagePicker] = useState(false);
   const { data: products, isLoading } = useGetProducts({
     category: category === "सब" ? undefined : category,
     search: search || undefined,
@@ -34,21 +37,26 @@ export function ProductList({ cart, onAddToCart, onViewProduct, customer, onOpen
         flexShrink: 0,
       }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-          {/* Location */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1 }}>
+          {/* Location — tappable */}
+          <button
+            onClick={() => customer && setShowVillagePicker(true)}
+            style={{
+              display: "flex", alignItems: "center", gap: 6, flex: 1,
+              background: "none", border: "none", cursor: customer ? "pointer" : "default",
+              padding: 0, fontFamily: "'Baloo 2', sans-serif", textAlign: "left",
+            }}
+          >
             <span style={{ fontSize: 16 }}>📍</span>
             <div>
-              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.6)",
-                fontFamily: "'Baloo 2', sans-serif", fontWeight: 500 }}>
-                Delivery to
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", fontWeight: 500 }}>
+                Delivery to ▾
               </div>
-              <div style={{ fontSize: 14, color: "white", fontWeight: 800,
-                fontFamily: "'Baloo 2', sans-serif", lineHeight: 1.1 }}>
+              <div style={{ fontSize: 14, color: "white", fontWeight: 800, lineHeight: 1.1 }}>
                 {customer?.village || "गांव"}
-                <span style={{ fontSize: 11, color: "#F59E0B", marginLeft: 4 }}>▾</span>
+                <span style={{ fontSize: 11, color: "#F59E0B", marginLeft: 4 }}>बदलें</span>
               </div>
             </div>
-          </div>
+          </button>
 
           {/* Graino wordmark (center) */}
           <div style={{
@@ -277,6 +285,15 @@ export function ProductList({ cart, onAddToCart, onViewProduct, customer, onOpen
           </div>
         )}
       </div>
+
+      {/* Village picker */}
+      {showVillagePicker && customer && (
+        <VillagePicker
+          currentVillage={customer.village}
+          onSelect={v => { onVillageChange?.(v); setShowVillagePicker(false); }}
+          onClose={() => setShowVillagePicker(false)}
+        />
+      )}
     </div>
   );
 }

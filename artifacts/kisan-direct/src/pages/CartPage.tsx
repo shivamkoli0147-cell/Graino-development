@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { useCreateOrder } from "@workspace/api-client-react";
 import { formatINR, getCartTotal, DELIVERY_SLOTS, type Cart, type CartItem, type CustomerSession } from "../lib/utils";
+import { VillagePicker } from "../components/kisan/VillagePicker";
 
 interface CartPageProps {
   cart: Cart;
@@ -8,6 +9,7 @@ interface CartPageProps {
   onCartChange: (key: string, item: CartItem | null) => void;
   onClearCart: () => void;
   onOrderSuccess: () => void;
+  onVillageChange?: (village: string) => void;
 }
 
 const SLOT_COLORS: Record<string, { bg: string; border: string; text: string }> = {
@@ -16,7 +18,7 @@ const SLOT_COLORS: Record<string, { bg: string; border: string; text: string }> 
   evening:   { bg: "#F5F3FF", border: "#DDD6FE", text: "#6d28d9" },
 };
 
-export function CartPage({ cart, customer, onCartChange, onClearCart, onOrderSuccess }: CartPageProps) {
+export function CartPage({ cart, customer, onCartChange, onClearCart, onOrderSuccess, onVillageChange }: CartPageProps) {
   const [selectedSlot, setSelectedSlot] = useState("");
   const [ordered, setOrdered] = useState(false);
   const [orderId, setOrderId] = useState<number | null>(null);
@@ -25,6 +27,8 @@ export function CartPage({ cart, customer, onCartChange, onClearCart, onOrderSuc
   const [phone, setPhone] = useState(customer.phone || "");
   const [address, setAddress] = useState(customer.address || "");
   const [landmark, setLandmark] = useState("");
+  const [village, setVillage] = useState(customer.village);
+  const [showVillagePicker, setShowVillagePicker] = useState(false);
   const [showAddressError, setShowAddressError] = useState(false);
   const [showPhoneError, setShowPhoneError] = useState(false);
 
@@ -34,7 +38,13 @@ export function CartPage({ cart, customer, onCartChange, onClearCart, onOrderSuc
   const items = Object.entries(cart);
   const total = getCartTotal(cart);
 
-  const finalDeliveryAddress = [address.trim(), landmark.trim()].filter(Boolean).join(", ") || customer.village;
+  const handleVillageSelect = (v: string) => {
+    setVillage(v);
+    setShowVillagePicker(false);
+    onVillageChange?.(v);
+  };
+
+  const finalDeliveryAddress = [address.trim(), landmark.trim()].filter(Boolean).join(", ") || village;
 
   const placeOrder = () => {
     let hasError = false;
@@ -59,7 +69,7 @@ export function CartPage({ cart, customer, onCartChange, onClearCart, onOrderSuc
       {
         data: {
           customer_id: customer.id,
-          village: customer.village,
+          village: village,
           address: finalDeliveryAddress,
           delivery_slot: selectedSlot as "morning" | "afternoon" | "evening",
           items: items.map(([, item]) => ({
@@ -199,6 +209,31 @@ export function CartPage({ cart, customer, onCartChange, onClearCart, onOrderSuc
             📋 Order Details Confirm करें
           </div>
 
+          {/* Village */}
+          <div style={{ marginBottom: 14 }}>
+            <div style={labelStyle}>🏘 गांव</div>
+            <div style={{
+              display: "flex", justifyContent: "space-between", alignItems: "center",
+              border: "1.5px solid #E5DDD0", borderRadius: 12, padding: "11px 14px",
+              background: "#FAFAF8",
+            }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: "#1C1C1C", fontFamily: "'Baloo 2',sans-serif" }}>
+                📍 {village}
+              </span>
+              <button
+                onClick={() => setShowVillagePicker(true)}
+                style={{
+                  background: "#E8F5E8", border: "none", borderRadius: 8,
+                  padding: "4px 12px", color: "#1a6b1a",
+                  fontFamily: "'Baloo 2',sans-serif", fontWeight: 700, fontSize: 12,
+                  cursor: "pointer",
+                }}
+              >
+                बदलें
+              </button>
+            </div>
+          </div>
+
           {/* Phone */}
           <div style={{ marginBottom: 14 }}>
             <div style={labelStyle}>📱 फ़ोन नंबर (Delivery के लिए)</div>
@@ -304,6 +339,15 @@ export function CartPage({ cart, customer, onCartChange, onClearCart, onOrderSuc
             </div>
           )}
         </div>
+
+        {/* Village picker */}
+        {showVillagePicker && (
+          <VillagePicker
+            currentVillage={village}
+            onSelect={handleVillageSelect}
+            onClose={() => setShowVillagePicker(false)}
+          />
+        )}
 
         {/* Summary + Place Order */}
         <div style={{ background: "linear-gradient(135deg,#2D6A2D,#4A9B4A)", borderRadius: 20, padding: 20 }}>

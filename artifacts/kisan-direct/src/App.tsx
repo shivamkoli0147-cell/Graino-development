@@ -64,6 +64,20 @@ function GrainoApp() {
     setCustomer(c);
   };
 
+  const handleVillageChange = async (village: string) => {
+    if (!customer) return;
+    const updated: CustomerSession = { ...customer, village };
+    setCustomerSession(updated);
+    setCustomer(updated);
+    try {
+      await fetch(`/api/customers/${customer.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ village }),
+      });
+    } catch { /* silent — already saved to localStorage */ }
+  };
+
   const handleLoginSuccess = (c: CustomerSession) => {
     // session already saved to localStorage inside CustomerAuth — just update React state
     setCustomer(c);
@@ -114,6 +128,7 @@ function GrainoApp() {
                     onViewProduct={id => setViewProductId(id)}
                     customer={customer}
                     onOpenProfile={() => setShowProfile(true)}
+                    onVillageChange={handleVillageChange}
                   />
                 )}
                 {customerTab === "cart" && (
@@ -121,6 +136,7 @@ function GrainoApp() {
                     onCartChange={handleCartChange}
                     onClearCart={() => setCart({})}
                     onOrderSuccess={() => setCustomerTab("orders")}
+                    onVillageChange={handleVillageChange}
                   />
                 )}
                 {customerTab === "orders" && (

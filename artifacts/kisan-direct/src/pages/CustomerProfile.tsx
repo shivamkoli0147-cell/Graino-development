@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { setCustomerSession, clearCustomerSession, type CustomerSession } from "../lib/utils";
 import { MapPicker } from "../components/kisan/MapPicker";
+import { VillagePicker } from "../components/kisan/VillagePicker";
 
 interface CustomerProfileProps {
   customer: CustomerSession;
@@ -15,10 +16,12 @@ const DEFAULT_LNG = 78.2039;
 
 export function CustomerProfile({ customer, onUpdate, onLogout, onClose, onGoSeller }: CustomerProfileProps) {
   const [name, setName] = useState(customer.name);
+  const [village, setVillage] = useState(customer.village);
   const [address, setAddress] = useState(customer.address || "");
   const [lat, setLat] = useState(customer.lat || DEFAULT_LAT);
   const [lng, setLng] = useState(customer.lng || DEFAULT_LNG);
   const [showMap, setShowMap] = useState(false);
+  const [showVillagePicker, setShowVillagePicker] = useState(false);
   const [locating, setLocating] = useState(false);
   const [locErr, setLocErr] = useState("");
   const [saving, setSaving] = useState(false);
@@ -30,6 +33,7 @@ export function CustomerProfile({ customer, onUpdate, onLogout, onClose, onGoSel
     const updated: CustomerSession = {
       ...customer,
       name: name.trim() || customer.name,
+      village,
       address: address.trim(),
       lat, lng,
     };
@@ -38,7 +42,7 @@ export function CustomerProfile({ customer, onUpdate, onLogout, onClose, onGoSel
       await fetch(`/api/customers/${customer.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: updated.name, address: updated.address, lat, lng }),
+        body: JSON.stringify({ name: updated.name, village: updated.village, address: updated.address, lat, lng }),
       });
     } catch { /* silent — save to localStorage anyway */ }
     setCustomerSession(updated);
@@ -120,6 +124,31 @@ export function CustomerProfile({ customer, onUpdate, onLogout, onClose, onGoSel
             }}>{initial}</div>
             <div style={{ fontWeight: 800, fontSize: 18, color: "#1C1C1C" }}>{customer.name}</div>
             <div style={{ fontSize: 13, color: "#777", marginTop: 2 }}>📱 {customer.phone} • 🏘 {customer.village}</div>
+          </div>
+
+          {/* Village */}
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#555", marginBottom: 5 }}>🏘 मेरा गांव</div>
+            <div style={{
+              display: "flex", justifyContent: "space-between", alignItems: "center",
+              border: "1.5px solid #E5DDD0", borderRadius: 12, padding: "11px 14px",
+              background: "#FAFAF8",
+            }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: "#1C1C1C", fontFamily: "'Baloo 2',sans-serif" }}>
+                📍 {village}
+              </span>
+              <button
+                onClick={() => setShowVillagePicker(true)}
+                style={{
+                  background: "#E8F5E8", border: "none", borderRadius: 8,
+                  padding: "4px 12px", color: "#1a6b1a",
+                  fontFamily: "'Baloo 2',sans-serif", fontWeight: 700, fontSize: 12,
+                  cursor: "pointer",
+                }}
+              >
+                बदलें
+              </button>
+            </div>
           </div>
 
           {/* Name */}
@@ -224,6 +253,15 @@ export function CustomerProfile({ customer, onUpdate, onLogout, onClose, onGoSel
           </div>
         </div>
       </div>
+
+      {/* Village picker */}
+      {showVillagePicker && (
+        <VillagePicker
+          currentVillage={village}
+          onSelect={v => { setVillage(v); setShowVillagePicker(false); }}
+          onClose={() => setShowVillagePicker(false)}
+        />
+      )}
     </>
   );
 }
