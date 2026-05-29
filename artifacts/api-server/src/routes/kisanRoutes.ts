@@ -308,26 +308,30 @@ router.get("/villages", async (_req, res) => {
 router.post("/auth/customer", async (req, res) => {
   try {
     const { phone, otp, name, village, address, lat, lng } = req.body as {
-      phone: string; otp: string; name: string; village: string;
+      phone: string; otp: string; name?: string; village?: string;
       address?: string; lat?: number; lng?: number;
     };
-    if (!phone || !otp || !name || !village) { res.status(400).json({ error: "All fields required" }); return; }
-    if (!ALLOWED_VILLAGES.includes(village)) { res.status(400).json({ error: "इस village में delivery नहीं होती" }); return; }
+    if (!phone || !otp) { res.status(400).json({ error: "Phone and OTP required" }); return; }
+    if (village && !ALLOWED_VILLAGES.includes(village)) { res.status(400).json({ error: "इस village में delivery नहीं होती" }); return; }
     if (!/^\d{4}$/.test(otp)) { res.status(400).json({ error: "OTP must be 4 digits" }); return; }
     const [existing] = await db.select().from(customers).where(eq(customers.phone, phone));
     if (existing) {
-      await db.update(customers).set({
-        name, village,
-        address: address || existing.address,
-        lat: lat ?? existing.lat,
-        lng: lng ?? existing.lng,
-      }).where(eq(customers.phone, phone));
+      const patch: Record<string, unknown> = {};
+      if (name) patch.name = name;
+      if (village) patch.village = village;
+      if (address) patch.address = address;
+      if (lat != null) patch.lat = lat;
+      if (lng != null) patch.lng = lng;
+      if (Object.keys(patch).length > 0) {
+        await db.update(customers).set(patch).where(eq(customers.phone, phone));
+      }
       const [updated] = await db.select().from(customers).where(eq(customers.phone, phone));
       res.json({ success: true, customer: updated });
       return;
     }
     const [inserted] = await db.insert(customers).values({
-      name, phone, village, address: address || null, lat: lat ?? null, lng: lng ?? null,
+      name: name || "", phone, village: village || "",
+      address: address || null, lat: lat ?? null, lng: lng ?? null,
     }).returning();
     res.json({ success: true, customer: inserted });
   } catch (e) { res.status(500).json({ error: String(e) }); }

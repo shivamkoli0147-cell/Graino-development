@@ -122,6 +122,7 @@ function GrainoApp() {
                     onClearCart={() => setCart({})}
                     onOrderSuccess={() => setCustomerTab("orders")}
                     onVillageChange={handleVillageChange}
+                    onCustomerUpdate={handleCustomerUpdate}
                   />
                 )}
                 {customerTab === "orders" && (

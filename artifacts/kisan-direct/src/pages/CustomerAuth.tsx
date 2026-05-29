@@ -1,62 +1,83 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useCustomerAuth } from "@workspace/api-client-react";
 import { setCustomerSession, type CustomerSession } from "../lib/utils";
+import { VillagePicker } from "../components/kisan/VillagePicker";
 
 interface CustomerAuthProps {
   onSuccess: (customer: CustomerSession) => void;
 }
 
+type Step = "phone" | "otp" | "village";
+
+type RawCustomer = {
+  id: number; name: string; phone: string; village: string;
+  address?: string | null; lat?: number | null; lng?: number | null;
+};
+
 export function CustomerAuth({ onSuccess }: CustomerAuthProps) {
-  const [step, setStep] = useState<"phone" | "otp">("phone");
+  const [step, setStep] = useState<Step>("phone");
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
-  const [name, setName] = useState("");
-  const [village, setVillage] = useState("");
   const [error, setError] = useState("");
-  const [villages, setVillages] = useState<string[]>([]);
-
-  useEffect(() => {
-    fetch("/api/settings/villages")
-      .then(r => r.json())
-      .then((rows: { id: number; name: string }[]) => setVillages(rows.map(r => r.name)))
-      .catch(() => {});
-  }, []);
+  const [pendingCustomer, setPendingCustomer] = useState<RawCustomer | null>(null);
 
   const authMutation = useCustomerAuth();
 
-  const sendOtp = () => {
+  const goToOtp = () => {
     if (!/^\d{10}$/.test(phone)) { setError("10 अंकों का फोन नंबर डालें"); return; }
-    if (!name.trim()) { setError("अपना नाम डालें"); return; }
-    if (!village) { setError("गांव चुनें"); return; }
     setError("");
     setStep("otp");
   };
 
-  const login = () => {
+  const verifyOtp = () => {
     if (!/^\d{4}$/.test(otp)) { setError("4 अंकों का OTP डालें"); return; }
     setError("");
     authMutation.mutate(
-      { data: { phone, otp, name: name.trim(), village } },
+      { data: { phone, otp } },
       {
         onSuccess: (result: unknown) => {
-          const c = (result as { customer: { id: number; name: string; phone: string; village: string; address?: string | null; lat?: number | null; lng?: number | null } }).customer;
-          const session = {
-            id: c.id, name: c.name, phone: c.phone, village: c.village,
-            address: c.address || undefined,
-            lat: c.lat || undefined,
-            lng: c.lng || undefined,
-          };
-          setCustomerSession(session);
-          onSuccess(session);
+          const c = (result as { customer: RawCustomer }).customer;
+          // If customer already has a village, go straight to home
+          if (c.village && c.village.trim() !== "") {
+            const session: CustomerSession = {
+              id: c.id, name: c.name, phone: c.phone, village: c.village,
+              address: c.address || undefined, lat: c.lat || undefined, lng: c.lng || undefined,
+            };
+            setCustomerSession(session);
+            onSuccess(session);
+          } else {
+            // New customer or no village — show village picker
+            setPendingCustomer(c);
+            setStep("village");
+          }
         },
         onError: () => setError("Login नहीं हो सका, दोबारा कोशिश करें"),
       }
     );
   };
 
+  const handleVillageSelect = async (village: string) => {
+    if (!pendingCustomer) return;
+    // Save village to DB
+    await fetch(`/api/customers/${pendingCustomer.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ village }),
+    }).catch(() => {});
+    const session: CustomerSession = {
+      id: pendingCustomer.id, name: pendingCustomer.name,
+      phone: pendingCustomer.phone, village,
+      address: pendingCustomer.address || undefined,
+      lat: pendingCustomer.lat || undefined, lng: pendingCustomer.lng || undefined,
+    };
+    setCustomerSession(session);
+    onSuccess(session);
+  };
+
   return (
     <div style={{ flex: 1, position: "relative", overflow: "hidden", background: "#0f2418" }}>
-      {/* Animated floating grain particles */}
+
+      {/* ── Animated floating grain particles ── */}
       <div style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }}>
         {AUTH_PARTICLES.map((p, i) => (
           <div key={i} className="grain-particle" style={{
@@ -68,178 +89,215 @@ export function CustomerAuth({ onSuccess }: CustomerAuthProps) {
               ? `rgba(245,158,11,${p.opacity})`
               : `rgba(74,155,74,${p.opacity})`,
             borderRadius: p.size > 10 ? "30%" : "50%",
-            position: "absolute",
-            bottom: "-20px",
+            position: "absolute", bottom: "-20px",
           }} />
         ))}
       </div>
 
-      {/* Dark overlay */}
+      {/* ── Dark gradient overlay ── */}
       <div style={{
-        position: "absolute", inset: 0,
-        background: "linear-gradient(180deg, rgba(15,36,24,0.55) 0%, rgba(15,36,24,0.85) 100%)",
-        pointerEvents: "none",
+        position: "absolute", inset: 0, pointerEvents: "none",
+        background: "linear-gradient(180deg, rgba(15,36,24,0.4) 0%, rgba(15,36,24,0.75) 60%, rgba(15,36,24,0.95) 100%)",
       }} />
 
-      {/* Content */}
+      {/* ── Hero content (top 60%) ── */}
       <div style={{
         position: "relative", zIndex: 2,
-        height: "100%", display: "flex", flexDirection: "column",
+        height: "62%",
+        display: "flex", flexDirection: "column",
         alignItems: "center", justifyContent: "center",
-        padding: "24px 20px",
-        overflowY: "auto",
+        padding: "32px 24px 0",
+        pointerEvents: "none",
       }}>
-        {/* Logo */}
-        <div className="splash-fade" style={{ textAlign: "center", marginBottom: 28 }}>
-          <div style={{ fontSize: 44, lineHeight: 1, marginBottom: 8,
-            filter: "drop-shadow(0 2px 12px rgba(245,158,11,0.6))" }}>🌾</div>
+        <div className="splash-fade" style={{ textAlign: "center" }}>
           <div style={{
-            fontFamily: "'Baloo 2', sans-serif", fontWeight: 800, fontSize: 38,
-            color: "white", lineHeight: 1, letterSpacing: -1,
+            fontSize: 54, lineHeight: 1, marginBottom: 12,
+            filter: "drop-shadow(0 4px 20px rgba(245,158,11,0.7))",
+          }}>🌾</div>
+          <div style={{
+            fontFamily: "'Baloo 2', sans-serif", fontWeight: 800,
+            fontSize: 44, color: "white", lineHeight: 1, letterSpacing: -1,
           }}>
             Grai<span style={{ color: "#F59E0B" }}>no</span>
           </div>
           <div style={{
-            fontFamily: "'Baloo 2', sans-serif", fontSize: 12,
-            color: "rgba(212,175,55,0.9)", fontWeight: 600, marginTop: 4, letterSpacing: 0.5,
+            fontFamily: "'Baloo 2', sans-serif", fontSize: 13,
+            color: "rgba(212,175,55,0.85)", fontWeight: 600,
+            marginTop: 6, letterSpacing: 0.5,
           }}>
             हर किसान, हमारा वादा
           </div>
-        </div>
-
-        {/* Auth card */}
-        <div className="slide-up" style={{
-          background: "rgba(255,255,255,0.10)",
-          backdropFilter: "blur(18px)",
-          WebkitBackdropFilter: "blur(18px)",
-          borderRadius: 24,
-          padding: "24px 22px",
-          width: "100%",
-          maxWidth: 360,
-          border: "1px solid rgba(255,255,255,0.15)",
-          boxShadow: "0 8px 40px rgba(0,0,0,0.35)",
-        }}>
           <div style={{
-            fontFamily: "'Baloo 2', sans-serif", fontWeight: 800,
-            fontSize: 17, color: "white", marginBottom: 4,
+            marginTop: 14, display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap",
           }}>
-            {step === "phone" ? "अपना नंबर डालें" : "OTP डालें"}
+            {["Pichor", "Bamori", "Datia", "और 7 गांव"].map(v => (
+              <span key={v} style={{
+                background: "rgba(245,158,11,0.15)", border: "1px solid rgba(245,158,11,0.3)",
+                borderRadius: 20, padding: "3px 10px", fontSize: 11,
+                color: "rgba(245,158,11,0.9)", fontFamily: "'Baloo 2',sans-serif", fontWeight: 600,
+              }}>{v}</span>
+            ))}
           </div>
-          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", marginBottom: 20, fontFamily: "'Baloo 2', sans-serif" }}>
-            {step === "phone" ? "Login या Register करें" : `${phone} पर OTP भेजा गया`}
-          </div>
-
-          {step === "phone" && (
-            <>
-              <GlassInput label="आपका नाम *" value={name}
-                onChange={setName} placeholder="जैसे: Ramesh Kumar" />
-              <GlassInput label="Phone Number *" value={phone}
-                onChange={v => setPhone(v.replace(/\D/g, "").slice(0, 10))}
-                placeholder="10 अंकों का नंबर" type="tel" />
-
-              <div style={{ marginBottom: 16 }}>
-                <div style={labelSty}>गांव चुनें *</div>
-                <select value={village} onChange={e => setVillage(e.target.value)} style={glassSty}>
-                  <option value="" style={{ background: "#1B4332", color: "white" }}>-- गांव select करो --</option>
-                  {villages.map(v => (
-                    <option key={v} value={v} style={{ background: "#1B4332", color: "white" }}>{v}</option>
-                  ))}
-                </select>
-              </div>
-
-              {error && <div style={{ color: "#fca5a5", fontSize: 12, marginBottom: 12,
-                fontFamily: "'Baloo 2', sans-serif", fontWeight: 600 }}>{error}</div>}
-
-              <GoldBtn onClick={sendOtp} label="आगे बढ़ें →" />
-            </>
-          )}
-
-          {step === "otp" && (
-            <>
-              <div style={{
-                background: "rgba(255,255,255,0.08)", borderRadius: 12, padding: "10px 14px",
-                fontSize: 12, color: "rgba(255,255,255,0.6)", fontWeight: 600, marginBottom: 16,
-                fontFamily: "'Baloo 2', sans-serif", border: "1px solid rgba(255,255,255,0.12)",
-              }}>
-                📱 Rohit आपको OTP बताएंगे — उनसे contact करें
-              </div>
-
-              <div style={{ marginBottom: 16 }}>
-                <div style={labelSty}>4-Digit OTP *</div>
-                <input value={otp}
-                  onChange={e => setOtp(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                  placeholder="••••" type="tel" inputMode="numeric"
-                  style={{ ...glassSty, letterSpacing: 12, fontSize: 24, fontWeight: 800, textAlign: "center" }} />
-              </div>
-
-              {error && <div style={{ color: "#fca5a5", fontSize: 12, marginBottom: 12,
-                fontFamily: "'Baloo 2', sans-serif", fontWeight: 600 }}>{error}</div>}
-
-              <GoldBtn onClick={login} label="Login करें ✓" loading={authMutation.isPending} />
-              <button onClick={() => { setStep("phone"); setOtp(""); setError(""); }}
-                style={{
-                  background: "none", border: "none", color: "rgba(255,255,255,0.5)",
-                  fontSize: 13, cursor: "pointer", fontFamily: "'Baloo 2', sans-serif",
-                  marginTop: 12, display: "block", width: "100%", textAlign: "center",
-                }}>
-                ← वापस जाएं
-              </button>
-            </>
-          )}
-        </div>
-
-        {/* Bottom note */}
-        <div style={{
-          marginTop: 20, textAlign: "center", fontSize: 12,
-          color: "rgba(255,255,255,0.35)", fontFamily: "'Baloo 2', sans-serif", fontWeight: 500,
-        }}>
-          नया हैं? अभी जुड़ें — Pichor, Bamori और 8 गांवों में delivery
         </div>
       </div>
-    </div>
-  );
-}
 
-function GlassInput({ label, value, onChange, placeholder, type = "text" }: {
-  label: string; value: string; onChange: (v: string) => void; placeholder: string; type?: string;
-}) {
-  return (
-    <div style={{ marginBottom: 14 }}>
-      <div style={labelSty}>{label}</div>
-      <input value={value} onChange={e => onChange(e.target.value)}
-        placeholder={placeholder} type={type} style={glassSty} />
+      {/* ── Bottom sheet ── */}
+      <div style={{
+        position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 10,
+        background: "white",
+        borderRadius: "28px 28px 0 0",
+        padding: "20px 22px 36px",
+        boxShadow: "0 -8px 40px rgba(0,0,0,0.25)",
+      }}>
+        {/* Drag handle */}
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 18 }}>
+          <div style={{ width: 44, height: 4, borderRadius: 2, background: "#E5DDD0" }} />
+        </div>
+
+        {step === "phone" && (
+          <>
+            <div style={{ marginBottom: 6 }}>
+              <div style={{ fontFamily: "'Baloo 2', sans-serif", fontWeight: 800, fontSize: 20, color: "#1C1C1C" }}>
+                अपना नंबर डालें
+              </div>
+              <div style={{ fontSize: 13, color: "#888", fontFamily: "'Baloo 2', sans-serif", marginTop: 2 }}>
+                Login या Register करें — बिल्कुल free
+              </div>
+            </div>
+
+            <div style={{ marginTop: 18, marginBottom: 16 }}>
+              <div style={{
+                display: "flex", alignItems: "center",
+                border: "1.5px solid #E5DDD0", borderRadius: 14,
+                overflow: "hidden", background: "#FAFAF8",
+              }}>
+                <div style={{
+                  padding: "13px 14px", background: "#F4F6F3",
+                  borderRight: "1.5px solid #E5DDD0",
+                  fontFamily: "'Baloo 2', sans-serif", fontWeight: 700,
+                  fontSize: 15, color: "#555", whiteSpace: "nowrap",
+                }}>+91</div>
+                <input
+                  value={phone}
+                  onChange={e => { setPhone(e.target.value.replace(/\D/g, "").slice(0, 10)); setError(""); }}
+                  onKeyDown={e => e.key === "Enter" && goToOtp()}
+                  type="tel" inputMode="numeric"
+                  placeholder="10 अंकों का नंबर"
+                  autoFocus
+                  style={{
+                    flex: 1, border: "none", outline: "none",
+                    padding: "13px 14px", fontSize: 18,
+                    fontFamily: "'Baloo 2', sans-serif",
+                    fontWeight: 700, letterSpacing: 1.5,
+                    background: "transparent", color: "#1C1C1C",
+                  }}
+                />
+              </div>
+              {error && (
+                <div style={{ color: "#dc2626", fontSize: 12, marginTop: 8,
+                  fontFamily: "'Baloo 2', sans-serif", fontWeight: 600 }}>
+                  ⚠ {error}
+                </div>
+              )}
+            </div>
+
+            <GoldBtn onClick={goToOtp} label="आगे बढ़ें →" />
+
+            <div style={{ textAlign: "center", marginTop: 14, fontSize: 12,
+              color: "#aaa", fontFamily: "'Baloo 2', sans-serif" }}>
+              📱 Rohit आपको OTP बताएंगे
+            </div>
+          </>
+        )}
+
+        {step === "otp" && (
+          <>
+            <div style={{ marginBottom: 6 }}>
+              <div style={{ fontFamily: "'Baloo 2', sans-serif", fontWeight: 800, fontSize: 20, color: "#1C1C1C" }}>
+                OTP डालें
+              </div>
+              <div style={{ fontSize: 13, color: "#888", fontFamily: "'Baloo 2', sans-serif", marginTop: 2 }}>
+                +91 {phone} पर Rohit से OTP लें
+              </div>
+            </div>
+
+            <div style={{ marginTop: 18, marginBottom: 16 }}>
+              <input
+                value={otp}
+                onChange={e => { setOtp(e.target.value.replace(/\D/g, "").slice(0, 4)); setError(""); }}
+                onKeyDown={e => e.key === "Enter" && verifyOtp()}
+                type="tel" inputMode="numeric"
+                placeholder="• • • •"
+                autoFocus
+                style={{
+                  width: "100%", boxSizing: "border-box",
+                  border: "1.5px solid #E5DDD0", borderRadius: 14,
+                  padding: "14px", outline: "none", background: "#FAFAF8",
+                  textAlign: "center", letterSpacing: 20, fontSize: 28,
+                  fontWeight: 800, fontFamily: "'Baloo 2', sans-serif", color: "#1C1C1C",
+                }}
+              />
+              {error && (
+                <div style={{ color: "#dc2626", fontSize: 12, marginTop: 8,
+                  fontFamily: "'Baloo 2', sans-serif", fontWeight: 600 }}>
+                  ⚠ {error}
+                </div>
+              )}
+            </div>
+
+            <GoldBtn onClick={verifyOtp} label="Login करें ✓" loading={authMutation.isPending} />
+
+            <button
+              onClick={() => { setStep("phone"); setOtp(""); setError(""); }}
+              style={{
+                background: "none", border: "none", color: "#888",
+                fontSize: 13, cursor: "pointer", fontFamily: "'Baloo 2', sans-serif",
+                marginTop: 14, display: "block", width: "100%", textAlign: "center",
+              }}
+            >
+              ← वापस जाएं
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* ── Village picker overlay (step === "village") ── */}
+      {step === "village" && pendingCustomer && (
+        <VillagePicker
+          currentVillage=""
+          onSelect={handleVillageSelect}
+          onClose={() => {
+            // Don't allow closing without selecting village for new customers
+            // just ignore close — they must pick a village
+          }}
+        />
+      )}
     </div>
   );
 }
 
 function GoldBtn({ onClick, label, loading }: { onClick: () => void; label: string; loading?: boolean }) {
   return (
-    <button onClick={onClick} disabled={loading} className="btn-press" style={{
-      width: "100%",
-      background: loading ? "rgba(245,158,11,0.6)" : "linear-gradient(135deg,#F59E0B,#D97706)",
-      color: "#1B4332", border: "none",
-      borderRadius: 14, padding: "14px",
-      fontFamily: "'Baloo 2', sans-serif",
-      fontSize: 16, fontWeight: 800, cursor: loading ? "not-allowed" : "pointer",
-      boxShadow: "0 4px 16px rgba(245,158,11,0.35)",
-    }}>
+    <button
+      onClick={onClick}
+      disabled={loading}
+      className="btn-press"
+      style={{
+        width: "100%",
+        background: loading ? "rgba(245,158,11,0.55)" : "linear-gradient(135deg,#F59E0B,#D97706)",
+        color: "#1B4332", border: "none",
+        borderRadius: 16, padding: "15px",
+        fontFamily: "'Baloo 2', sans-serif",
+        fontSize: 16, fontWeight: 800,
+        cursor: loading ? "not-allowed" : "pointer",
+        boxShadow: loading ? "none" : "0 4px 16px rgba(245,158,11,0.4)",
+        transition: "opacity 0.15s",
+      }}
+    >
       {loading ? "कृपया रुकें..." : label}
     </button>
   );
 }
-
-const labelSty: React.CSSProperties = {
-  fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.6)",
-  marginBottom: 6, fontFamily: "'Baloo 2', sans-serif",
-  textTransform: "uppercase", letterSpacing: 0.5,
-};
-
-const glassSty: React.CSSProperties = {
-  width: "100%", padding: "12px 14px", borderRadius: 12,
-  border: "1px solid rgba(255,255,255,0.18)",
-  fontSize: 14, fontFamily: "'Baloo 2', sans-serif", outline: "none",
-  color: "white", background: "rgba(255,255,255,0.08)", boxSizing: "border-box",
-};
 
 const AUTH_PARTICLES = Array.from({ length: 28 }, (_, i) => ({
   x: Math.random() * 100,

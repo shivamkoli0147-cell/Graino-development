@@ -10,6 +10,7 @@ interface CartPageProps {
   onClearCart: () => void;
   onOrderSuccess: () => void;
   onVillageChange?: (village: string) => void;
+  onCustomerUpdate?: (c: CustomerSession) => void;
 }
 
 const SLOT_COLORS: Record<string, { bg: string; border: string; text: string }> = {
@@ -18,7 +19,7 @@ const SLOT_COLORS: Record<string, { bg: string; border: string; text: string }> 
   evening:   { bg: "#F5F3FF", border: "#DDD6FE", text: "#6d28d9" },
 };
 
-export function CartPage({ cart, customer, onCartChange, onClearCart, onOrderSuccess, onVillageChange }: CartPageProps) {
+export function CartPage({ cart, customer, onCartChange, onClearCart, onOrderSuccess, onVillageChange, onCustomerUpdate }: CartPageProps) {
   const [selectedSlot, setSelectedSlot] = useState("");
   const [ordered, setOrdered] = useState(false);
   const [orderId, setOrderId] = useState<number | null>(null);
@@ -32,7 +33,14 @@ export function CartPage({ cart, customer, onCartChange, onClearCart, onOrderSuc
   const [showAddressError, setShowAddressError] = useState(false);
   const [showPhoneError, setShowPhoneError] = useState(false);
 
+  // ── Name prompt ────────────────────────────────────────────────────────────
+  const [showNamePrompt, setShowNamePrompt] = useState(false);
+  const [nameInput, setNameInput] = useState(customer.name || "");
+  const [nameSaving, setNameSaving] = useState(false);
+  const [nameError, setNameError] = useState("");
+
   const detailsRef = useRef<HTMLDivElement>(null);
+  const nameRef = useRef<HTMLDivElement>(null);
   const createOrder = useCreateOrder();
 
   const items = Object.entries(cart);
@@ -46,9 +54,37 @@ export function CartPage({ cart, customer, onCartChange, onClearCart, onOrderSuc
 
   const finalDeliveryAddress = [address.trim(), landmark.trim()].filter(Boolean).join(", ") || village;
 
-  const placeOrder = () => {
-    let hasError = false;
+  const saveName = async (): Promise<boolean> => {
+    const n = nameInput.trim();
+    if (!n) { setNameError("नाम डालना ज़रूरी है"); return false; }
+    setNameSaving(true); setNameError("");
+    try {
+      const res = await fetch(`/api/customers/${customer.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: n }),
+      });
+      if (res.ok) {
+        const updated = await res.json() as CustomerSession;
+        onCustomerUpdate?.({ ...customer, name: updated.name || n });
+        setNameSaving(false);
+        return true;
+      }
+    } catch { /* ignore */ }
+    setNameError("सेव नहीं हो सका, दोबारा कोशिश करें");
+    setNameSaving(false);
+    return false;
+  };
 
+  const placeOrder = async () => {
+    // Name check first
+    if (!customer.name || customer.name.trim() === "") {
+      setShowNamePrompt(true);
+      setTimeout(() => nameRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 100);
+      return;
+    }
+
+    let hasError = false;
     const addrEmpty = !address.trim();
     const phoneInvalid = !/^\d{10}$/.test(phone.trim());
 
@@ -91,6 +127,8 @@ export function CartPage({ cart, customer, onCartChange, onClearCart, onOrderSuc
     );
   };
 
+  const handlePlaceOrderClick = () => void placeOrder();
+
   if (ordered) {
     const slot = DELIVERY_SLOTS.find(s => s.id === selectedSlot);
     return (
@@ -104,7 +142,6 @@ export function CartPage({ cart, customer, onCartChange, onClearCart, onOrderSuc
           Rohit जल्द आएंगे 📞
         </div>
 
-        {/* Confirmation card */}
         <div style={{
           marginTop: 18, background: "white", borderRadius: 18, padding: "18px 20px",
           width: "100%", textAlign: "left", border: "1.5px solid #E5DDD0",
@@ -113,11 +150,9 @@ export function CartPage({ cart, customer, onCartChange, onClearCart, onOrderSuc
           <div style={{ fontWeight: 800, fontSize: 13, color: "#1B4332", marginBottom: 12, letterSpacing: 0.3 }}>
             📋 Order #{orderId} — Details
           </div>
-
           <Row label="📱 Phone" value={phone} />
           <Row label="📍 Address" value={finalDeliveryAddress} />
           {slot && <Row label="🕐 Slot" value={`${slot.label} · ${slot.time}`} />}
-
           <div style={{
             marginTop: 12, background: "#DCFCE7", borderRadius: 12,
             padding: "10px 14px", fontSize: 13, fontWeight: 700, color: "#15803d", textAlign: "center",
@@ -156,7 +191,7 @@ export function CartPage({ cart, customer, onCartChange, onClearCart, onOrderSuc
       <div style={{ background: "white", padding: "16px 16px 14px", flexShrink: 0, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
         <div style={{ fontWeight: 800, fontSize: 20, color: "#1C1C1C" }}>🛒 Cart</div>
         <div style={{ fontSize: 12, color: "#777", fontWeight: 500, marginTop: 2 }}>
-          {customer.name} · {customer.village}
+          {customer.name || "नाम नहीं"} · {customer.village || "गांव नहीं"}
         </div>
       </div>
 
@@ -197,7 +232,7 @@ export function CartPage({ cart, customer, onCartChange, onClearCart, onOrderSuc
           ))}
         </div>
 
-        {/* ── Order Details Confirm करें ── */}
+        {/* ── Order Details ── */}
         <div ref={detailsRef} style={{
           background: "white", borderRadius: 16, padding: 16, marginBottom: 14,
           border: (showAddressError || showPhoneError)
@@ -208,6 +243,45 @@ export function CartPage({ cart, customer, onCartChange, onClearCart, onOrderSuc
           <div style={{ fontWeight: 800, fontSize: 14, color: "#1C1C1C", marginBottom: 14 }}>
             📋 Order Details Confirm करें
           </div>
+
+          {/* ── Name prompt (inline) ── */}
+          {showNamePrompt && (
+            <div ref={nameRef} style={{
+              marginBottom: 14, background: "#FFFBEB",
+              border: "1.5px solid #FDE68A", borderRadius: 14, padding: "12px 14px",
+            }}>
+              <div style={{ fontWeight: 700, fontSize: 13, color: "#92400E",
+                fontFamily: "'Baloo 2',sans-serif", marginBottom: 8 }}>
+                👤 आपका नाम डालें (delivery के लिए)
+              </div>
+              <input
+                value={nameInput}
+                onChange={e => { setNameInput(e.target.value); setNameError(""); }}
+                placeholder="जैसे: Ramesh Kumar"
+                autoFocus
+                style={{
+                  ...inputStyle, border: nameError ? "1.5px solid #dc2626" : "1.5px solid #FDE68A",
+                  background: "#FEFCE8", marginBottom: 8,
+                }}
+              />
+              {nameError && <div style={errorStyle}>⚠️ {nameError}</div>}
+              <button
+                onClick={async () => {
+                  const ok = await saveName();
+                  if (ok) { setShowNamePrompt(false); void placeOrder(); }
+                }}
+                disabled={nameSaving}
+                style={{
+                  width: "100%", background: nameSaving ? "#aaa" : "#D97706",
+                  color: "white", border: "none", borderRadius: 12,
+                  padding: "10px", fontFamily: "'Baloo 2',sans-serif",
+                  fontWeight: 800, fontSize: 14, cursor: nameSaving ? "default" : "pointer",
+                }}
+              >
+                {nameSaving ? "सेव हो रहा है..." : "सेव करें और Order करें →"}
+              </button>
+            </div>
+          )}
 
           {/* Village */}
           <div style={{ marginBottom: 14 }}>
@@ -225,12 +299,9 @@ export function CartPage({ cart, customer, onCartChange, onClearCart, onOrderSuc
                 style={{
                   background: "#E8F5E8", border: "none", borderRadius: 8,
                   padding: "4px 12px", color: "#1a6b1a",
-                  fontFamily: "'Baloo 2',sans-serif", fontWeight: 700, fontSize: 12,
-                  cursor: "pointer",
+                  fontFamily: "'Baloo 2',sans-serif", fontWeight: 700, fontSize: 12, cursor: "pointer",
                 }}
-              >
-                बदलें
-              </button>
+              >बदलें</button>
             </div>
           </div>
 
@@ -249,9 +320,7 @@ export function CartPage({ cart, customer, onCartChange, onClearCart, onOrderSuc
                 fontSize: 16, letterSpacing: 1.5, fontWeight: 700,
               }}
             />
-            {showPhoneError && (
-              <div style={errorStyle}>⚠️ सही 10-digit फोन नंबर डालें</div>
-            )}
+            {showPhoneError && <div style={errorStyle}>⚠️ सही 10-digit फोन नंबर डालें</div>}
           </div>
 
           {/* Address */}
@@ -269,9 +338,7 @@ export function CartPage({ cart, customer, onCartChange, onClearCart, onOrderSuc
                 resize: "none", lineHeight: 1.55,
               }}
             />
-            {showAddressError && (
-              <div style={errorStyle}>⚠️ पता डालना ज़रूरी है</div>
-            )}
+            {showAddressError && <div style={errorStyle}>⚠️ पता डालना ज़रूरी है</div>}
           </div>
 
           {/* Landmark */}
@@ -361,7 +428,7 @@ export function CartPage({ cart, customer, onCartChange, onClearCart, onOrderSuc
           <div style={{ display: "flex", justifyContent: "space-between", color: "white", fontSize: 19, fontWeight: 800, marginBottom: 20 }}>
             <span>Total</span><span>{formatINR(total)}</span>
           </div>
-          <button onClick={placeOrder} disabled={createOrder.isPending} className="btn-press" style={{
+          <button onClick={handlePlaceOrderClick} disabled={createOrder.isPending} className="btn-press" style={{
             width: "100%", background: "#F59E0B", color: "#1C1C1C", border: "none",
             borderRadius: 16, padding: "14px", fontFamily: "'Baloo 2', sans-serif",
             fontWeight: 800, fontSize: 16, cursor: createOrder.isPending ? "default" : "pointer",
