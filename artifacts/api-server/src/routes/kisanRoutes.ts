@@ -728,6 +728,53 @@ router.get("/dashboard/stats", async (_req, res) => {
   } catch (e) { res.status(500).json({ error: String(e) }); }
 });
 
+// ── Analytics ─────────────────────────────────────────────────────────────────
+
+router.get("/analytics", async (_req, res) => {
+  try {
+    const topProducts = await db
+      .select({
+        name: products.name,
+        emoji: products.emoji,
+        revenue: sql<number>`COALESCE(SUM(${orderItems.pricePerKg} * ${orderItems.quantityKg}), 0)`,
+        order_count: count(),
+      })
+      .from(orderItems)
+      .innerJoin(varieties, eq(orderItems.varietyId, varieties.id))
+      .innerJoin(products, eq(varieties.productId, products.id))
+      .groupBy(products.id, products.name, products.emoji)
+      .orderBy(desc(sql`SUM(${orderItems.pricePerKg} * ${orderItems.quantityKg})`))
+      .limit(5);
+
+    const villageSales = await db
+      .select({
+        village: orders.village,
+        revenue: sql<number>`COALESCE(SUM(${orders.totalAmount}), 0)`,
+        order_count: count(),
+      })
+      .from(orders)
+      .where(ne(orders.status, "cancelled"))
+      .groupBy(orders.village)
+      .orderBy(desc(sql`SUM(${orders.totalAmount})`))
+      .limit(8);
+
+    const earningsTrend = await db
+      .select({
+        date: sql<string>`TO_CHAR(DATE(${orders.createdAt}), 'YYYY-MM-DD')`,
+        earnings: sql<number>`COALESCE(SUM(${orders.totalAmount}), 0)`,
+      })
+      .from(orders)
+      .where(and(
+        ne(orders.status, "cancelled"),
+        sql`${orders.createdAt} >= NOW() - INTERVAL '7 days'`
+      ))
+      .groupBy(sql`DATE(${orders.createdAt})`)
+      .orderBy(sql`DATE(${orders.createdAt})`);
+
+    res.json({ top_products: topProducts, village_sales: villageSales, earnings_trend: earningsTrend });
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
 // ── Settings: Villages ────────────────────────────────────────────────────────
 
 router.get("/settings/villages", async (_req, res) => {

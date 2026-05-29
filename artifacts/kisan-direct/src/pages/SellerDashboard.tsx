@@ -1,5 +1,6 @@
 import { useGetDashboardStats } from "@workspace/api-client-react";
 import { formatINR } from "../lib/utils";
+import { SellerAnalytics } from "./SellerAnalytics";
 
 interface SellerDashboardProps {
   onLogout: () => void;
@@ -128,6 +129,8 @@ export function SellerDashboard({ onLogout, onManageOrders, onManageProducts, on
         }}>
           ↻ Refresh
         </button>
+
+        <SellerAnalytics />
       </div>
     </div>
   );
