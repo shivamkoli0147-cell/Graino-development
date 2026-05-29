@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { setCustomerSession, clearCustomerSession, type CustomerSession } from "../lib/utils";
-import { MapPicker } from "../components/kisan/MapPicker";
 import { VillagePicker } from "../components/kisan/VillagePicker";
 
 interface CustomerProfileProps {
@@ -20,10 +19,7 @@ export function CustomerProfile({ customer, onUpdate, onLogout, onClose, onGoSel
   const [address, setAddress] = useState(customer.address || "");
   const [lat, setLat] = useState(customer.lat || DEFAULT_LAT);
   const [lng, setLng] = useState(customer.lng || DEFAULT_LNG);
-  const [showMap, setShowMap] = useState(false);
   const [showVillagePicker, setShowVillagePicker] = useState(false);
-  const [locating, setLocating] = useState(false);
-  const [locErr, setLocErr] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [sellerTaps, setSellerTaps] = useState(0);
@@ -50,37 +46,6 @@ export function CustomerProfile({ customer, onUpdate, onLogout, onClose, onGoSel
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 1800);
-  };
-
-  const useLocation = () => {
-    if (!navigator.geolocation) { setLocErr("इस browser में location support नहीं है"); return; }
-    setLocating(true);
-    setLocErr("");
-    navigator.geolocation.getCurrentPosition(
-      async pos => {
-        const { latitude, longitude } = pos.coords;
-        setLat(latitude); setLng(longitude);
-        setShowMap(true);
-        try {
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
-            { headers: { "Accept-Language": "hi,en" } }
-          );
-          const data = await res.json() as {
-            address?: { road?: string; hamlet?: string; village?: string; town?: string; county?: string; state?: string }
-          };
-          const a = data.address || {};
-          const parts = [a.road || a.hamlet, a.village || a.town, a.county].filter(Boolean);
-          if (parts.length) setAddress(parts.join(", "));
-        } catch { /* use coords */ }
-        setLocating(false);
-      },
-      err => {
-        setLocErr(err.code === 1 ? "Location deny हो गया। Settings में allow करें।" : "Location नहीं मिला");
-        setLocating(false);
-      },
-      { timeout: 10000, enableHighAccuracy: true }
-    );
   };
 
   const handleSellerTap = () => {
@@ -183,39 +148,6 @@ export function CustomerProfile({ customer, onUpdate, onLogout, onClose, onGoSel
                 resize: "none", lineHeight: 1.5,
               }}
             />
-          </div>
-
-          {/* Location button */}
-          <button onClick={useLocation} disabled={locating} style={{
-            width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-            background: locating ? "#F0EDE8" : "#E8F5E8", color: locating ? "#999" : "#2D6A2D",
-            border: "none", borderRadius: 12, padding: "10px 0",
-            fontFamily: "'Baloo 2',sans-serif", fontWeight: 700, fontSize: 13,
-            cursor: locating ? "default" : "pointer", marginBottom: 6,
-          }}>
-            <span style={{ fontSize: 16 }}>{locating ? "⏳" : "📍"}</span>
-            {locating ? "Location मिल रहा है..." : "Current Location Use करें"}
-          </button>
-          {locErr && <div style={{ fontSize: 12, color: "#dc2626", marginBottom: 6, paddingLeft: 4 }}>{locErr}</div>}
-
-          {/* Map toggle */}
-          <div style={{ marginBottom: 14 }}>
-            <button onClick={() => setShowMap(v => !v)} style={{
-              width: "100%", background: "#F0EDE8", color: "#555",
-              border: "none", borderRadius: 12, padding: "9px 0",
-              fontFamily: "'Baloo 2',sans-serif", fontWeight: 700, fontSize: 13,
-              cursor: "pointer",
-            }}>
-              {showMap ? "🗺️ Map बंद करें ▲" : "🗺️ Map पर Pin देखें ▼"}
-            </button>
-            {showMap && (
-              <div style={{ marginTop: 8 }}>
-                <MapPicker lat={lat} lng={lng} onChange={(la, lo) => { setLat(la); setLng(lo); }} height={200} />
-                <div style={{ fontSize: 11, color: "#777", marginTop: 4, paddingLeft: 2 }}>
-                  📐 {lat.toFixed(5)}, {lng.toFixed(5)}
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Save */}
