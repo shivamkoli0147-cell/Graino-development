@@ -21,8 +21,6 @@ export function BottomNav({ tabs, active, onSelect }: BottomNavProps) {
       padding: "8px 0 18px",
       flexShrink: 0,
       zIndex: 50,
-      position: "sticky",
-      bottom: 0,
       boxShadow: "0 -4px 16px rgba(0,0,0,0.06)",
     }}>
       {tabs.map((t) => {
