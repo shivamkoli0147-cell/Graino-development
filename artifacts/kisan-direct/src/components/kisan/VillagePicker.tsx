@@ -69,7 +69,7 @@ export function VillagePicker({ currentVillage, onSelect, onClose }: VillagePick
               fontWeight: 800, fontSize: 16, color: "#1C1C1C",
               fontFamily: "'Baloo 2', sans-serif",
             }}>
-              📍 गांव बदलें
+              📍 गाँव चुनें
             </div>
             <div style={{
               fontSize: 12, color: "#888", marginTop: 2,

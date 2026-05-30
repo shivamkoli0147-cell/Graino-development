@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useGetOrders, useUpdateOrderStatus } from "@workspace/api-client-react";
 import type { OrderStatusUpdateStatus } from "@workspace/api-client-react";
-import { formatINR, DELIVERY_SLOTS } from "../lib/utils";
+import { formatINR } from "../lib/utils";
 
 interface SellerOrdersProps {
   onBack: () => void;
@@ -284,7 +284,6 @@ function OrderCard({
   onOpenDetail: () => void;
 }) {
   const style = TAB_CARD_STYLE[tab];
-  const slot = DELIVERY_SLOTS.find(s => s.id === order.delivery_slot);
   const isDimmed = tab === "delivered" || tab === "cancelled";
 
   return (
@@ -362,14 +361,8 @@ function OrderCard({
           ))}
         </div>
 
-        {/* Slot + address row */}
+        {/* Address row */}
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
-          {slot && (
-            <span style={{
-              background: "#F5F3FF", color: "#6D28D9",
-              borderRadius: 8, padding: "3px 9px", fontSize: 11, fontWeight: 700,
-            }}>🚐 {slot.label} {slot.time}</span>
-          )}
           {order.address && (
             <span style={{
               background: "#F0FDF4", color: "#166534",
@@ -447,7 +440,6 @@ function OrderDetailSheet({
   onClose: () => void;
   onAdvance: (id: number, status: string) => void;
 }) {
-  const slot = DELIVERY_SLOTS.find(s => s.id === order.delivery_slot);
   const itemsTotal = order.items.reduce((s, i) => s + i.price_per_kg * i.quantity_kg, 0);
 
   const nextActionMap: Record<string, { label: string; status: string; bg: string } | null> = {
@@ -547,20 +539,6 @@ function OrderDetailSheet({
                   🗺 Google Maps पर खोलो
                 </a>
               )}
-            </Section>
-          )}
-
-          {/* Delivery slot */}
-          {slot && (
-            <Section title="🚐 Delivery Slot">
-              <div style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                background: "#F5F3FF", color: "#6D28D9",
-                borderRadius: 10, padding: "8px 14px",
-                fontSize: 14, fontWeight: 800,
-              }}>
-                {slot.label} · {slot.time}
-              </div>
             </Section>
           )}
 
