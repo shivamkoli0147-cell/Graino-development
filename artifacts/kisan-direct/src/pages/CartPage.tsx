@@ -111,6 +111,21 @@ export function CartPage({ cart, customer, onCartChange, onClearCart, onOrderSuc
           setOrderId((order as { id: number }).id);
           setOrdered(true);
           onClearCart();
+          // Save address to customer profile if it was entered
+          if (address.trim()) {
+            fetch(`/api/customers/${customer.id}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ address: finalDeliveryAddress }),
+            })
+              .then(res => res.ok ? res.json() : null)
+              .then(updated => {
+                if (updated) {
+                  onCustomerUpdate?.({ ...customer, address: finalDeliveryAddress });
+                }
+              })
+              .catch(() => { /* ignore — order already placed */ });
+          }
         },
       }
     );
