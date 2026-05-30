@@ -283,8 +283,10 @@ function OrderCard({
   onAdvance: (id: number, status: string) => void;
   onOpenDetail: () => void;
 }) {
+  const [confirmCancel, setConfirmCancel] = useState(false);
   const style = TAB_CARD_STYLE[tab];
   const isDimmed = tab === "delivered" || tab === "cancelled";
+  const canCancel = order.status !== "cancelled";
 
   return (
     <div
@@ -394,17 +396,6 @@ function OrderCard({
             </button>
           )}
 
-          {/* Cancel (placed) */}
-          {order.status === "placed" && (
-            <button onClick={() => onAdvance(order.id, "cancelled")} className="btn-press" style={{
-              background: "none", border: "1.5px solid #DC2626", color: "#DC2626",
-              borderRadius: 10, padding: "8px 10px", fontFamily: "'Baloo 2', sans-serif",
-              fontWeight: 700, fontSize: 12, cursor: "pointer",
-            }}>
-              ✕
-            </button>
-          )}
-
           {/* Out for delivery (accepted) */}
           {order.status === "accepted" && (
             <button onClick={() => onAdvance(order.id, "out_for_delivery")} className="btn-press" style={{
@@ -426,7 +417,54 @@ function OrderCard({
               ✅ Delivered!
             </button>
           )}
+
+          {/* Small cancel button — any non-cancelled status */}
+          {canCancel && !confirmCancel && (
+            <button onClick={() => setConfirmCancel(true)} className="btn-press" style={{
+              background: "none", border: "1.5px solid #DC2626", color: "#DC2626",
+              borderRadius: 10, padding: "8px 10px", fontFamily: "'Baloo 2', sans-serif",
+              fontWeight: 700, fontSize: 12, cursor: "pointer", flexShrink: 0,
+            }}>
+              ✕
+            </button>
+          )}
         </div>
+
+        {/* Inline cancel confirmation */}
+        {confirmCancel && (
+          <div style={{
+            marginTop: 8, background: "#FEF2F2", border: "1.5px solid #FCA5A5",
+            borderRadius: 10, padding: "8px 10px",
+          }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#991B1B", marginBottom: 7 }}>
+              ⚠️ Order #{order.id} cancel करें?
+            </div>
+            <div style={{ display: "flex", gap: 7 }}>
+              <button
+                onClick={() => { onAdvance(order.id, "cancelled"); setConfirmCancel(false); }}
+                className="btn-press"
+                style={{
+                  flex: 1, background: "#DC2626", color: "white", border: "none",
+                  borderRadius: 8, padding: "7px",
+                  fontFamily: "'Baloo 2', sans-serif", fontWeight: 800, fontSize: 12, cursor: "pointer",
+                }}
+              >
+                हाँ, Cancel करो
+              </button>
+              <button
+                onClick={() => setConfirmCancel(false)}
+                className="btn-press"
+                style={{
+                  flex: 1, background: "white", color: "#555",
+                  border: "1.5px solid #E5E7EB", borderRadius: 8, padding: "7px",
+                  fontFamily: "'Baloo 2', sans-serif", fontWeight: 700, fontSize: 12, cursor: "pointer",
+                }}
+              >
+                नहीं
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -440,7 +478,9 @@ function OrderDetailSheet({
   onClose: () => void;
   onAdvance: (id: number, status: string) => void;
 }) {
+  const [confirmCancel, setConfirmCancel] = useState(false);
   const itemsTotal = order.items.reduce((s, i) => s + i.price_per_kg * i.quantity_kg, 0);
+  const canCancel = order.status !== "cancelled";
 
   const nextActionMap: Record<string, { label: string; status: string; bg: string } | null> = {
     placed:           { label: "✅ Accept करो", status: "accepted", bg: "#1a6b1a" },
@@ -593,31 +633,68 @@ function OrderDetailSheet({
         </div>
 
         {/* Action buttons pinned at bottom */}
-        {(nextAction || order.status === "placed") && (
+        {(nextAction || canCancel) && (
           <div style={{
             padding: "12px 16px 20px", borderTop: "1px solid #F3F4F6",
-            display: "flex", gap: 8, flexShrink: 0,
+            flexShrink: 0,
           }}>
-            {nextAction && (
-              <button onClick={() => { onAdvance(order.id, nextAction.status); onClose(); }} className="btn-press" style={{
-                flex: 1, background: nextAction.bg, color: "white", border: "none",
-                borderRadius: 12, padding: "14px",
-                fontFamily: "'Baloo 2', sans-serif", fontWeight: 800, fontSize: 15,
-                cursor: "pointer",
+            {/* Primary action + small cancel row */}
+            <div style={{ display: "flex", gap: 8, marginBottom: confirmCancel ? 8 : 0 }}>
+              {nextAction && (
+                <button onClick={() => { onAdvance(order.id, nextAction.status); onClose(); }} className="btn-press" style={{
+                  flex: 1, background: nextAction.bg, color: "white", border: "none",
+                  borderRadius: 12, padding: "14px",
+                  fontFamily: "'Baloo 2', sans-serif", fontWeight: 800, fontSize: 15,
+                  cursor: "pointer",
+                }}>
+                  {nextAction.label}
+                </button>
+              )}
+              {canCancel && !confirmCancel && (
+                <button onClick={() => setConfirmCancel(true)} className="btn-press" style={{
+                  background: "none", border: "1.5px solid #DC2626", color: "#DC2626",
+                  borderRadius: 12, padding: "14px 18px",
+                  fontFamily: "'Baloo 2', sans-serif", fontWeight: 700, fontSize: 13,
+                  cursor: "pointer", flexShrink: 0,
+                }}>
+                  ✕ Cancel
+                </button>
+              )}
+            </div>
+            {/* Inline cancel confirmation */}
+            {confirmCancel && (
+              <div style={{
+                background: "#FEF2F2", border: "1.5px solid #FCA5A5",
+                borderRadius: 12, padding: "12px 14px",
               }}>
-                {nextAction.label}
-              </button>
-            )}
-            {order.status === "placed" && (
-              <button onClick={() => { onAdvance(order.id, "cancelled"); onClose(); }} className="btn-press" style={{
-                flex: nextAction ? 0 : 1,
-                background: "none", border: "1.5px solid #DC2626", color: "#DC2626",
-                borderRadius: 12, padding: "14px 18px",
-                fontFamily: "'Baloo 2', sans-serif", fontWeight: 700, fontSize: 13,
-                cursor: "pointer",
-              }}>
-                ✕ Cancel
-              </button>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#991B1B", marginBottom: 10 }}>
+                  ⚠️ Order #{order.id} cancel करना चाहते हो?
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    onClick={() => { onAdvance(order.id, "cancelled"); onClose(); }}
+                    className="btn-press"
+                    style={{
+                      flex: 1, background: "#DC2626", color: "white", border: "none",
+                      borderRadius: 10, padding: "12px",
+                      fontFamily: "'Baloo 2', sans-serif", fontWeight: 800, fontSize: 14, cursor: "pointer",
+                    }}
+                  >
+                    हाँ, Cancel करो
+                  </button>
+                  <button
+                    onClick={() => setConfirmCancel(false)}
+                    className="btn-press"
+                    style={{
+                      flex: 1, background: "white", color: "#555",
+                      border: "1.5px solid #E5E7EB", borderRadius: 10, padding: "12px",
+                      fontFamily: "'Baloo 2', sans-serif", fontWeight: 700, fontSize: 14, cursor: "pointer",
+                    }}
+                  >
+                    नहीं, रहने दो
+                  </button>
+                </div>
+              </div>
             )}
           </div>
         )}

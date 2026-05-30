@@ -1,5 +1,6 @@
-import { useGetOrders } from "@workspace/api-client-react";
-import { formatINR, DELIVERY_SLOTS, type CustomerSession } from "../lib/utils";
+import { useState } from "react";
+import { useGetOrders, useUpdateOrderStatus } from "@workspace/api-client-react";
+import { formatINR, type CustomerSession } from "../lib/utils";
 
 interface OrdersPageProps {
   customer: CustomerSession;
@@ -84,10 +85,18 @@ function ensurePulseStyle() {
   document.head.appendChild(style);
 }
 
-export function OrdersPage({ customer, onRequestReturn }: OrdersPageProps) {
+export function OrdersPage({ customer }: OrdersPageProps) {
   ensurePulseStyle();
 
   const { data: orders, isLoading, refetch } = useGetOrders({ phone: customer.phone, status: undefined });
+  const updateStatus = useUpdateOrderStatus();
+
+  const handleCancel = (orderId: number) => {
+    updateStatus.mutate(
+      { id: orderId, data: { status: "cancelled" as const } },
+      { onSuccess: () => void refetch() }
+    );
+  };
 
   if (isLoading) return (
     <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", background: "#F7F4EF" }}>
@@ -102,13 +111,11 @@ export function OrdersPage({ customer, onRequestReturn }: OrdersPageProps) {
     const sa = STATUS_SORT[a.status] ?? 5;
     const sb = STATUS_SORT[b.status] ?? 5;
     if (sa !== sb) return sa - sb;
-    // Within same status: newest first for active, oldest first for done
     const timeA = new Date(a.created_at).getTime();
     const timeB = new Date(b.created_at).getTime();
     return sa <= 2 ? timeB - timeA : timeA - timeB;
   });
 
-  // Summary counts
   const counts = {
     pending: list.filter(o => o.status === "placed").length,
     confirm: list.filter(o => o.status === "accepted" || o.status === "out_for_delivery").length,
@@ -146,28 +153,16 @@ export function OrdersPage({ customer, onRequestReturn }: OrdersPageProps) {
           willChange: "transform", transform: "translateZ(0)", zIndex: 99,
         }}>
           {counts.pending > 0 && (
-            <SummaryChip
-              label={`🕐 ${counts.pending} प्रतीक्षा में`}
-              bg="#FEF3C7" color="#92400E" pulse
-            />
+            <SummaryChip label={`🕐 ${counts.pending} प्रतीक्षा में`} bg="#FEF3C7" color="#92400E" pulse />
           )}
           {counts.confirm > 0 && (
-            <SummaryChip
-              label={`✅ ${counts.confirm} Confirm/रास्ते में`}
-              bg="#DBEAFE" color="#1E40AF"
-            />
+            <SummaryChip label={`✅ ${counts.confirm} Confirm/रास्ते में`} bg="#DBEAFE" color="#1E40AF" />
           )}
           {counts.done > 0 && (
-            <SummaryChip
-              label={`📦 ${counts.done} पहुंचा`}
-              bg="#DCFCE7" color="#15803D"
-            />
+            <SummaryChip label={`📦 ${counts.done} पहुंचा`} bg="#DCFCE7" color="#15803D" />
           )}
           {counts.cancelled > 0 && (
-            <SummaryChip
-              label={`❌ ${counts.cancelled} रद्द`}
-              bg="#F3F4F6" color="#6B7280"
-            />
+            <SummaryChip label={`❌ ${counts.cancelled} रद्द`} bg="#F3F4F6" color="#6B7280" />
           )}
         </div>
       )}
@@ -182,25 +177,23 @@ export function OrdersPage({ customer, onRequestReturn }: OrdersPageProps) {
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {/* Separator between active and done */}
-            {activeCount > 0 && activeCount < list.length && (
-              <>
-                {sorted.map((order, idx) => {
-                  const isLast = idx === activeCount - 1;
-                  return (
-                    <OrderCard
-                      key={order.id}
-                      order={order}
-                      onRequestReturn={onRequestReturn}
-                      showDivider={isLast}
-                    />
-                  );
-                })}
-              </>
+            {activeCount > 0 && activeCount < list.length ? (
+              sorted.map((order, idx) => {
+                const isLast = idx === activeCount - 1;
+                return (
+                  <OrderCard
+                    key={order.id}
+                    order={order}
+                    onCancel={handleCancel}
+                    showDivider={isLast}
+                  />
+                );
+              })
+            ) : (
+              sorted.map(order => (
+                <OrderCard key={order.id} order={order} onCancel={handleCancel} />
+              ))
             )}
-            {(activeCount === 0 || activeCount === list.length) && sorted.map(order => (
-              <OrderCard key={order.id} order={order} onRequestReturn={onRequestReturn} />
-            ))}
           </div>
         )}
       </div>
@@ -225,20 +218,18 @@ function SummaryChip({ label, bg, color, pulse }: { label: string; bg: string; c
 }
 
 // ── Individual order card ──────────────────────────────────────────────────────
-function OrderCard({ order, onRequestReturn, showDivider }: {
+function OrderCard({ order, onCancel, showDivider }: {
   order: Order;
-  onRequestReturn: (id: number) => void;
+  onCancel: (id: number) => void;
   showDivider?: boolean;
 }) {
+  const [confirmCancel, setConfirmCancel] = useState(false);
   const cfg = STATUS_CONFIG[order.status] || STATUS_CONFIG.placed;
-  const isActive = order.status === "placed" || order.status === "accepted" || order.status === "out_for_delivery";
-  const canReturn = order.status === "delivered" && !order.return_requested;
+  const canCancel = order.status === "placed" || order.status === "accepted";
 
   const timeStr = (order.status === "delivered" || order.status === "cancelled")
     ? fullDate(order.created_at)
     : timeAgoActive(order.created_at);
-
-  const slot = order.delivery_slot ? DELIVERY_SLOTS.find(s => s.id === order.delivery_slot) : null;
 
   return (
     <>
@@ -260,7 +251,6 @@ function OrderCard({ order, onRequestReturn, showDivider }: {
           padding: "9px 14px",
           display: "flex", justifyContent: "space-between", alignItems: "center",
         }}>
-          {/* Badge */}
           <div
             className={cfg.pulse ? "kd-pulse" : undefined}
             style={{
@@ -275,7 +265,6 @@ function OrderCard({ order, onRequestReturn, showDivider }: {
             </span>
           </div>
 
-          {/* Order # + time */}
           <div style={{ textAlign: "right" }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: "#666" }}>#{order.id}</div>
             <div style={{ fontSize: 11, color: "#888", marginTop: 1 }}>{timeStr}</div>
@@ -286,19 +275,6 @@ function OrderCard({ order, onRequestReturn, showDivider }: {
         <div style={{
           padding: cfg.dimmed ? "10px 14px 12px" : "12px 14px 14px",
         }}>
-
-          {/* Delivery slot pill */}
-          {slot && (
-            <div style={{
-              marginBottom: 9,
-              display: "inline-flex", alignItems: "center", gap: 4,
-              background: "#F5F3FF", borderRadius: 8, padding: "3px 10px",
-            }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: "#6D28D9" }}>
-                🚐 {slot.label} {slot.time}
-              </span>
-            </div>
-          )}
 
           {/* Items */}
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -335,7 +311,7 @@ function OrderCard({ order, onRequestReturn, showDivider }: {
             </span>
           </div>
 
-          {/* Return request info */}
+          {/* Return request info (if already requested, show status) */}
           {order.return_requested && (
             <div style={{
               background: "#FEE2E2", borderRadius: 8,
@@ -346,21 +322,56 @@ function OrderCard({ order, onRequestReturn, showDivider }: {
             </div>
           )}
 
-          {/* Return button */}
-          {canReturn && (
-            <button
-              onClick={() => onRequestReturn(order.id)}
-              className="btn-press"
-              style={{
-                marginTop: 10, width: "100%",
-                background: "none", border: "1.5px solid #dc2626", color: "#dc2626",
-                borderRadius: 10, padding: "8px 14px",
-                fontFamily: "'Baloo 2', sans-serif", fontWeight: 700, fontSize: 12,
-                cursor: "pointer",
-              }}
-            >
-              🔄 Return Request करो
-            </button>
+          {/* Cancel button — only for placed or accepted */}
+          {canCancel && (
+            confirmCancel ? (
+              <div style={{
+                marginTop: 10, background: "#FEF2F2", border: "1.5px solid #FCA5A5",
+                borderRadius: 12, padding: "10px 12px",
+              }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#991B1B", marginBottom: 8 }}>
+                  ⚠️ Order #{order.id} रद्द करना चाहते हो?
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    onClick={() => { onCancel(order.id); setConfirmCancel(false); }}
+                    className="btn-press"
+                    style={{
+                      flex: 1, background: "#DC2626", color: "white", border: "none",
+                      borderRadius: 10, padding: "8px",
+                      fontFamily: "'Baloo 2', sans-serif", fontWeight: 800, fontSize: 13, cursor: "pointer",
+                    }}
+                  >
+                    हाँ, रद्द करो
+                  </button>
+                  <button
+                    onClick={() => setConfirmCancel(false)}
+                    className="btn-press"
+                    style={{
+                      flex: 1, background: "white", color: "#555",
+                      border: "1.5px solid #E5E7EB", borderRadius: 10, padding: "8px",
+                      fontFamily: "'Baloo 2', sans-serif", fontWeight: 700, fontSize: 13, cursor: "pointer",
+                    }}
+                  >
+                    नहीं, रहने दो
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => setConfirmCancel(true)}
+                className="btn-press"
+                style={{
+                  marginTop: 10, width: "100%",
+                  background: "none", border: "1.5px solid #DC2626", color: "#DC2626",
+                  borderRadius: 10, padding: "8px 14px",
+                  fontFamily: "'Baloo 2', sans-serif", fontWeight: 700, fontSize: 12,
+                  cursor: "pointer",
+                }}
+              >
+                ✕ Order रद्द करो
+              </button>
+            )
           )}
         </div>
       </div>
