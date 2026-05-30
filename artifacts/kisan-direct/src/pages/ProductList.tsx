@@ -16,13 +16,13 @@ interface ProductListProps {
 export function ProductList({ cart, onAddToCart, onViewProduct, customer, onOpenProfile, onVillageChange }: ProductListProps) {
   const [category, setCategory] = useState("सब");
   const [search, setSearch] = useState("");
-  const [filterCategories, setFilterCategories] = useState<string[]>(["सब"]);
+  const [filterCategories, setFilterCategories] = useState<{ name: string; image_url?: string | null }[]>([{ name: "सब" }]);
 
   useEffect(() => {
     fetch("/api/settings/categories")
       .then(r => r.json())
-      .then((rows: { id: number; name: string }[]) => {
-        if (rows.length) setFilterCategories(["सब", ...rows.map(r => r.name)]);
+      .then((rows: { id: number; name: string; image_url?: string | null }[]) => {
+        if (rows.length) setFilterCategories([{ name: "सब" }, ...rows.map(r => ({ name: r.name, image_url: r.image_url }))]);
       })
       .catch(() => {});
   }, []);
@@ -124,20 +124,52 @@ export function ProductList({ cart, onAddToCart, onViewProduct, customer, onOpen
         zIndex: 99,
       }}>
         <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 2 }}>
-          {filterCategories.map(c => (
-            <button key={c} onClick={() => setCategory(c)} className="btn-press" style={{
-              flexShrink: 0, padding: "6px 16px", borderRadius: 20,
-              background: category === c ? "#1B4332" : "#F0F4F0",
-              color: category === c ? "white" : "#444",
-              border: category === c ? "none" : "1px solid #E0E0E0",
-              fontFamily: "'Baloo 2', sans-serif",
-              fontWeight: 700, fontSize: 13, cursor: "pointer",
-              boxShadow: category === c ? "0 2px 8px rgba(27,67,50,0.3)" : "none",
-              transition: "all 0.15s ease",
-            }}>
-              {c}
-            </button>
-          ))}
+          {filterCategories.map(c => {
+            const isActive = category === c.name;
+            const hasImg = !!c.image_url;
+            if (hasImg) {
+              // Zomato-style circle image chip
+              return (
+                <button key={c.name} onClick={() => setCategory(c.name)} className="btn-press" style={{
+                  flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center",
+                  gap: 4, background: "none", border: "none", cursor: "pointer",
+                  padding: "2px 4px",
+                }}>
+                  <div style={{
+                    width: 58, height: 58, borderRadius: "50%", overflow: "hidden",
+                    border: isActive ? "3px solid #1B4332" : "2.5px solid #E0E0E0",
+                    boxShadow: isActive ? "0 2px 10px rgba(27,67,50,0.35)" : "0 1px 4px rgba(0,0,0,0.08)",
+                    transition: "border-color 0.15s, box-shadow 0.15s",
+                    flexShrink: 0,
+                  }}>
+                    <img src={c.image_url!} alt={c.name}
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  </div>
+                  <span style={{
+                    fontFamily: "'Baloo 2', sans-serif", fontSize: 11, fontWeight: isActive ? 800 : 600,
+                    color: isActive ? "#1B4332" : "#444", maxWidth: 64,
+                    textAlign: "center", lineHeight: 1.2, whiteSpace: "nowrap",
+                    overflow: "hidden", textOverflow: "ellipsis",
+                  }}>{c.name}</span>
+                </button>
+              );
+            }
+            // Plain text chip (no image or "सब")
+            return (
+              <button key={c.name} onClick={() => setCategory(c.name)} className="btn-press" style={{
+                flexShrink: 0, padding: "6px 16px", borderRadius: 20,
+                background: isActive ? "#1B4332" : "#F0F4F0",
+                color: isActive ? "white" : "#444",
+                border: isActive ? "none" : "1px solid #E0E0E0",
+                fontFamily: "'Baloo 2', sans-serif",
+                fontWeight: 700, fontSize: 13, cursor: "pointer",
+                boxShadow: isActive ? "0 2px 8px rgba(27,67,50,0.3)" : "none",
+                transition: "all 0.15s ease",
+              }}>
+                {c.name}
+              </button>
+            );
+          })}
         </div>
       </div>
 
