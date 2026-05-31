@@ -17,6 +17,7 @@ type Variety = {
 type Product = {
   id: number; name: string; name_en: string; emoji: string; bg_color: string;
   category: string; min_kg: number; varieties: Variety[];
+  price_per_kg?: number | null;
   images?: ProductImage[];
 };
 
@@ -138,6 +139,7 @@ export function ProductDetail({ productId, cart, onBack, onCartChange }: Product
   const { data: product, isLoading } = useGetProduct(productId);
   const [selected, setSelected] = useState<number | null>(null);
   const [qty, setQty] = useState<Record<number, number>>({});
+  const [noVarQty, setNoVarQty] = useState<number | null>(null);
 
   if (isLoading) return (
     <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", background: "#F4F6F3" }}>
@@ -147,9 +149,14 @@ export function ProductDetail({ productId, cart, onBack, onCartChange }: Product
   if (!product) return null;
 
   const p = product as unknown as Product;
-  const varieties = p.varieties.filter(v => v.in_stock);
+  const allVarieties = p.varieties ?? [];
+  const varieties = allVarieties.filter(v => v.in_stock);
   const minKg = p.min_kg;
   const images = (p.images ?? []).sort((a, b) => a.sort_order - b.sort_order);
+  const hasNoVarieties = allVarieties.length === 0;
+  const directPrice = p.price_per_kg ?? null;
+  const noVarCartKey = `${p.id}-0`;
+  const noVarCurrentQty = noVarQty ?? minKg;
 
   const getQty = (varId: number) => qty[varId] ?? minKg;
 
@@ -164,6 +171,27 @@ export function ProductDetail({ productId, cart, onBack, onCartChange }: Product
         productEmoji: p.emoji, varietyName: v.name, pricePerKg: v.price_per_kg,
         quantityKg: q, minKg,
       });
+    }
+  };
+
+  const toggleNoVarCart = () => {
+    if (!directPrice) return;
+    if (cart[noVarCartKey]) {
+      onCartChange(noVarCartKey, null);
+    } else {
+      onCartChange(noVarCartKey, {
+        productId: p.id, varietyId: 0, productName: p.name, productNameEn: p.name_en,
+        productEmoji: p.emoji, varietyName: p.name, pricePerKg: directPrice,
+        quantityKg: noVarCurrentQty, minKg,
+      });
+    }
+  };
+
+  const updateNoVarQty = (delta: number) => {
+    const next = Math.max(minKg, noVarCurrentQty + delta);
+    setNoVarQty(next);
+    if (cart[noVarCartKey]) {
+      onCartChange(noVarCartKey, { ...cart[noVarCartKey], quantityKg: next });
     }
   };
 
@@ -226,115 +254,201 @@ export function ProductDetail({ productId, cart, onBack, onCartChange }: Product
         </div>
       </div>
 
-      {/* ── Varieties ── */}
+      {/* ── Varieties / Direct Buy ── */}
       <div style={{ flex: 1, overflowY: "auto", padding: "14px 14px 24px", WebkitOverflowScrolling: "touch" }}>
-        <div style={{ fontWeight: 800, fontSize: 14, color: "#1C1C1C",
-          marginBottom: 10, fontFamily: "'Baloo 2', sans-serif" }}>
-          किस्में चुनें
-        </div>
 
-        {varieties.length === 0 ? (
-          <div style={{
-            textAlign: "center", padding: 32, color: "#777",
-            background: "white", borderRadius: 16,
-          }}>
-            <div style={{ fontSize: 32 }}>😔</div>
-            <div style={{ fontWeight: 700, marginTop: 8, fontFamily: "'Baloo 2', sans-serif" }}>
-              फिलहाल stock नहीं है
-            </div>
-          </div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {varieties.map(v => {
-              const key = `${p.id}-${v.id}`;
-              const inCart = !!cart[key];
-              const q = getQty(v.id);
-              const isOpen = selected === v.id;
-
-              return (
-                <div key={v.id} style={{
-                  background: "white", borderRadius: 16, overflow: "hidden",
-                  border: inCart ? "2px solid #1B4332" : "1.5px solid #EDEAE5",
-                  boxShadow: inCart ? "0 2px 12px rgba(27,67,50,0.15)" : "0 2px 6px rgba(0,0,0,0.04)",
-                }}>
-                  <div style={{ padding: "14px 14px 12px", cursor: "pointer" }}
-                    onClick={() => setSelected(isOpen ? null : v.id)}>
-
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 800, fontSize: 15, color: "#1C1C1C",
-                          fontFamily: "'Baloo 2', sans-serif" }}>{v.name}</div>
-                        {v.description && (
-                          <div style={{ fontSize: 12, color: "#777", marginTop: 2,
-                            fontFamily: "'Baloo 2', sans-serif" }}>{v.description}</div>
-                        )}
-                        {v.shelf_life && (
-                          <div style={{ fontSize: 11, color: "#4A9B4A", fontWeight: 600, marginTop: 3,
-                            fontFamily: "'Baloo 2', sans-serif" }}>
-                            📦 shelf life: {v.shelf_life}
-                          </div>
-                        )}
-                      </div>
-                      <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 12 }}>
-                        <div style={{ fontWeight: 800, fontSize: 18, color: "#1B4332",
-                          fontFamily: "'Baloo 2', sans-serif" }}>
-                          {formatINR(v.price_per_kg)}
-                        </div>
-                        <div style={{ fontSize: 10, color: "#999",
-                          fontFamily: "'Baloo 2', sans-serif" }}>per kg</div>
-                      </div>
-                    </div>
-
-                    {/* Qty + Cart */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12 }}>
-                      <div style={{
-                        display: "flex", alignItems: "center",
-                        background: "#F0F4F0", borderRadius: 12, overflow: "hidden",
-                      }}>
-                        <button
-                          onClick={e => { e.stopPropagation(); updateQty(v.id, -minKg); }}
-                          className="btn-press"
-                          style={{
-                            background: "none", border: "none", padding: "8px 13px",
-                            cursor: "pointer", fontFamily: "'Baloo 2', sans-serif",
-                            fontWeight: 800, fontSize: 18, color: "#1B4332",
-                          }}>−</button>
-                        <div style={{
-                          fontWeight: 800, fontSize: 13, minWidth: 40, textAlign: "center",
-                          color: "#1C1C1C", fontFamily: "'Baloo 2', sans-serif",
-                        }}>{q}kg</div>
-                        <button
-                          onClick={e => { e.stopPropagation(); updateQty(v.id, minKg); }}
-                          className="btn-press"
-                          style={{
-                            background: "none", border: "none", padding: "8px 13px",
-                            cursor: "pointer", fontFamily: "'Baloo 2', sans-serif",
-                            fontWeight: 800, fontSize: 18, color: "#1B4332",
-                          }}>+</button>
-                      </div>
-                      <button
-                        onClick={e => { e.stopPropagation(); toggleCart(v); }}
-                        className="btn-press"
-                        style={{
-                          flex: 1,
-                          background: inCart
-                            ? "linear-gradient(135deg,#dc2626,#b91c1c)"
-                            : "linear-gradient(135deg,#1B4332,#2D6A2D)",
-                          color: "white", border: "none", borderRadius: 12,
-                          padding: "10px 0", fontFamily: "'Baloo 2', sans-serif",
-                          fontWeight: 700, fontSize: 13, cursor: "pointer",
-                          boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-                        }}>
-                        {inCart
-                          ? "✓ Cart में है"
-                          : `Cart में डालो • ${formatINR(v.price_per_kg * q)}`}
-                      </button>
+        {/* ── No-variety product ── */}
+        {hasNoVarieties ? (
+          directPrice ? (
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 14, color: "#1C1C1C",
+                marginBottom: 10, fontFamily: "'Baloo 2', sans-serif" }}>
+                खरीदें
+              </div>
+              <div style={{
+                background: "white", borderRadius: 16, overflow: "hidden",
+                border: cart[noVarCartKey] ? "2px solid #1B4332" : "1.5px solid #EDEAE5",
+                boxShadow: cart[noVarCartKey] ? "0 2px 12px rgba(27,67,50,0.15)" : "0 2px 6px rgba(0,0,0,0.04)",
+              }}>
+                <div style={{ padding: "14px 14px 12px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                    <div style={{ fontWeight: 800, fontSize: 16, color: "#1C1C1C",
+                      fontFamily: "'Baloo 2', sans-serif" }}>{p.name}</div>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontWeight: 800, fontSize: 20, color: "#1B4332",
+                        fontFamily: "'Baloo 2', sans-serif" }}>{formatINR(directPrice)}</div>
+                      <div style={{ fontSize: 10, color: "#999", fontFamily: "'Baloo 2', sans-serif" }}>per kg</div>
                     </div>
                   </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{
+                      display: "flex", alignItems: "center",
+                      background: "#F0F4F0", borderRadius: 12, overflow: "hidden",
+                    }}>
+                      <button
+                        onClick={() => updateNoVarQty(-minKg)}
+                        className="btn-press"
+                        style={{
+                          background: "none", border: "none", padding: "8px 13px",
+                          cursor: "pointer", fontFamily: "'Baloo 2', sans-serif",
+                          fontWeight: 800, fontSize: 18, color: "#1B4332",
+                        }}>−</button>
+                      <div style={{
+                        fontWeight: 800, fontSize: 13, minWidth: 40, textAlign: "center",
+                        color: "#1C1C1C", fontFamily: "'Baloo 2', sans-serif",
+                      }}>{noVarCurrentQty}kg</div>
+                      <button
+                        onClick={() => updateNoVarQty(minKg)}
+                        className="btn-press"
+                        style={{
+                          background: "none", border: "none", padding: "8px 13px",
+                          cursor: "pointer", fontFamily: "'Baloo 2', sans-serif",
+                          fontWeight: 800, fontSize: 18, color: "#1B4332",
+                        }}>+</button>
+                    </div>
+                    <button
+                      onClick={toggleNoVarCart}
+                      className="btn-press"
+                      style={{
+                        flex: 1,
+                        background: cart[noVarCartKey]
+                          ? "linear-gradient(135deg,#dc2626,#b91c1c)"
+                          : "linear-gradient(135deg,#1B4332,#2D6A2D)",
+                        color: "white", border: "none", borderRadius: 12,
+                        padding: "10px 0", fontFamily: "'Baloo 2', sans-serif",
+                        fontWeight: 700, fontSize: 13, cursor: "pointer",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                      }}>
+                      {cart[noVarCartKey]
+                        ? "✓ Cart में है"
+                        : `Cart में डालो • ${formatINR(directPrice * noVarCurrentQty)}`}
+                    </button>
+                  </div>
                 </div>
-              );
-            })}
-          </div>
+              </div>
+            </div>
+          ) : (
+            <div style={{
+              textAlign: "center", padding: 32, color: "#777",
+              background: "white", borderRadius: 16,
+            }}>
+              <div style={{ fontSize: 32 }}>😔</div>
+              <div style={{ fontWeight: 700, marginTop: 8, fontFamily: "'Baloo 2', sans-serif" }}>
+                फिलहाल उपलब्ध नहीं है
+              </div>
+            </div>
+          )
+        ) : (
+          /* ── Has varieties ── */
+          <>
+            <div style={{ fontWeight: 800, fontSize: 14, color: "#1C1C1C",
+              marginBottom: 10, fontFamily: "'Baloo 2', sans-serif" }}>
+              किस्में चुनें
+            </div>
+            {varieties.length === 0 ? (
+              <div style={{
+                textAlign: "center", padding: 32, color: "#777",
+                background: "white", borderRadius: 16,
+              }}>
+                <div style={{ fontSize: 32 }}>😔</div>
+                <div style={{ fontWeight: 700, marginTop: 8, fontFamily: "'Baloo 2', sans-serif" }}>
+                  फिलहाल stock नहीं है
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {varieties.map(v => {
+                  const key = `${p.id}-${v.id}`;
+                  const inCart = !!cart[key];
+                  const q = getQty(v.id);
+                  const isOpen = selected === v.id;
+
+                  return (
+                    <div key={v.id} style={{
+                      background: "white", borderRadius: 16, overflow: "hidden",
+                      border: inCart ? "2px solid #1B4332" : "1.5px solid #EDEAE5",
+                      boxShadow: inCart ? "0 2px 12px rgba(27,67,50,0.15)" : "0 2px 6px rgba(0,0,0,0.04)",
+                    }}>
+                      <div style={{ padding: "14px 14px 12px", cursor: "pointer" }}
+                        onClick={() => setSelected(isOpen ? null : v.id)}>
+
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: 800, fontSize: 15, color: "#1C1C1C",
+                              fontFamily: "'Baloo 2', sans-serif" }}>{v.name}</div>
+                            {v.description && (
+                              <div style={{ fontSize: 12, color: "#777", marginTop: 2,
+                                fontFamily: "'Baloo 2', sans-serif" }}>{v.description}</div>
+                            )}
+                            {v.shelf_life && (
+                              <div style={{ fontSize: 11, color: "#4A9B4A", fontWeight: 600, marginTop: 3,
+                                fontFamily: "'Baloo 2', sans-serif" }}>
+                                📦 shelf life: {v.shelf_life}
+                              </div>
+                            )}
+                          </div>
+                          <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 12 }}>
+                            <div style={{ fontWeight: 800, fontSize: 18, color: "#1B4332",
+                              fontFamily: "'Baloo 2', sans-serif" }}>
+                              {formatINR(v.price_per_kg)}
+                            </div>
+                            <div style={{ fontSize: 10, color: "#999",
+                              fontFamily: "'Baloo 2', sans-serif" }}>per kg</div>
+                          </div>
+                        </div>
+
+                        {/* Qty + Cart */}
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12 }}>
+                          <div style={{
+                            display: "flex", alignItems: "center",
+                            background: "#F0F4F0", borderRadius: 12, overflow: "hidden",
+                          }}>
+                            <button
+                              onClick={e => { e.stopPropagation(); updateQty(v.id, -minKg); }}
+                              className="btn-press"
+                              style={{
+                                background: "none", border: "none", padding: "8px 13px",
+                                cursor: "pointer", fontFamily: "'Baloo 2', sans-serif",
+                                fontWeight: 800, fontSize: 18, color: "#1B4332",
+                              }}>−</button>
+                            <div style={{
+                              fontWeight: 800, fontSize: 13, minWidth: 40, textAlign: "center",
+                              color: "#1C1C1C", fontFamily: "'Baloo 2', sans-serif",
+                            }}>{q}kg</div>
+                            <button
+                              onClick={e => { e.stopPropagation(); updateQty(v.id, minKg); }}
+                              className="btn-press"
+                              style={{
+                                background: "none", border: "none", padding: "8px 13px",
+                                cursor: "pointer", fontFamily: "'Baloo 2', sans-serif",
+                                fontWeight: 800, fontSize: 18, color: "#1B4332",
+                              }}>+</button>
+                          </div>
+                          <button
+                            onClick={e => { e.stopPropagation(); toggleCart(v); }}
+                            className="btn-press"
+                            style={{
+                              flex: 1,
+                              background: inCart
+                                ? "linear-gradient(135deg,#dc2626,#b91c1c)"
+                                : "linear-gradient(135deg,#1B4332,#2D6A2D)",
+                              color: "white", border: "none", borderRadius: 12,
+                              padding: "10px 0", fontFamily: "'Baloo 2', sans-serif",
+                              fontWeight: 700, fontSize: 13, cursor: "pointer",
+                              boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                            }}>
+                            {inCart
+                              ? "✓ Cart में है"
+                              : `Cart में डालो • ${formatINR(v.price_per_kg * q)}`}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

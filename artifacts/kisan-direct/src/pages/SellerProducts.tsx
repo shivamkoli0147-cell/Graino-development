@@ -28,6 +28,7 @@ type ProductForm = {
   category: string;
   min_kg: string;
   bg_color: string;
+  price_per_kg: string;
   varieties: VarietyForm[];
   benefits: BenefitItem[];
   disadvantages: BenefitItem[];
@@ -35,7 +36,7 @@ type ProductForm = {
 
 type ApiProduct = {
   id: number; name: string; name_en: string; emoji: string;
-  category: string; min_kg: number; bg_color: string;
+  category: string; min_kg: number; bg_color: string; price_per_kg?: number | null;
   varieties: {
     id: number; name: string; price_per_kg: number; description?: string;
     shelf_life?: string; in_stock: boolean;
@@ -66,7 +67,7 @@ const EMPTY_VARIETY: VarietyForm = {
 const EMPTY_FORM: ProductForm = {
   name: "", name_en: "", emoji: "🌾", category: "अनाज", min_kg: "10",
   bg_color: BG_COLORS[0].value,
-  varieties: [{ ...EMPTY_VARIETY }], benefits: [], disadvantages: [],
+  price_per_kg: "", varieties: [], benefits: [], disadvantages: [],
 };
 
 function productToForm(p: ApiProduct): ProductForm {
@@ -74,6 +75,7 @@ function productToForm(p: ApiProduct): ProductForm {
     id: p.id,
     name: p.name, name_en: p.name_en, emoji: p.emoji,
     category: p.category, min_kg: String(p.min_kg), bg_color: p.bg_color,
+    price_per_kg: p.price_per_kg != null ? String(p.price_per_kg) : "",
     varieties: (p.varieties || []).map(v => ({
       id: v.id, name: v.name, price_per_kg: String(v.price_per_kg),
       description: v.description || "", shelf_life: v.shelf_life || "",
@@ -362,8 +364,11 @@ function ProductFormView({ form, categories, onSave, onCancel, onDelete, saving,
   const addVariety = () =>
     upd({ varieties: [...f.varieties, { ...EMPTY_VARIETY }] });
 
+  const noVarieties = f.varieties.length === 0;
   const valid = f.name.trim() && f.name_en.trim() && f.emoji.trim() &&
-    f.varieties.length > 0 && f.varieties.every(v => v.name.trim() && v.price_per_kg);
+    (noVarieties
+      ? !!f.price_per_kg && !isNaN(parseFloat(f.price_per_kg))
+      : f.varieties.every(v => v.name.trim() && v.price_per_kg));
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: "#F7F4EF" }}>
@@ -495,7 +500,7 @@ function ProductFormView({ form, categories, onSave, onCancel, onDelete, saving,
 
         {/* Varieties */}
         <div style={{ background: "white", borderRadius: 16, padding: 16, marginBottom: 12 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             <div style={{ fontWeight: 800, fontSize: 15, color: "#1C1C1C" }}>
               🌱 किस्में ({f.varieties.length})
             </div>
@@ -505,13 +510,33 @@ function ProductFormView({ form, categories, onSave, onCancel, onDelete, saving,
               fontFamily: "'Baloo 2',sans-serif", fontWeight: 700, fontSize: 13, cursor: "pointer",
             }}>＋ किस्म जोड़ें</button>
           </div>
-          {f.varieties.map((v, i) => (
-            <VarietyEditor key={i} variety={v} index={i}
-              onUpdate={nv => updateVariety(i, nv)}
-              onDelete={() => deleteVariety(i)}
-              canDelete={f.varieties.length > 1}
-            />
-          ))}
+
+          {noVarieties ? (
+            <div style={{ marginBottom: 4 }}>
+              <div style={{
+                background: "#F0FDF4", border: "1.5px dashed #4A9B4A",
+                borderRadius: 12, padding: "10px 14px", marginBottom: 10,
+                fontSize: 12, color: "#2D6A2D", fontFamily: "'Baloo 2',sans-serif", fontWeight: 600,
+              }}>
+                ℹ️ कोई किस्म नहीं — नीचे सीधे price डालें
+              </div>
+              <Label>सीधा Rate (₹ per kg) *</Label>
+              <Input
+                value={f.price_per_kg}
+                onChange={v => upd({ price_per_kg: v })}
+                placeholder="जैसे: 25"
+                type="number"
+              />
+            </div>
+          ) : (
+            f.varieties.map((v, i) => (
+              <VarietyEditor key={i} variety={v} index={i}
+                onUpdate={nv => updateVariety(i, nv)}
+                onDelete={() => deleteVariety(i)}
+                canDelete={true}
+              />
+            ))
+          )}
         </div>
 
         {/* Preview */}
@@ -525,7 +550,9 @@ function ProductFormView({ form, categories, onSave, onCancel, onDelete, saving,
             <div>
               <div style={{ fontWeight: 800, fontSize: 18 }}>{f.name || "Product नाम"}</div>
               <div style={{ fontSize: 12, color: "#555" }}>{f.name_en || "Name"} • min {f.min_kg || 10} kg</div>
-              <div style={{ fontSize: 11, color: "#777", marginTop: 2 }}>{f.varieties.length} किस्में</div>
+              <div style={{ fontSize: 11, color: "#777", marginTop: 2 }}>
+            {f.varieties.length > 0 ? `${f.varieties.length} किस्में` : (f.price_per_kg ? `₹${f.price_per_kg}/kg` : "कोई किस्म नहीं")}
+          </div>
             </div>
           </div>
         </div>
@@ -600,9 +627,11 @@ export function SellerProducts({ onBack: _onBack }: SellerProductsProps) {
   const invalidate = () => qc.invalidateQueries({ queryKey: getGetProductsQueryKey() });
 
   const handleSave = (f: ProductForm) => {
+    const noVarieties = f.varieties.length === 0;
     const payload = {
       name: f.name.trim(), name_en: f.name_en.trim(), emoji: f.emoji,
       category: f.category, min_kg: parseInt(f.min_kg) || 10, bg_color: f.bg_color,
+      price_per_kg: noVarieties && f.price_per_kg ? parseFloat(f.price_per_kg) : null,
       varieties: f.varieties.map(v => ({
         ...(v.id ? { id: v.id } : {}),
         name: v.name.trim(), price_per_kg: parseFloat(v.price_per_kg),

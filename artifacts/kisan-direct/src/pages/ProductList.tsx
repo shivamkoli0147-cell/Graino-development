@@ -212,10 +212,15 @@ export function ProductList({ cart, onAddToCart, onViewProduct, customer, onOpen
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             {(products as Product[]).map(product => {
-              const inStockVarieties = (product.varieties as Variety[]).filter(v => v.in_stock);
+              const allVarieties = product.varieties as Variety[];
+              const hasNoVarieties = allVarieties.length === 0;
+              const directPrice = product.price_per_kg ?? null;
+              const inStockVarieties = allVarieties.filter(v => v.in_stock);
               const cheapest = inStockVarieties.sort((a, b) => a.price_per_kg - b.price_per_kg)[0];
-              const inCartCount = (product.varieties as Variety[])
-                .filter(v => cartKeys.has(`${product.id}-${v.id}`)).length;
+              const isAvailable = hasNoVarieties ? !!directPrice : !!cheapest;
+              const inCartCount = hasNoVarieties
+                ? (cartKeys.has(`${product.id}-0`) ? 1 : 0)
+                : allVarieties.filter(v => cartKeys.has(`${product.id}-${v.id}`)).length;
 
               return (
                 <div key={product.id} onClick={() => onViewProduct(product.id)}
@@ -292,13 +297,13 @@ export function ProductList({ cart, onAddToCart, onViewProduct, customer, onOpen
 
                   {/* Info + CTA */}
                   <div style={{ padding: "10px 11px 12px" }}>
-                    {cheapest ? (
-                      <>
-                        <div style={{ fontSize: 10, color: "#4A9B4A", fontWeight: 600,
-                          fontFamily: "'Baloo 2', sans-serif" }}>
-                          {inStockVarieties.length} किस्में उपलब्ध
-                        </div>
-                      </>
+                    {isAvailable ? (
+                      <div style={{ fontSize: 10, color: "#4A9B4A", fontWeight: 600,
+                        fontFamily: "'Baloo 2', sans-serif" }}>
+                        {hasNoVarieties
+                          ? `₹${directPrice}/kg`
+                          : `${inStockVarieties.length} किस्में उपलब्ध`}
+                      </div>
                     ) : (
                       <div style={{ fontSize: 12, color: "#ef4444", fontWeight: 700,
                         textAlign: "center", padding: "4px 0", fontFamily: "'Baloo 2', sans-serif" }}>
@@ -312,17 +317,17 @@ export function ProductList({ cart, onAddToCart, onViewProduct, customer, onOpen
                       className="btn-press"
                       style={{
                         width: "100%", marginTop: 8,
-                        background: cheapest
+                        background: isAvailable
                           ? "linear-gradient(135deg,#1B4332,#2D6A2D)"
                           : "#e5e5e5",
-                        color: cheapest ? "white" : "#aaa",
+                        color: isAvailable ? "white" : "#aaa",
                         border: "none", borderRadius: 10, padding: "7px 0",
                         fontFamily: "'Baloo 2', sans-serif",
-                        fontWeight: 700, fontSize: 12, cursor: cheapest ? "pointer" : "not-allowed",
-                        boxShadow: cheapest ? "0 2px 8px rgba(27,67,50,0.25)" : "none",
+                        fontWeight: 700, fontSize: 12, cursor: isAvailable ? "pointer" : "not-allowed",
+                        boxShadow: isAvailable ? "0 2px 8px rgba(27,67,50,0.25)" : "none",
                       }}
                     >
-                      {cheapest ? "ऑर्डर करें →" : "Unavailable"}
+                      {isAvailable ? "ऑर्डर करें →" : "Unavailable"}
                     </button>
                   </div>
                 </div>
@@ -348,5 +353,6 @@ type Variety = { id: number; in_stock: boolean | number; price_per_kg: number; n
 type Product = {
   id: number; name: string; name_en: string; emoji: string; bg_color: string;
   category: string; min_kg: number; varieties: Variety[]; benefits: string[];
+  price_per_kg?: number | null;
   images?: { id: number; url: string; sort_order: number }[];
 };

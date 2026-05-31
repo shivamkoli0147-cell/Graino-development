@@ -136,12 +136,13 @@ function mapVariety(v: { id: number; productId: number; name: string; pricePerKg
   };
 }
 
-function mapProduct(p: { id: number; name: string; nameEn: string; emoji: string; category: string; minKg: number; bgColor: string; createdAt: Date | null }) {
+function mapProduct(p: { id: number; name: string; nameEn: string; emoji: string; category: string; minKg: number; bgColor: string; pricePerKg?: number | null; createdAt: Date | null }) {
   return {
     ...p,
     name_en: p.nameEn,
     min_kg: p.minKg,
     bg_color: p.bgColor,
+    price_per_kg: p.pricePerKg ?? null,
     created_at: p.createdAt,
   };
 }
@@ -400,10 +401,10 @@ router.get("/products/:id", async (req, res) => {
 
 router.post("/products", async (req, res) => {
   try {
-    const { name, name_en, emoji, category, min_kg, bg_color,
+    const { name, name_en, emoji, category, min_kg, bg_color, price_per_kg,
       varieties: vars = [], benefits = [], disadvantages = [] } = req.body as {
       name: string; name_en: string; emoji: string; category: string;
-      min_kg?: number; bg_color?: string;
+      min_kg?: number; bg_color?: string; price_per_kg?: number | null;
       varieties?: VarietyInput[];
       benefits?: string[];
       disadvantages?: string[];
@@ -413,6 +414,7 @@ router.post("/products", async (req, res) => {
       name, nameEn: name_en, emoji, category,
       minKg: min_kg || 10,
       bgColor: bg_color || "linear-gradient(135deg,#e8f5e8,#d1fae5)",
+      pricePerKg: price_per_kg ?? null,
     }).returning({ id: products.id });
     const productId = inserted.id;
     for (const v of vars) {
@@ -437,10 +439,10 @@ router.post("/products", async (req, res) => {
 router.put("/products/:id", async (req, res) => {
   try {
     const id = parseInt(req.params.id);
-    const { name, name_en, emoji, category, min_kg, bg_color,
+    const { name, name_en, emoji, category, min_kg, bg_color, price_per_kg,
       varieties: vars = [], benefits = [], disadvantages = [] } = req.body as {
       name: string; name_en: string; emoji: string; category: string;
-      min_kg?: number; bg_color?: string;
+      min_kg?: number; bg_color?: string; price_per_kg?: number | null;
       varieties?: VarietyInput[];
       benefits?: string[];
       disadvantages?: string[];
@@ -451,6 +453,7 @@ router.put("/products/:id", async (req, res) => {
       name, nameEn: name_en, emoji, category,
       minKg: min_kg || 10,
       bgColor: bg_color || "linear-gradient(135deg,#e8f5e8,#d1fae5)",
+      pricePerKg: price_per_kg ?? null,
     }).where(eq(products.id, id));
     await db.delete(productBenefits).where(eq(productBenefits.productId, id));
     for (const b of benefits as string[])

@@ -1,4 +1,4 @@
-import { pgTable, serial, text, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, real, timestamp } from "drizzle-orm/pg-core";
 
 export const products = pgTable("products", {
   id: serial("id").primaryKey(),
@@ -8,6 +8,7 @@ export const products = pgTable("products", {
   category: text("category").notNull(),
   minKg: integer("min_kg").notNull().default(10),
   bgColor: text("bg_color").notNull().default("linear-gradient(135deg,#e8f5e8,#d1fae5)"),
+  pricePerKg: real("price_per_kg"),
   createdAt: timestamp("created_at", { withTimezone: false }).defaultNow(),
 });
 
