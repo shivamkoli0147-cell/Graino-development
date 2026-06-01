@@ -5,38 +5,26 @@ interface SplashScreenProps {
 }
 
 export function SplashScreen({ onDone }: SplashScreenProps) {
-  const [phase, setPhase] = useState<"in" | "hold" | "out">("in");
+  const [visible, setVisible] = useState(true);
 
   useEffect(() => {
-    const t1 = setTimeout(() => setPhase("hold"), 100);
-    const t2 = setTimeout(() => setPhase("out"), 2400);
-    const t3 = setTimeout(onDone, 2800);
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+    const t = setTimeout(() => {
+      setVisible(false);
+      setTimeout(onDone, 400);
+    }, 2500);
+    return () => clearTimeout(t);
   }, [onDone]);
 
   return (
     <div style={{
       position: "fixed", inset: 0, zIndex: 9999,
+      background: "#1B4332",
       display: "flex", flexDirection: "column",
       alignItems: "center", justifyContent: "center",
-      background: "linear-gradient(160deg, #0d2e1a 0%, #1B4332 45%, #14532d 100%)",
-      transition: "opacity 0.45s ease",
-      opacity: phase === "out" ? 0 : 1,
-      overflow: "hidden",
+      transition: "opacity 0.4s ease",
+      opacity: visible ? 1 : 0,
     }}>
-
-      {/* Radial glow behind logo */}
-      <div style={{
-        position: "absolute",
-        width: 320, height: 320,
-        borderRadius: "50%",
-        background: "radial-gradient(circle, rgba(212,175,55,0.18) 0%, transparent 70%)",
-        top: "50%", left: "50%",
-        transform: "translate(-50%, -58%)",
-        pointerEvents: "none",
-      }} />
-
-      {/* Floating grain particles */}
+      {/* Animated grain particles */}
       <div style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }}>
         {PARTICLES.map((p, i) => (
           <div key={i} className="grain-particle" style={{
@@ -44,9 +32,7 @@ export function SplashScreen({ onDone }: SplashScreenProps) {
             width: p.size, height: p.size,
             animationDuration: p.dur + "s",
             animationDelay: p.delay + "s",
-            background: p.gold
-              ? "rgba(212,175,55,0.22)"
-              : "rgba(255,255,255,0.07)",
+            background: p.gold ? "rgba(245,158,11,0.18)" : "rgba(255,255,255,0.08)",
             borderRadius: "50%",
             position: "absolute",
             bottom: "-20px",
@@ -54,80 +40,58 @@ export function SplashScreen({ onDone }: SplashScreenProps) {
         ))}
       </div>
 
-      {/* Main content */}
-      <div style={{
-        display: "flex", flexDirection: "column",
-        alignItems: "center", position: "relative", zIndex: 2,
-        opacity: phase === "in" ? 0 : 1,
-        transform: phase === "in" ? "translateY(24px) scale(0.95)" : "translateY(0) scale(1)",
-        transition: "opacity 0.55s cubic-bezier(0.22,1,0.36,1), transform 0.55s cubic-bezier(0.22,1,0.36,1)",
-      }}>
-
-        {/* Logo card — white circle with shadow */}
+      {/* Logo block */}
+      <div className="splash-fade" style={{ textAlign: "center", position: "relative", zIndex: 2 }}>
+        {/* Wheat icon */}
         <div style={{
-          width: 180, height: 180,
-          borderRadius: "50%",
-          background: "white",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          boxShadow: "0 8px 48px rgba(0,0,0,0.35), 0 0 0 6px rgba(212,175,55,0.25), 0 0 0 12px rgba(212,175,55,0.08)",
-          marginBottom: 28,
-          overflow: "hidden",
+          fontSize: 72, lineHeight: 1,
+          filter: "drop-shadow(0 4px 24px rgba(245,158,11,0.5))",
+          marginBottom: 16,
+          animation: "splashIconPop 0.6s cubic-bezier(0.34,1.56,0.64,1) both",
         }}>
-          <img
-            src="/graino-logo.jpeg"
-            alt="Graino"
-            style={{
-              width: "88%", height: "88%",
-              objectFit: "contain",
-            }}
-          />
+          🌾
         </div>
 
-        {/* Brand name */}
+        {/* Graino wordmark */}
         <div style={{
           fontFamily: "'Baloo 2', sans-serif",
           fontWeight: 800,
-          fontSize: 44,
-          letterSpacing: -1,
+          fontSize: 52,
+          letterSpacing: -1.5,
           color: "white",
           lineHeight: 1,
-          marginBottom: 6,
-          textShadow: "0 2px 16px rgba(0,0,0,0.3)",
-        }}>
-          Grai<span style={{ color: "#D4AF37" }}>no</span>
-        </div>
-
-        {/* Gold divider */}
-        <div style={{
-          display: "flex", alignItems: "center", gap: 10,
           marginBottom: 8,
         }}>
-          <div style={{ width: 32, height: 1.5, background: "rgba(212,175,55,0.5)", borderRadius: 99 }} />
-          <div style={{ fontSize: 13, color: "#D4AF37", fontWeight: 500, letterSpacing: 0.5, opacity: 0.85 }}>🌾</div>
-          <div style={{ width: 32, height: 1.5, background: "rgba(212,175,55,0.5)", borderRadius: 99 }} />
+          Grai<span style={{ color: "#F59E0B" }}>no</span>
         </div>
 
         {/* Tagline */}
         <div style={{
           fontFamily: "'Baloo 2', sans-serif",
-          fontSize: 14,
-          color: "rgba(255,255,255,0.75)",
-          fontWeight: 500,
-          letterSpacing: 1.2,
-          textTransform: "uppercase",
+          fontSize: 15,
+          color: "#D4AF37",
+          fontWeight: 600,
+          letterSpacing: 0.5,
+          marginTop: 4,
+          opacity: 0.9,
         }}>
           हर किसान, हमारा वादा
         </div>
+
+        {/* Thin gold underline */}
+        <div style={{
+          width: 48, height: 2, background: "#F59E0B",
+          borderRadius: 99, margin: "16px auto 0",
+          opacity: 0.6,
+        }} />
       </div>
 
-      {/* Bottom text */}
+      {/* Bottom tagline */}
       <div style={{
-        position: "absolute", bottom: 40,
+        position: "absolute", bottom: 48,
         fontFamily: "'Baloo 2', sans-serif",
-        fontSize: 11, color: "rgba(255,255,255,0.25)", fontWeight: 500,
-        letterSpacing: 1.5, textTransform: "uppercase",
-        opacity: phase === "in" ? 0 : 1,
-        transition: "opacity 0.8s ease 0.4s",
+        fontSize: 12, color: "rgba(255,255,255,0.3)", fontWeight: 500,
+        letterSpacing: 1,
       }}>
         सीधे खेत से आपके द्वार तक
       </div>
@@ -135,10 +99,10 @@ export function SplashScreen({ onDone }: SplashScreenProps) {
   );
 }
 
-const PARTICLES = Array.from({ length: 26 }, (_, i) => ({
+const PARTICLES = Array.from({ length: 22 }, (_, i) => ({
   x: Math.random() * 100,
-  size: Math.random() * 7 + 3,
-  dur: Math.random() * 6 + 5,
-  delay: Math.random() * 5,
+  size: Math.random() * 8 + 4,
+  dur: Math.random() * 5 + 4,
+  delay: Math.random() * 4,
   gold: i % 3 === 0,
 }));
