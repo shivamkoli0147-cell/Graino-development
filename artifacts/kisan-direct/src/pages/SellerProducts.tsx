@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useGetProducts,
@@ -25,7 +25,6 @@ type ProductForm = {
   name: string;
   name_en: string;
   emoji: string;
-  category: string;
   min_kg: string;
   bg_color: string;
   price_per_kg: string;
@@ -36,7 +35,7 @@ type ProductForm = {
 
 type ApiProduct = {
   id: number; name: string; name_en: string; emoji: string;
-  category: string; min_kg: number; bg_color: string; price_per_kg?: number | null;
+  min_kg: number; bg_color: string; price_per_kg?: number | null;
   varieties: {
     id: number; name: string; price_per_kg: number; description?: string;
     shelf_life?: string; in_stock: boolean;
@@ -65,7 +64,7 @@ const EMPTY_VARIETY: VarietyForm = {
   in_stock: true, benefits: [], disadvantages: [],
 };
 const EMPTY_FORM: ProductForm = {
-  name: "", name_en: "", emoji: "🌾", category: "अनाज", min_kg: "10",
+  name: "", name_en: "", emoji: "🌾", min_kg: "10",
   bg_color: BG_COLORS[0].value,
   price_per_kg: "", varieties: [], benefits: [], disadvantages: [],
 };
@@ -74,7 +73,7 @@ function productToForm(p: ApiProduct): ProductForm {
   return {
     id: p.id,
     name: p.name, name_en: p.name_en, emoji: p.emoji,
-    category: p.category, min_kg: String(p.min_kg), bg_color: p.bg_color,
+    min_kg: String(p.min_kg), bg_color: p.bg_color,
     price_per_kg: p.price_per_kg != null ? String(p.price_per_kg) : "",
     varieties: (p.varieties || []).map(v => ({
       id: v.id, name: v.name, price_per_kg: String(v.price_per_kg),
@@ -348,8 +347,8 @@ function VarietyEditor({ variety, index, onUpdate, onDelete, canDelete }: {
 }
 
 // ─── Product Form View ──────────────────────────────────────────────────────────
-function ProductFormView({ form, categories, onSave, onCancel, onDelete, saving, deleting }: {
-  form: ProductForm; categories: string[]; onSave: (f: ProductForm) => void;
+function ProductFormView({ form, onSave, onCancel, onDelete, saving, deleting }: {
+  form: ProductForm; onSave: (f: ProductForm) => void;
   onCancel: () => void; onDelete?: () => void;
   saving: boolean; deleting: boolean;
 }) {
@@ -426,22 +425,9 @@ function ProductFormView({ form, categories, onSave, onCancel, onDelete, saving,
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
-            <div>
-              <Label>Category *</Label>
-              <select value={f.category} onChange={e => upd({ category: e.target.value })}
-                style={{
-                  width: "100%", border: "1.5px solid #E5DDD0", borderRadius: 10,
-                  padding: "9px 10px", fontFamily: "'Baloo 2',sans-serif", fontSize: 14,
-                  outline: "none", background: "#FAFAF8", cursor: "pointer",
-                }}>
-                {categories.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-            <div>
-              <Label>Min Order (kg) *</Label>
-              <Input value={f.min_kg} onChange={v => upd({ min_kg: v })} placeholder="10" type="number" />
-            </div>
+          <div style={{ marginBottom: 10 }}>
+            <Label>Min Order (kg) *</Label>
+            <Input value={f.min_kg} onChange={v => upd({ min_kg: v })} placeholder="10" type="number" />
           </div>
 
           <div>
@@ -605,16 +591,7 @@ export function SellerProducts({ onBack: _onBack }: SellerProductsProps) {
   const updateProduct = useUpdateProduct();
   const deleteProduct = useDeleteProduct();
 
-  const [formCategories, setFormCategories] = useState<string[]>(["अनाज","दालें","तिलहन","मसाले","सब्जी","फल","अन्य"]);
-  useEffect(() => {
-    fetch("/api/settings/categories")
-      .then(r => r.json())
-      .then((rows: { id: number; name: string }[]) => { if (rows.length) setFormCategories(rows.map(r => r.name)); })
-      .catch(() => {});
-  }, []);
-
   const [editing, setEditing] = useState<ProductForm | null>(null);
-  const [filterCat, setFilterCat] = useState("सब");
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -630,7 +607,7 @@ export function SellerProducts({ onBack: _onBack }: SellerProductsProps) {
     const noVarieties = f.varieties.length === 0;
     const payload = {
       name: f.name.trim(), name_en: f.name_en.trim(), emoji: f.emoji,
-      category: f.category, min_kg: parseInt(f.min_kg) || 10, bg_color: f.bg_color,
+      min_kg: parseInt(f.min_kg) || 10, bg_color: f.bg_color,
       price_per_kg: noVarieties && f.price_per_kg ? parseFloat(f.price_per_kg) : null,
       varieties: f.varieties.map(v => ({
         ...(v.id ? { id: v.id } : {}),
@@ -674,7 +651,6 @@ export function SellerProducts({ onBack: _onBack }: SellerProductsProps) {
     return (
       <ProductFormView
         form={editing}
-        categories={formCategories}
         onSave={handleSave}
         onCancel={() => setEditing(null)}
         onDelete={editing.id ? () => handleDelete(editing.id!) : undefined}
@@ -685,8 +661,7 @@ export function SellerProducts({ onBack: _onBack }: SellerProductsProps) {
   }
 
   const allProducts = (products as unknown as ApiProduct[] | undefined) || [];
-  const categories = ["सब", ...Array.from(new Set(allProducts.map(p => p.category)))];
-  const filtered = filterCat === "सब" ? allProducts : allProducts.filter(p => p.category === filterCat);
+  const filtered = allProducts;
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: "#F7F4EF" }}>
@@ -716,26 +691,6 @@ export function SellerProducts({ onBack: _onBack }: SellerProductsProps) {
         }}>＋ नया Product</button>
       </div>
 
-      {/* Category filter */}
-      {categories.length > 2 && (
-        <div style={{
-          background: "white", padding: "8px 16px 10px",
-          borderBottom: "1px solid #E5DDD0", flexShrink: 0,
-          willChange: "transform", transform: "translateZ(0)", zIndex: 99,
-        }}>
-          <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 2 }}>
-            {categories.map(c => (
-              <button key={c} onClick={() => setFilterCat(c)} style={{
-                background: filterCat === c ? "#2D6A2D" : "#F0EDE8",
-                color: filterCat === c ? "white" : "#555",
-                border: "none", borderRadius: 20, padding: "5px 14px",
-                fontFamily: "'Baloo 2',sans-serif", fontWeight: 700, fontSize: 12,
-                cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0,
-              }}>{c}</button>
-            ))}
-          </div>
-        </div>
-      )}
 
       <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px 24px", WebkitOverflowScrolling: "touch" }}>
         {isLoading ? (
@@ -777,7 +732,7 @@ export function SellerProducts({ onBack: _onBack }: SellerProductsProps) {
                     }}>{p.emoji}</div>
                     <div style={{ flex: 1, padding: "12px 14px" }}>
                       <div style={{ fontWeight: 800, fontSize: 15, color: "#1C1C1C" }}>{p.name}</div>
-                      <div style={{ fontSize: 12, color: "#777" }}>{p.name_en} • {p.category}</div>
+                      <div style={{ fontSize: 12, color: "#777" }}>{p.name_en}</div>
                       <div style={{ fontSize: 12, marginTop: 4, display: "flex", gap: 8, flexWrap: "wrap" }}>
                         <span style={{
                           background: inStockCount > 0 ? "#E8F5E8" : "#FEE2E2",

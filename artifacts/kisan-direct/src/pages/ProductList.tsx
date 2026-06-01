@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useGetProducts } from "@workspace/api-client-react";
 import { formatINR, type Cart, type CustomerSession } from "../lib/utils";
 import { VillagePicker } from "../components/kisan/VillagePicker";
@@ -14,23 +14,10 @@ interface ProductListProps {
 }
 
 export function ProductList({ cart, onAddToCart, onViewProduct, customer, onOpenProfile, onVillageChange }: ProductListProps) {
-  const [category, setCategory] = useState("सब");
   const [search, setSearch] = useState("");
-  const [filterCategories, setFilterCategories] = useState<{ name: string; image_url?: string | null }[]>([{ name: "सब" }]);
-
-  useEffect(() => {
-    fetch("/api/settings/categories")
-      .then(r => r.json())
-      .then((rows: { id: number; name: string; image_url?: string | null }[]) => {
-        if (rows.length) setFilterCategories([{ name: "सब" }, ...rows.map(r => ({ name: r.name, image_url: r.image_url }))]);
-      })
-      .catch(() => {});
-  }, []);
   const [showVillagePicker, setShowVillagePicker] = useState(false);
-  const { data: products, isLoading } = useGetProducts({
-    category: category === "सब" ? undefined : category,
-    search: search || undefined,
-  });
+  const { data: products, isLoading } = useGetProducts({ search: search || undefined });
+  const { data: allNavProducts } = useGetProducts({});
 
   const cartKeys = new Set(Object.keys(cart));
   const initial = customer ? (customer.name || "?")[0].toUpperCase() : null;
@@ -114,70 +101,84 @@ export function ProductList({ cart, onAddToCart, onViewProduct, customer, onOpen
         </div>
       </div>
 
-      {/* ── Category chips ── */}
-      <div style={{
-        background: "white", padding: "10px 12px",
-        flexShrink: 0, borderBottom: "1px solid #EDEAE5",
-        boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
-        willChange: "transform",
-        transform: "translateZ(0)",
-        zIndex: 99,
-      }}>
-        <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 2 }}>
-          {filterCategories.map(c => {
-            const isActive = category === c.name;
-            const hasImg = !!c.image_url;
-            if (hasImg) {
-              // Zomato-style circle image chip
+      {/* ── Product quick-nav ── */}
+      {(allNavProducts as NavProduct[] | undefined)?.length ? (
+        <div style={{
+          background: "white", padding: "10px 12px 8px",
+          flexShrink: 0, borderBottom: "1px solid #EDEAE5",
+          boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+          willChange: "transform", transform: "translateZ(0)", zIndex: 99,
+        }}>
+          <div style={{
+            display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4,
+            scrollbarWidth: "none",
+          }}>
+            {(allNavProducts as NavProduct[]).map(p => {
+              const firstImg = (p.images ?? [])[0];
+              const inCartCount = (p.varieties as NavVariety[]).filter(v =>
+                (Object.keys(cart)).includes(`${p.id}-${v.id}`)
+              ).length + (cart[`${p.id}-0`] ? 1 : 0);
               return (
-                <button key={c.name} onClick={() => setCategory(c.name)} className="btn-press" style={{
-                  flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center",
-                  gap: 4, background: "none", border: "none", cursor: "pointer",
-                  padding: "2px 4px",
-                }}>
+                <button
+                  key={p.id}
+                  onClick={() => onViewProduct(p.id)}
+                  className="btn-press"
+                  style={{
+                    flexShrink: 0, display: "flex", flexDirection: "column",
+                    alignItems: "center", gap: 4,
+                    background: "none", border: "none", cursor: "pointer",
+                    padding: "2px 4px",
+                  }}
+                >
                   <div style={{
-                    width: 58, height: 58, borderRadius: "50%", overflow: "hidden",
-                    border: isActive ? "3px solid #1B4332" : "2.5px solid #E0E0E0",
-                    boxShadow: isActive ? "0 2px 10px rgba(27,67,50,0.35)" : "0 1px 4px rgba(0,0,0,0.08)",
-                    transition: "border-color 0.15s, box-shadow 0.15s",
-                    flexShrink: 0,
+                    width: 56, height: 56, borderRadius: "50%", overflow: "hidden",
+                    border: "2.5px solid #E0E0E0",
+                    boxShadow: inCartCount > 0
+                      ? "0 0 0 2px #1B4332, 0 2px 8px rgba(27,67,50,0.25)"
+                      : "0 1px 4px rgba(0,0,0,0.08)",
+                    position: "relative", flexShrink: 0,
+                    transition: "box-shadow 0.15s",
                   }}>
-                    <img src={c.image_url!} alt={c.name}
-                      style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    {firstImg ? (
+                      <img src={firstImg.url} alt={p.name as string}
+                        style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    ) : (
+                      <div style={{
+                        width: "100%", height: "100%",
+                        background: p.bg_color as string || "linear-gradient(135deg,#e8f5e8,#d1fae5)",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 24,
+                      }}>{p.emoji as string}</div>
+                    )}
+                    {inCartCount > 0 && (
+                      <div style={{
+                        position: "absolute", top: 0, right: 0,
+                        background: "#1B4332", color: "white",
+                        borderRadius: "50%", width: 17, height: 17,
+                        fontSize: 9, fontWeight: 800,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        border: "1.5px solid white",
+                      }}>{inCartCount}</div>
+                    )}
                   </div>
                   <span style={{
-                    fontFamily: "'Baloo 2', sans-serif", fontSize: 11, fontWeight: isActive ? 800 : 600,
-                    color: isActive ? "#1B4332" : "#444", maxWidth: 64,
-                    textAlign: "center", lineHeight: 1.2, whiteSpace: "nowrap",
-                    overflow: "hidden", textOverflow: "ellipsis",
-                  }}>{c.name}</span>
+                    fontFamily: "'Baloo 2', sans-serif", fontSize: 10, fontWeight: 700,
+                    color: "#333", maxWidth: 60,
+                    textAlign: "center", lineHeight: 1.2,
+                    whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                  }}>{p.name as string}</span>
                 </button>
               );
-            }
-            // Plain text chip (no image or "सब")
-            return (
-              <button key={c.name} onClick={() => setCategory(c.name)} className="btn-press" style={{
-                flexShrink: 0, padding: "6px 16px", borderRadius: 20,
-                background: isActive ? "#1B4332" : "#F0F4F0",
-                color: isActive ? "white" : "#444",
-                border: isActive ? "none" : "1px solid #E0E0E0",
-                fontFamily: "'Baloo 2', sans-serif",
-                fontWeight: 700, fontSize: 13, cursor: "pointer",
-                boxShadow: isActive ? "0 2px 8px rgba(27,67,50,0.3)" : "none",
-                transition: "all 0.15s ease",
-              }}>
-                {c.name}
-              </button>
-            );
-          })}
+            })}
+          </div>
         </div>
-      </div>
+      ) : null}
 
       {/* ── Section header ── */}
       <div style={{ padding: "14px 14px 4px", flexShrink: 0 }}>
         <div style={{ fontWeight: 800, fontSize: 15, color: "#1C1C1C",
           fontFamily: "'Baloo 2', sans-serif" }}>
-          {search ? `"${search}" के नतीजे` : category === "सब" ? "सभी उत्पाद" : category}
+          {search ? `"${search}" के नतीजे` : "सभी उत्पाद"}
           {products && !isLoading && (
             <span style={{ fontWeight: 500, fontSize: 12, color: "#888", marginLeft: 8 }}>
               ({(products as Product[]).length})
@@ -206,7 +207,7 @@ export function ProductList({ cart, onAddToCart, onViewProduct, customer, onOpen
               कोई उत्पाद नहीं मिला
             </div>
             <div style={{ fontSize: 12, marginTop: 6, color: "#aaa", fontFamily: "'Baloo 2', sans-serif" }}>
-              दूसरी category या नाम से खोजें
+              दूसरे नाम से खोजें
             </div>
           </div>
         ) : (
@@ -352,7 +353,13 @@ export function ProductList({ cart, onAddToCart, onViewProduct, customer, onOpen
 type Variety = { id: number; in_stock: boolean | number; price_per_kg: number; name: string };
 type Product = {
   id: number; name: string; name_en: string; emoji: string; bg_color: string;
-  category: string; min_kg: number; varieties: Variety[]; benefits: string[];
+  min_kg: number; varieties: Variety[]; benefits: string[];
   price_per_kg?: number | null;
   images?: { id: number; url: string; sort_order: number }[];
+};
+type NavVariety = { id: number };
+type NavProduct = {
+  id: number; name: unknown; emoji: unknown; bg_color: unknown;
+  varieties: NavVariety[];
+  images?: { url: string }[];
 };

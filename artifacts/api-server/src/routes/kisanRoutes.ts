@@ -175,13 +175,9 @@ async function getProductWithDetails(id: number) {
   };
 }
 
-async function getAllProductsWithDetails(category?: string, search?: string) {
+async function getAllProductsWithDetails(search?: string) {
   let query = db.select().from(products).$dynamic();
-  const conditions = [];
-  if (category && category !== "सब") conditions.push(eq(products.category, category));
-  if (search) conditions.push(or(ilike(products.name, `%${search}%`), ilike(products.nameEn, `%${search}%`))!);
-  if (conditions.length === 1) query = query.where(conditions[0]);
-  else if (conditions.length > 1) query = query.where(and(...conditions));
+  if (search) query = query.where(or(ilike(products.name, `%${search}%`), ilike(products.nameEn, `%${search}%`))!);
   query = query.orderBy(asc(products.id));
   const rows = await query;
   return Promise.all(rows.map(async p => {
@@ -386,8 +382,8 @@ router.patch("/customers/:id", async (req, res) => {
 // ── Products ──────────────────────────────────────────────────────────────────
 router.get("/products", async (req, res) => {
   try {
-    const { category, search } = req.query as { category?: string; search?: string };
-    res.json(await getAllProductsWithDetails(category, search));
+    const { search } = req.query as { search?: string };
+    res.json(await getAllProductsWithDetails(search));
   } catch (e) { res.status(500).json({ error: String(e) }); }
 });
 
@@ -401,17 +397,17 @@ router.get("/products/:id", async (req, res) => {
 
 router.post("/products", async (req, res) => {
   try {
-    const { name, name_en, emoji, category, min_kg, bg_color, price_per_kg,
+    const { name, name_en, emoji, category = "", min_kg, bg_color, price_per_kg,
       varieties: vars = [], benefits = [], disadvantages = [] } = req.body as {
-      name: string; name_en: string; emoji: string; category: string;
+      name: string; name_en: string; emoji: string; category?: string;
       min_kg?: number; bg_color?: string; price_per_kg?: number | null;
       varieties?: VarietyInput[];
       benefits?: string[];
       disadvantages?: string[];
     };
-    if (!name || !name_en || !emoji || !category) { res.status(400).json({ error: "Required fields missing" }); return; }
+    if (!name || !name_en || !emoji) { res.status(400).json({ error: "Required fields missing" }); return; }
     const [inserted] = await db.insert(products).values({
-      name, nameEn: name_en, emoji, category,
+      name, nameEn: name_en, emoji, category: category || "",
       minKg: min_kg || 10,
       bgColor: bg_color || "linear-gradient(135deg,#e8f5e8,#d1fae5)",
       pricePerKg: price_per_kg ?? null,
@@ -439,9 +435,9 @@ router.post("/products", async (req, res) => {
 router.put("/products/:id", async (req, res) => {
   try {
     const id = parseInt(req.params.id);
-    const { name, name_en, emoji, category, min_kg, bg_color, price_per_kg,
+    const { name, name_en, emoji, category = "", min_kg, bg_color, price_per_kg,
       varieties: vars = [], benefits = [], disadvantages = [] } = req.body as {
-      name: string; name_en: string; emoji: string; category: string;
+      name: string; name_en: string; emoji: string; category?: string;
       min_kg?: number; bg_color?: string; price_per_kg?: number | null;
       varieties?: VarietyInput[];
       benefits?: string[];
@@ -450,7 +446,7 @@ router.put("/products/:id", async (req, res) => {
     const [existing] = await db.select({ id: products.id }).from(products).where(eq(products.id, id));
     if (!existing) { res.status(404).json({ error: "Not found" }); return; }
     await db.update(products).set({
-      name, nameEn: name_en, emoji, category,
+      name, nameEn: name_en, emoji, category: category || "",
       minKg: min_kg || 10,
       bgColor: bg_color || "linear-gradient(135deg,#e8f5e8,#d1fae5)",
       pricePerKg: price_per_kg ?? null,
