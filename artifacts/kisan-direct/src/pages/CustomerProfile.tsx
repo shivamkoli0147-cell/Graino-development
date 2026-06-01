@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { setCustomerSession, clearCustomerSession, type CustomerSession } from "../lib/utils";
 import { VillagePicker } from "../components/kisan/VillagePicker";
 
@@ -22,6 +22,12 @@ export function CustomerProfile({ customer, onUpdate, onLogout, onClose, onGoSel
   const [showVillagePicker, setShowVillagePicker] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const touchStartY = useRef(0);
+  const handleTouchStart = (e: React.TouchEvent) => { touchStartY.current = e.touches[0].clientY; };
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const diff = e.changedTouches[0].clientY - touchStartY.current;
+    if (diff > 80) onClose();
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -58,7 +64,7 @@ export function CustomerProfile({ customer, onUpdate, onLogout, onClose, onGoSel
       }} />
 
       {/* Panel */}
-      <div style={{
+      <div onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} style={{
         position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)",
         width: "100%", maxWidth: 390, zIndex: 1101,
         background: "white", borderRadius: "24px 24px 0 0",

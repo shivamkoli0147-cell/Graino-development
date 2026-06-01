@@ -87,7 +87,7 @@ function GrainoApp() {
   return (
     <div style={{ display: "flex", justifyContent: "center", background: "#1B4332", height: "100dvh" }}>
       <div style={{
-        width: "100%", maxWidth: 390, background: "#F4F6F3",
+        width: "100%", background: "#F4F6F3", paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)",
         height: "100dvh",
         display: "flex", flexDirection: "column", position: "relative",
         fontFamily: "'Baloo 2', sans-serif",
