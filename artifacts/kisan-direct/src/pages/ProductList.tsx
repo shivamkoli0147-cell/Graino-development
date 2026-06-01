@@ -217,7 +217,7 @@ export function ProductList({ cart, onAddToCart, onViewProduct, customer, onOpen
               const hasNoVarieties = allVarieties.length === 0;
               const directPrice = product.price_per_kg ?? null;
               const cheapest = [...allVarieties].sort((a, b) => a.price_per_kg - b.price_per_kg)[0];
-              const isAvailable = hasNoVarieties ? !!directPrice : !!cheapest;
+              const isAvailable = hasNoVarieties ? true : allVarieties.length > 0;
               const inCartCount = hasNoVarieties
                 ? (cartKeys.has(`${product.id}-0`) ? 1 : 0)
                 : allVarieties.filter(v => cartKeys.has(`${product.id}-${v.id}`)).length;
@@ -297,18 +297,25 @@ export function ProductList({ cart, onAddToCart, onViewProduct, customer, onOpen
 
                   {/* Info + CTA */}
                   <div style={{ padding: "10px 11px 12px" }}>
-                    {isAvailable ? (
-                      <div style={{ fontSize: 10, color: "#4A9B4A", fontWeight: 600,
-                        fontFamily: "'Baloo 2', sans-serif" }}>
-                        {hasNoVarieties
-                          ? `₹${directPrice}/kg`
-                          : `${allVarieties.length} किस्में उपलब्ध`}
-                      </div>
+                    {hasNoVarieties ? (
+                      directPrice ? (
+                        <div style={{ fontSize: 10, color: "#4A9B4A", fontWeight: 600,
+                          fontFamily: "'Baloo 2', sans-serif" }}>
+                          ₹{directPrice}/kg
+                        </div>
+                      ) : null
                     ) : (
-                      <div style={{ fontSize: 12, color: "#ef4444", fontWeight: 700,
-                        textAlign: "center", padding: "4px 0", fontFamily: "'Baloo 2', sans-serif" }}>
-                        Out of Stock
-                      </div>
+                      cheapest?.price_per_kg ? (
+                        <div style={{ fontSize: 10, color: "#4A9B4A", fontWeight: 600,
+                          fontFamily: "'Baloo 2', sans-serif" }}>
+                          {allVarieties.length} किस्में उपलब्ध
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: 10, color: "#4A9B4A", fontWeight: 600,
+                          fontFamily: "'Baloo 2', sans-serif" }}>
+                          {allVarieties.length} किस्में उपलब्ध
+                        </div>
+                      )
                     )}
 
                     {/* Order button */}

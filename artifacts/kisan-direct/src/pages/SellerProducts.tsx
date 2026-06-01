@@ -304,8 +304,8 @@ function VarietyEditor({ variety, index, onUpdate, onDelete, canDelete }: {
               <Input value={variety.name} onChange={v => upd({ name: v })} placeholder="जैसे: Lokman" />
             </div>
             <div>
-              <Label>₹ per kg *</Label>
-              <Input value={variety.price_per_kg} onChange={v => upd({ price_per_kg: v })} placeholder="22" type="number" />
+              <Label>₹ per kg — Optional</Label>
+              <Input value={variety.price_per_kg} onChange={v => upd({ price_per_kg: v })} placeholder="खाली छोड़ सकते हैं" type="number" />
             </div>
           </div>
           <div style={{ marginBottom: 8 }}>
@@ -354,8 +354,8 @@ function ProductFormView({ form, onSave, onCancel, onDelete, saving, deleting }:
   const noVarieties = f.varieties.length === 0;
   const valid = f.name.trim() && f.name_en.trim() && f.emoji.trim() &&
     (noVarieties
-      ? !!f.price_per_kg && !isNaN(parseFloat(f.price_per_kg))
-      : f.varieties.every(v => v.name.trim() && v.price_per_kg));
+      ? true
+      : f.varieties.every(v => v.name.trim()));
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: "#F7F4EF" }}>
@@ -492,13 +492,13 @@ function ProductFormView({ form, onSave, onCancel, onDelete, saving, deleting }:
                 borderRadius: 12, padding: "10px 14px", marginBottom: 10,
                 fontSize: 12, color: "#2D6A2D", fontFamily: "'Baloo 2',sans-serif", fontWeight: 600,
               }}>
-                ℹ️ कोई किस्म नहीं — नीचे सीधे price डालें
+                ℹ️ कोई किस्म नहीं — चाहें तो सीधे price डालें
               </div>
-              <Label>सीधा Rate (₹ per kg) *</Label>
+              <Label>सीधा Rate (₹ per kg) — Optional</Label>
               <Input
                 value={f.price_per_kg}
                 onChange={v => upd({ price_per_kg: v })}
-                placeholder="जैसे: 25"
+                placeholder="जैसे: 25 (खाली छोड़ सकते हैं)"
                 type="number"
               />
             </div>
@@ -599,7 +599,7 @@ export function SellerProducts({ onBack: _onBack }: SellerProductsProps) {
       price_per_kg: noVarieties && f.price_per_kg ? parseFloat(f.price_per_kg) : null,
       varieties: f.varieties.map(v => ({
         ...(v.id ? { id: v.id } : {}),
-        name: v.name.trim(), price_per_kg: parseFloat(v.price_per_kg),
+        name: v.name.trim(), price_per_kg: v.price_per_kg ? parseFloat(v.price_per_kg) : null,
         description: v.description.trim(), shelf_life: v.shelf_life.trim(),
         benefits: v.benefits,
         disadvantages: v.disadvantages,

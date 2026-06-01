@@ -260,7 +260,6 @@ export function ProductDetail({ productId, cart, onBack, onCartChange, onGoToCar
 
         {/* ── No-variety product ── */}
         {hasNoVarieties ? (
-          directPrice ? (
             <div>
               <div style={{ fontWeight: 800, fontSize: 14, color: "#1C1C1C",
                 marginBottom: 10, fontFamily: "'Baloo 2', sans-serif" }}>
@@ -275,11 +274,13 @@ export function ProductDetail({ productId, cart, onBack, onCartChange, onGoToCar
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
                     <div style={{ fontWeight: 800, fontSize: 16, color: "#1C1C1C",
                       fontFamily: "'Baloo 2', sans-serif" }}>{p.name}</div>
-                    <div style={{ textAlign: "right" }}>
-                      <div style={{ fontWeight: 800, fontSize: 20, color: "#1B4332",
-                        fontFamily: "'Baloo 2', sans-serif" }}>{formatINR(directPrice)}</div>
-                      <div style={{ fontSize: 10, color: "#999", fontFamily: "'Baloo 2', sans-serif" }}>per kg</div>
-                    </div>
+                    {directPrice ? (
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontWeight: 800, fontSize: 20, color: "#1B4332",
+                          fontFamily: "'Baloo 2', sans-serif" }}>{formatINR(directPrice)}</div>
+                        <div style={{ fontSize: 10, color: "#999", fontFamily: "'Baloo 2', sans-serif" }}>per kg</div>
+                      </div>
+                    ) : null}
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <div style={{
@@ -322,23 +323,14 @@ export function ProductDetail({ productId, cart, onBack, onCartChange, onGoToCar
                       }}>
                       {cart[noVarCartKey]
                         ? "✓ Cart में है"
-                        : `Cart में डालो • ${formatINR(directPrice * noVarCurrentQty)}`}
+                        : directPrice
+                          ? `Cart में डालो • ${formatINR(directPrice * noVarCurrentQty)}`
+                          : "Cart में डालो"}
                     </button>
                   </div>
                 </div>
               </div>
             </div>
-          ) : (
-            <div style={{
-              textAlign: "center", padding: 32, color: "#777",
-              background: "white", borderRadius: 16,
-            }}>
-              <div style={{ fontSize: 32 }}>😔</div>
-              <div style={{ fontWeight: 700, marginTop: 8, fontFamily: "'Baloo 2', sans-serif" }}>
-                फिलहाल उपलब्ध नहीं है
-              </div>
-            </div>
-          )
         ) : (
           /* ── Has varieties ── */
           <>
@@ -388,14 +380,16 @@ export function ProductDetail({ productId, cart, onBack, onCartChange, onGoToCar
                               </div>
                             )}
                           </div>
-                          <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 12 }}>
-                            <div style={{ fontWeight: 800, fontSize: 18, color: "#1B4332",
-                              fontFamily: "'Baloo 2', sans-serif" }}>
-                              {formatINR(v.price_per_kg)}
+                          {v.price_per_kg ? (
+                            <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 12 }}>
+                              <div style={{ fontWeight: 800, fontSize: 18, color: "#1B4332",
+                                fontFamily: "'Baloo 2', sans-serif" }}>
+                                {formatINR(v.price_per_kg)}
+                              </div>
+                              <div style={{ fontSize: 10, color: "#999",
+                                fontFamily: "'Baloo 2', sans-serif" }}>per kg</div>
                             </div>
-                            <div style={{ fontSize: 10, color: "#999",
-                              fontFamily: "'Baloo 2', sans-serif" }}>per kg</div>
-                          </div>
+                          ) : null}
                         </div>
 
                         {/* Qty + Cart */}
@@ -440,7 +434,9 @@ export function ProductDetail({ productId, cart, onBack, onCartChange, onGoToCar
                             }}>
                             {inCart
                               ? "✓ Cart में है"
-                              : `Cart में डालो • ${formatINR(v.price_per_kg * q)}`}
+                              : v.price_per_kg
+                                ? `Cart में डालो • ${formatINR(v.price_per_kg * q)}`
+                                : "Cart में डालो"}
                           </button>
                         </div>
                       </div>
