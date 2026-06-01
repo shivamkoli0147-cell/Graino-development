@@ -1,0 +1,62 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "z4FHEfU8EcfxLbcjArsFf"
+uri = "file://attached_assets/generated_images/gehu-1.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "1cP2Az_9jqHm4pedAkIJ9"
+uri = "file://attached_assets/generated_images/chana-1.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "aiScbH3F2kv6CFsRne81G"
+uri = "file://attached_assets/generated_images/makka-1.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "FbeNSYrcaeQJ2A2Zeuylj"
+uri = "file://attached_assets/generated_images/jowar-1.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "yKTMu-I_DBwx07WLEs1jn"
+uri = "file://attached_assets/generated_images/bajra-1.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "S_YD-t05x0abbkBaysV4c"
+uri = "file://attached_assets/generated_images/gwar-1.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "14P1RWQv9TDDhw4-4BMMR"
+uri = "file://attached_assets/generated_images/moong-1.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "dTRmk8Avzr66QwipOG0DL"
+uri = "file://attached_assets/generated_images/matar-1.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "XHCoc4RN0XhUvAKTTqg10"
+uri = "file://attached_assets/generated_images/urad-1.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "n3O_xXEFcdPQ3CHGc0e1h"
+uri = "file://attached_assets/generated_images/gehu-2.png"
+type = "image"
+title = "generated_image"
