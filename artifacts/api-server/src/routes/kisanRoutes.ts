@@ -728,15 +728,15 @@ router.get("/analytics", async (_req, res) => {
   try {
     const topProducts = await db
       .select({
-        name: products.name,
-        emoji: products.emoji,
+        name: sql<string>`COALESCE(${products.name}, ${orderItems.productName})`,
+        emoji: sql<string>`COALESCE(${products.emoji}, '🌾')`,
         revenue: sql<number>`COALESCE(SUM(${orderItems.pricePerKg} * ${orderItems.quantityKg}), 0)`,
         order_count: count(),
       })
       .from(orderItems)
-      .innerJoin(varieties, eq(orderItems.varietyId, varieties.id))
-      .innerJoin(products, eq(varieties.productId, products.id))
-      .groupBy(products.id, products.name, products.emoji)
+      .leftJoin(varieties, eq(orderItems.varietyId, varieties.id))
+      .leftJoin(products, eq(varieties.productId, products.id))
+      .groupBy(sql`COALESCE(${products.name}, ${orderItems.productName}), COALESCE(${products.emoji}, '🌾')`)
       .orderBy(desc(sql`SUM(${orderItems.pricePerKg} * ${orderItems.quantityKg})`))
       .limit(5);
 

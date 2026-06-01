@@ -7,8 +7,8 @@ interface VillagePickerProps {
 }
 
 const FALLBACK_VILLAGES = [
-  "Pichor", "Bamori", "Datia", "Sirsod", "Lahar",
-  "Dabra", "Mungaoli", "Khategaon", "Indergarh", "Bhander",
+  "Pichor", "Bamori", "Datia", "Indergarh", "Bhander",
+  "Dabra", "Karera", "Lahar", "Mohna", "Shivpuri",
 ];
 
 export function VillagePicker({ currentVillage, onSelect, onClose }: VillagePickerProps) {

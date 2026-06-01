@@ -16,6 +16,7 @@ interface CartPageProps {
 export function CartPage({ cart, customer, onCartChange, onClearCart, onOrderSuccess, onVillageChange, onCustomerUpdate }: CartPageProps) {
   const [ordered, setOrdered] = useState(false);
   const [orderId, setOrderId] = useState<number | null>(null);
+  const [orderError, setOrderError] = useState("");
 
   const [phone, setPhone] = useState(customer.phone || "");
   const [address, setAddress] = useState(customer.address || "");
@@ -69,6 +70,7 @@ export function CartPage({ cart, customer, onCartChange, onClearCart, onOrderSuc
   };
 
   const placeOrder = async () => {
+    setOrderError("");
     // Name check first
     if (!customer.name || customer.name.trim() === "") {
       setShowNamePrompt(true);
@@ -111,6 +113,7 @@ export function CartPage({ cart, customer, onCartChange, onClearCart, onOrderSuc
           setOrderId((order as { id: number }).id);
           setOrdered(true);
           onClearCart();
+          setOrderError("");
           // Save address to customer profile if it was entered
           if (address.trim()) {
             fetch(`/api/customers/${customer.id}`, {
@@ -125,6 +128,14 @@ export function CartPage({ cart, customer, onCartChange, onClearCart, onOrderSuc
                 }
               })
               .catch(() => { /* ignore — order already placed */ });
+          }
+        },
+        onError: (err: unknown) => {
+          const msg = (err as { message?: string })?.message || "";
+          if (msg.toLowerCase().includes("delivery not available")) {
+            setOrderError("इस गाँव में delivery नहीं होती। गाँव बदलें।");
+          } else {
+            setOrderError("Order नहीं हो सका। दोबारा कोशिश करें।");
           }
         },
       }
@@ -393,6 +404,16 @@ export function CartPage({ cart, customer, onCartChange, onClearCart, onOrderSuc
           <div style={{ display: "flex", justifyContent: "space-between", color: "white", fontSize: 19, fontWeight: 800, marginBottom: 20 }}>
             <span>Total</span><span>{formatINR(total)}</span>
           </div>
+          {orderError && (
+            <div style={{
+              background: "rgba(255,60,60,0.18)", border: "1.5px solid rgba(255,100,100,0.5)",
+              borderRadius: 12, padding: "10px 14px", marginBottom: 10,
+              color: "#ffe0e0", fontSize: 13, fontWeight: 700, textAlign: "center",
+              fontFamily: "'Baloo 2', sans-serif",
+            }}>
+              ⚠️ {orderError}
+            </div>
+          )}
           <button onClick={handlePlaceOrderClick} disabled={createOrder.isPending} className="btn-press" style={{
             width: "100%", background: "#F59E0B", color: "#1C1C1C", border: "none",
             borderRadius: 16, padding: "14px", fontFamily: "'Baloo 2', sans-serif",
