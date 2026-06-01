@@ -216,8 +216,7 @@ export function ProductList({ cart, onAddToCart, onViewProduct, customer, onOpen
               const allVarieties = product.varieties as Variety[];
               const hasNoVarieties = allVarieties.length === 0;
               const directPrice = product.price_per_kg ?? null;
-              const inStockVarieties = allVarieties.filter(v => v.in_stock);
-              const cheapest = inStockVarieties.sort((a, b) => a.price_per_kg - b.price_per_kg)[0];
+              const cheapest = [...allVarieties].sort((a, b) => a.price_per_kg - b.price_per_kg)[0];
               const isAvailable = hasNoVarieties ? !!directPrice : !!cheapest;
               const inCartCount = hasNoVarieties
                 ? (cartKeys.has(`${product.id}-0`) ? 1 : 0)
@@ -303,7 +302,7 @@ export function ProductList({ cart, onAddToCart, onViewProduct, customer, onOpen
                         fontFamily: "'Baloo 2', sans-serif" }}>
                         {hasNoVarieties
                           ? `₹${directPrice}/kg`
-                          : `${inStockVarieties.length} किस्में उपलब्ध`}
+                          : `${allVarieties.length} किस्में उपलब्ध`}
                       </div>
                     ) : (
                       <div style={{ fontSize: 12, color: "#ef4444", fontWeight: 700,
@@ -350,7 +349,7 @@ export function ProductList({ cart, onAddToCart, onViewProduct, customer, onOpen
   );
 }
 
-type Variety = { id: number; in_stock: boolean | number; price_per_kg: number; name: string };
+type Variety = { id: number; price_per_kg: number; name: string };
 type Product = {
   id: number; name: string; name_en: string; emoji: string; bg_color: string;
   min_kg: number; varieties: Variety[]; benefits: string[];

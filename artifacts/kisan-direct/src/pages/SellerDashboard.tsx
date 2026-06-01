@@ -56,39 +56,13 @@ export function SellerDashboard({ onLogout, onManageOrders, onManageProducts, on
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <ActionCard emoji="📋" label="Orders देखो" sub="सभी orders manage करो"
               color="#2D6A2D" onClick={onManageOrders} badge={s?.new_orders} />
-            <ActionCard emoji="🌾" label="Products" sub="Stock और prices update करो"
+            <ActionCard emoji="🌾" label="Products" sub="Products और prices update करो"
               color="#1a3d1a" onClick={onManageProducts} />
             <ActionCard emoji="⚙️" label="Settings" sub="Villages & categories manage करो"
               color="#6B4F12" onClick={onManageSettings} />
           </div>
         </div>
 
-        {/* Stock summary */}
-        {!isLoading && s?.stock_summary && s.stock_summary.length > 0 && (
-          <div>
-            <div style={{ fontWeight: 800, fontSize: 15, color: "#1C1C1C", marginBottom: 10 }}>Stock Status</div>
-            <div style={{ background: "white", borderRadius: 16, overflow: "hidden", border: "1.5px solid #E5DDD0" }}>
-              {s.stock_summary.slice(0, 6).map((item, i) => (
-                <div key={i} style={{
-                  display: "flex", justifyContent: "space-between", alignItems: "center",
-                  padding: "11px 14px",
-                  borderBottom: i < Math.min(s.stock_summary.length, 6) - 1 ? "1px solid #F0EDE8" : "none",
-                }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "#1C1C1C" }}>
-                    {item.product_name} · {item.variety_name}
-                  </div>
-                  <div style={{
-                    fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20,
-                    background: item.in_stock ? "#DCFCE7" : "#FEE2E2",
-                    color: item.in_stock ? "#15803d" : "#dc2626",
-                  }}>
-                    {item.in_stock ? (item.stock_level || "✓") : "Out"}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Village info */}
         {coverageVillages.length > 0 && (
@@ -162,10 +136,8 @@ function ActionCard({ emoji, label, sub, color, onClick, badge }: {
   );
 }
 
-type StockItem = { product_name: string; variety_name: string; in_stock: boolean; stock_level: string };
 type SlotBreakdownItem = { delivery_slot: string | null; count: number };
 type DashboardStats = {
   new_orders: number; today_earnings: number; village_count: number;
-  total_orders_today: number; low_stock_count: number;
-  stock_summary: StockItem[]; slot_breakdown?: SlotBreakdownItem[];
+  total_orders_today: number; slot_breakdown?: SlotBreakdownItem[];
 };

@@ -16,7 +16,6 @@ type VarietyForm = {
   price_per_kg: string;
   description: string;
   shelf_life: string;
-  in_stock: boolean;
   benefits: BenefitItem[];
   disadvantages: BenefitItem[];
 };
@@ -38,7 +37,7 @@ type ApiProduct = {
   min_kg: number; bg_color: string; price_per_kg?: number | null;
   varieties: {
     id: number; name: string; price_per_kg: number; description?: string;
-    shelf_life?: string; in_stock: boolean;
+    shelf_life?: string;
     benefits?: { text: string }[];
     disadvantages?: { text: string }[];
   }[];
@@ -61,7 +60,7 @@ const BG_COLORS = [
 
 const EMPTY_VARIETY: VarietyForm = {
   name: "", price_per_kg: "", description: "", shelf_life: "",
-  in_stock: true, benefits: [], disadvantages: [],
+  benefits: [], disadvantages: [],
 };
 const EMPTY_FORM: ProductForm = {
   name: "", name_en: "", emoji: "🌾", min_kg: "10",
@@ -78,7 +77,6 @@ function productToForm(p: ApiProduct): ProductForm {
     varieties: (p.varieties || []).map(v => ({
       id: v.id, name: v.name, price_per_kg: String(v.price_per_kg),
       description: v.description || "", shelf_life: v.shelf_life || "",
-      in_stock: v.in_stock,
       benefits: (v.benefits || []).map(b => ({ text: b.text })),
       disadvantages: (v.disadvantages || []).map(b => ({ text: b.text })),
     })),
@@ -289,16 +287,6 @@ function VarietyEditor({ variety, index, onUpdate, onDelete, canDelete }: {
           )}
         </div>
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-          <button
-            onClick={e => { e.stopPropagation(); upd({ in_stock: !variety.in_stock }); }}
-            style={{
-              background: variety.in_stock ? "#E8F5E8" : "#FEE2E2",
-              color: variety.in_stock ? "#2D6A2D" : "#dc2626",
-              border: "none", borderRadius: 8, padding: "3px 8px",
-              fontSize: 11, fontWeight: 700, cursor: "pointer",
-            }}>
-            {variety.in_stock ? "✓ In Stock" : "✗ Out"}
-          </button>
           {canDelete && (
             <button onClick={e => { e.stopPropagation(); onDelete(); }} style={{
               background: "none", border: "none", cursor: "pointer",
@@ -613,7 +601,6 @@ export function SellerProducts({ onBack: _onBack }: SellerProductsProps) {
         ...(v.id ? { id: v.id } : {}),
         name: v.name.trim(), price_per_kg: parseFloat(v.price_per_kg),
         description: v.description.trim(), shelf_life: v.shelf_life.trim(),
-        in_stock: v.in_stock,
         benefits: v.benefits,
         disadvantages: v.disadvantages,
       })),
@@ -714,7 +701,6 @@ export function SellerProducts({ onBack: _onBack }: SellerProductsProps) {
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {filtered.map(p => {
-              const inStockCount = p.varieties.filter(v => v.in_stock).length;
               return (
                 <div key={p.id}
                   onClick={() => setEditing(productToForm(p))}
@@ -735,11 +721,10 @@ export function SellerProducts({ onBack: _onBack }: SellerProductsProps) {
                       <div style={{ fontSize: 12, color: "#777" }}>{p.name_en}</div>
                       <div style={{ fontSize: 12, marginTop: 4, display: "flex", gap: 8, flexWrap: "wrap" }}>
                         <span style={{
-                          background: inStockCount > 0 ? "#E8F5E8" : "#FEE2E2",
-                          color: inStockCount > 0 ? "#2D6A2D" : "#dc2626",
+                          background: "#E8F5E8", color: "#2D6A2D",
                           borderRadius: 8, padding: "2px 8px", fontWeight: 700,
                         }}>
-                          {inStockCount}/{p.varieties.length} in stock
+                          {p.varieties.length} किस्में
                         </span>
                         <span style={{ color: "#999" }}>min {p.min_kg} kg</span>
                       </div>
@@ -752,9 +737,8 @@ export function SellerProducts({ onBack: _onBack }: SellerProductsProps) {
                   }}>
                     {p.varieties.map(v => (
                       <span key={v.id} style={{
-                        background: v.in_stock ? "#F0FDF4" : "#FEF2F2",
-                        color: v.in_stock ? "#2D6A2D" : "#dc2626",
-                        border: `1px solid ${v.in_stock ? "#BBF7D0" : "#FECACA"}`,
+                        background: "#F0FDF4", color: "#2D6A2D",
+                        border: "1px solid #BBF7D0",
                         borderRadius: 8, padding: "2px 8px", fontSize: 11, fontWeight: 600,
                       }}>{v.name} ₹{v.price_per_kg}</span>
                     ))}

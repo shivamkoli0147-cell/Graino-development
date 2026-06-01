@@ -13,7 +13,7 @@ interface ProductDetailProps {
 type ProductImage = { id: number; url: string; sort_order: number };
 type Variety = {
   id: number; name: string; price_per_kg: number;
-  description?: string; shelf_life?: string; in_stock: boolean | number;
+  description?: string; shelf_life?: string;
 };
 type Product = {
   id: number; name: string; name_en: string; emoji: string; bg_color: string;
@@ -151,7 +151,7 @@ export function ProductDetail({ productId, cart, onBack, onCartChange, onGoToCar
 
   const p = product as unknown as Product;
   const allVarieties = p.varieties ?? [];
-  const varieties = allVarieties.filter(v => v.in_stock);
+  const varieties = allVarieties;
   const minKg = p.min_kg;
   const images = (p.images ?? []).sort((a, b) => a.sort_order - b.sort_order);
   const hasNoVarieties = allVarieties.length === 0;
@@ -351,9 +351,9 @@ export function ProductDetail({ productId, cart, onBack, onCartChange, onGoToCar
                 textAlign: "center", padding: 32, color: "#777",
                 background: "white", borderRadius: 16,
               }}>
-                <div style={{ fontSize: 32 }}>😔</div>
+                <div style={{ fontSize: 32 }}>🌱</div>
                 <div style={{ fontWeight: 700, marginTop: 8, fontFamily: "'Baloo 2', sans-serif" }}>
-                  फिलहाल stock नहीं है
+                  कोई किस्म उपलब्ध नहीं है
                 </div>
               </div>
             ) : (
