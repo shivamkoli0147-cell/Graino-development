@@ -7,6 +7,7 @@ interface ProductDetailProps {
   cart: Cart;
   onBack: () => void;
   onCartChange: (key: string, item: CartItem | null) => void;
+  onGoToCart?: () => void;
 }
 
 type ProductImage = { id: number; url: string; sort_order: number };
@@ -135,7 +136,7 @@ function ImageCarousel({ images, emoji, bgColor }: { images: ProductImage[]; emo
   );
 }
 
-export function ProductDetail({ productId, cart, onBack, onCartChange }: ProductDetailProps) {
+export function ProductDetail({ productId, cart, onBack, onCartChange, onGoToCart }: ProductDetailProps) {
   const { data: product, isLoading } = useGetProduct(productId);
   const [selected, setSelected] = useState<number | null>(null);
   const [qty, setQty] = useState<Record<number, number>>({});
@@ -451,6 +452,32 @@ export function ProductDetail({ productId, cart, onBack, onCartChange }: Product
           </>
         )}
       </div>
+
+      {/* ── Floating "Go to Cart" button ── */}
+      {onGoToCart && Object.keys(cart).some(k => k.startsWith(`${p.id}-`)) && (
+        <div style={{
+          position: "absolute", bottom: 18, right: 14,
+          zIndex: 200,
+          animation: "pop 0.2s ease",
+        }}>
+          <button
+            onClick={onGoToCart}
+            className="btn-press"
+            style={{
+              display: "flex", alignItems: "center", gap: 7,
+              background: "linear-gradient(135deg,#F59E0B,#D97706)",
+              color: "#1B4332", border: "none", borderRadius: 24,
+              padding: "10px 18px",
+              fontFamily: "'Baloo 2', sans-serif", fontWeight: 800, fontSize: 13,
+              cursor: "pointer",
+              boxShadow: "0 4px 18px rgba(245,158,11,0.55)",
+            }}
+          >
+            <span style={{ fontSize: 16 }}>🛒</span>
+            Cart देखें →
+          </button>
+        </div>
+      )}
     </div>
   );
 }

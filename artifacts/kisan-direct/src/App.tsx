@@ -109,6 +109,7 @@ function GrainoApp() {
                 productId={viewProductId} cart={cart}
                 onBack={() => setViewProductId(null)}
                 onCartChange={handleCartChange}
+                onGoToCart={() => { setViewProductId(null); setCustomerTab("cart"); }}
               />
             ) : (
               <>
