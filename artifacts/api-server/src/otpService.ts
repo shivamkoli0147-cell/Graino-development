@@ -44,7 +44,9 @@ export async function sendOtp(phone: string): Promise<{ success: boolean; error?
 
     if (!res.ok || (data && data.return === false)) {
       otpStore.delete(phone);
-      const msg = (data && (data.message?.[0] || data.message)) || `Fast2SMS error (${res.status})`;
+      let msg: unknown = data?.message;
+      if (Array.isArray(msg)) msg = msg[0];
+      if (!msg) msg = `Fast2SMS error (${res.status})`;
       return { success: false, error: String(msg) };
     }
     return { success: true };
