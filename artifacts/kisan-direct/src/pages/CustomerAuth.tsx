@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useCustomerAuth } from "@workspace/api-client-react";
 import { setCustomerSession, setSellerSession, type CustomerSession } from "../lib/utils";
 import { VillagePicker } from "../components/kisan/VillagePicker";
@@ -25,13 +25,42 @@ export function CustomerAuth({ onSuccess, onSellerLogin, onOpenLegal }: Customer
   const [otp, setOtp] = useState("");
   const [error, setError] = useState("");
   const [pendingCustomer, setPendingCustomer] = useState<RawCustomer | null>(null);
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [resendIn, setResendIn] = useState(0);
 
   const authMutation = useCustomerAuth();
+
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const t = setTimeout(() => setResendIn(s => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendIn]);
+
+  const requestOtp = async () => {
+    // Fixed seller shortcut never needs a real SMS OTP.
+    if (phone === SELLER_PHONE) { setStep("otp"); return; }
+    setSendingOtp(true);
+    try {
+      const res = await fetch("/api/auth/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setError(data.error || "OTP भेजने में समस्या हुई, दोबारा कोशिश करें"); return; }
+      setStep("otp");
+      setResendIn(30);
+    } catch {
+      setError("OTP भेजने में समस्या हुई, दोबारा कोशिश करें");
+    } finally {
+      setSendingOtp(false);
+    }
+  };
 
   const goToOtp = () => {
     if (!/^\d{10}$/.test(phone)) { setError("10 अंकों का फोन नंबर डालें"); return; }
     setError("");
-    setStep("otp");
+    void requestOtp();
   };
 
   const verifyOtp = () => {
@@ -59,7 +88,10 @@ export function CustomerAuth({ onSuccess, onSellerLogin, onOpenLegal }: Customer
             setStep("village");
           }
         },
-        onError: () => setError("Login नहीं हो सका, दोबारा कोशिश करें"),
+        onError: (e: unknown) => {
+          const msg = (e as { data?: { error?: string } })?.data?.error;
+          setError(msg || "Login नहीं हो सका, दोबारा कोशिश करें");
+        },
       }
     );
   };
@@ -185,7 +217,7 @@ export function CustomerAuth({ onSuccess, onSellerLogin, onOpenLegal }: Customer
               }}>⚠ {error}</div>
             )}
 
-            <GoldBtn onClick={goToOtp} label="आगे बढ़ें →" />
+            <GoldBtn onClick={goToOtp} label={sendingOtp ? "भेजा जा रहा है..." : "आगे बढ़ें →"} loading={sendingOtp} />
 
             <div style={{
               textAlign: "center", marginTop: 14, fontSize: 11,
@@ -243,6 +275,22 @@ export function CustomerAuth({ onSuccess, onSellerLogin, onOpenLegal }: Customer
             )}
 
             <GoldBtn onClick={verifyOtp} label="Login करें ✓" loading={authMutation.isPending} />
+
+            {phone !== SELLER_PHONE && (
+              <button
+                onClick={() => { if (resendIn === 0 && !sendingOtp) void requestOtp(); }}
+                disabled={resendIn > 0 || sendingOtp}
+                style={{
+                  background: "none", border: "none",
+                  color: resendIn > 0 ? "rgba(255,255,255,0.3)" : "#F59E0B",
+                  fontSize: 13, cursor: resendIn > 0 ? "default" : "pointer",
+                  fontFamily: "'Baloo 2', sans-serif", fontWeight: 700,
+                  marginTop: 14, display: "block", width: "100%", textAlign: "center",
+                }}
+              >
+                {resendIn > 0 ? `OTP दोबारा भेजें (${resendIn}s)` : "OTP दोबारा भेजें"}
+              </button>
+            )}
 
             <button
               onClick={() => { setStep("phone"); setOtp(""); setError(""); }}

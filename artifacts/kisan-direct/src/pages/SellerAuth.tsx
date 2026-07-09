@@ -44,7 +44,7 @@ export function SellerAuth({ onSuccess }: SellerAuthProps) {
           </div>
           <div style={{ background: "#FEF3C7", borderRadius: 10, padding: "10px 14px", fontSize: 12,
             color: "#92400e", fontWeight: 600, marginBottom: 20 }}>
-            Phone: <strong>9999999999</strong> · OTP: <strong>1234</strong>
+            Phone: <strong>9999999999</strong> · OTP: <strong>7089</strong>
           </div>
           <div style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#777", marginBottom: 6 }}>Seller Phone</div>
@@ -54,7 +54,7 @@ export function SellerAuth({ onSuccess }: SellerAuthProps) {
           <div style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#777", marginBottom: 6 }}>OTP</div>
             <input value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g, "").slice(0, 4))}
-              placeholder="1234" type="tel" inputMode="numeric"
+              placeholder="7089" type="tel" inputMode="numeric"
               style={{ ...iSty, letterSpacing: 8, fontSize: 20, fontWeight: 800, textAlign: "center" }} />
           </div>
           {error && <div style={{ color: "#dc2626", fontSize: 13, marginBottom: 12 }}>{error}</div>}
