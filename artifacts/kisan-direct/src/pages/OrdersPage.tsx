@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useGetOrders, useUpdateOrderStatus } from "@workspace/api-client-react";
 import { formatINR, type CustomerSession } from "../lib/utils";
 
@@ -88,7 +88,10 @@ function ensurePulseStyle() {
 export function OrdersPage({ customer }: OrdersPageProps) {
   ensurePulseStyle();
 
-  const { data: orders, isLoading, refetch } = useGetOrders({ phone: customer.phone, status: undefined });
+  const { data: orders, isLoading, refetch } = useGetOrders(
+    { phone: customer.phone, status: undefined },
+    { query: { refetchInterval: 20000, refetchIntervalInBackground: true } }
+  );
   const updateStatus = useUpdateOrderStatus();
 
   const handleCancel = (orderId: number) => {
@@ -97,6 +100,37 @@ export function OrdersPage({ customer }: OrdersPageProps) {
       { onSuccess: () => void refetch() }
     );
   };
+
+  // ── Live status-change alert ── track previous statuses so we can tell the
+  // customer the moment an order actually moves (out for delivery / delivered).
+  const [liveAlert, setLiveAlert] = useState<string | null>(null);
+  const prevStatuses = useRef<Record<number, string> | null>(null);
+
+  useEffect(() => {
+    const list = (orders as Order[]) || [];
+    if (!list.length) return;
+    if (prevStatuses.current) {
+      for (const o of list) {
+        const prev = prevStatuses.current[o.id];
+        if (prev && prev !== o.status) {
+          if (o.status === "out_for_delivery") {
+            setLiveAlert(`🚚 Order #${o.id} अब रास्ते में है!`);
+          } else if (o.status === "delivered") {
+            setLiveAlert(`✅ Order #${o.id} पहुंच गया!`);
+          } else if (o.status === "accepted") {
+            setLiveAlert(`✅ Order #${o.id} Confirm हो गया!`);
+          }
+        }
+      }
+    }
+    prevStatuses.current = Object.fromEntries(list.map(o => [o.id, o.status]));
+  }, [orders]);
+
+  useEffect(() => {
+    if (!liveAlert) return;
+    const t = setTimeout(() => setLiveAlert(null), 4000);
+    return () => clearTimeout(t);
+  }, [liveAlert]);
 
   if (isLoading) return (
     <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", background: "#F7F4EF" }}>
@@ -126,7 +160,20 @@ export function OrdersPage({ customer }: OrdersPageProps) {
   const activeCount = counts.pending + counts.confirm;
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: "#F7F4EF" }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: "#F7F4EF", position: "relative" }}>
+
+      {/* ── Live status alert (top toast) ───────────────────────────────────── */}
+      {liveAlert && (
+        <div style={{
+          position: "absolute", top: 10, left: "50%", transform: "translateX(-50%)",
+          zIndex: 500, background: "#1a3d1a", color: "white",
+          borderRadius: 30, padding: "9px 18px", fontSize: 13, fontWeight: 700,
+          boxShadow: "0 6px 20px rgba(0,0,0,0.25)", whiteSpace: "nowrap",
+          fontFamily: "'Baloo 2', sans-serif",
+        }}>
+          {liveAlert}
+        </div>
+      )}
 
       {/* ── Header ───────────────────────────────────────────────────────────── */}
       <div style={{
@@ -197,6 +244,54 @@ export function OrdersPage({ customer }: OrdersPageProps) {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// ── Live status tracker (placed → accepted → out for delivery → delivered) ─────
+const TRACKER_STEPS = [
+  { id: "placed", label: "मिला", icon: "🕐" },
+  { id: "accepted", label: "Confirm", icon: "✅" },
+  { id: "out_for_delivery", label: "रास्ते में", icon: "🚚" },
+  { id: "delivered", label: "पहुंचा", icon: "📦" },
+];
+
+function StatusTracker({ status }: { status: string }) {
+  const currentIdx = TRACKER_STEPS.findIndex(s => s.id === status);
+  if (currentIdx < 0) return null;
+  return (
+    <div style={{ display: "flex", alignItems: "flex-start", marginTop: 10, padding: "2px 2px" }}>
+      {TRACKER_STEPS.map((step, i) => {
+        const done = i <= currentIdx;
+        const isCurrent = i === currentIdx;
+        return (
+          <div key={step.id} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", position: "relative" }}>
+            {i > 0 && (
+              <div style={{
+                position: "absolute", top: 9, right: "50%", width: "100%", height: 2,
+                background: i <= currentIdx ? "#2D6A2D" : "#E5DDD0", zIndex: 0,
+              }} />
+            )}
+            <div
+              className={isCurrent ? "kd-pulse" : undefined}
+              style={{
+                width: 20, height: 20, borderRadius: "50%", zIndex: 1,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 10, background: done ? "#2D6A2D" : "#E5DDD0",
+                color: done ? "white" : "#999",
+              }}
+            >
+              {done ? "✓" : ""}
+            </div>
+            <div style={{
+              fontSize: 9.5, fontWeight: isCurrent ? 800 : 600, marginTop: 4, textAlign: "center",
+              color: isCurrent ? "#1a3d1a" : done ? "#2D6A2D" : "#aaa",
+            }}>
+              {step.icon} {step.label}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -310,6 +405,11 @@ function OrderCard({ order, onCancel, showDivider }: {
               {formatINR(order.total_amount)}
             </span>
           </div>
+
+          {/* Live progress tracker — only while order is still active */}
+          {!cfg.dimmed && order.status !== "cancelled" && (
+            <StatusTracker status={order.status} />
+          )}
 
           {/* Return request info (if already requested, show status) */}
           {order.return_requested && (

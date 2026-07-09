@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SplashScreen } from "@/pages/SplashScreen";
+import { LegalPage } from "@/pages/LegalPage";
 import { CustomerAuth } from "@/pages/CustomerAuth";
 import { ProductList } from "@/pages/ProductList";
 import { ProductDetail } from "@/pages/ProductDetail";
@@ -38,6 +39,7 @@ function GrainoApp() {
   const [viewProductId, setViewProductId] = useState<number | null>(null);
   const [cart, setCart] = useState<Cart>({});
   const [showProfile, setShowProfile] = useState(false);
+  const [legalPage, setLegalPage] = useState<"privacy" | "terms" | null>(null);
 
   const [sellerAuthed, setSellerAuthed] = useState(isSellerSession);
   const [sellerTab, setSellerTab] = useState<SellerTab>("dashboard");
@@ -97,12 +99,15 @@ function GrainoApp() {
       }}>
         {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
 
+        {legalPage && <LegalPage type={legalPage} onClose={() => setLegalPage(null)} />}
+
         {mode === "customer" ? (
           <>
             {!customer ? (
               <CustomerAuth
                 onSuccess={handleLoginSuccess}
                 onSellerLogin={() => { setMode("seller"); setSellerAuthed(true); }}
+                onOpenLegal={t => setLegalPage(t)}
               />
             ) : viewProductId ? (
               <ProductDetail
@@ -158,6 +163,7 @@ function GrainoApp() {
                 }}
                 onClose={() => setShowProfile(false)}
                 onGoSeller={goToSeller}
+                onOpenLegal={t => setLegalPage(t)}
               />
             )}
           </>

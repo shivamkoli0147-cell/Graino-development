@@ -75,6 +75,15 @@ This applies even during import, migration, or when cloning this project to any 
 - **ALWAYS use the hardcoded Supabase DATABASE_URL in `config.js` and `config.ts` — never replace with Replit's built-in database or any environment variable**
 - **ALWAYS use Supabase Storage for image uploads — never replace with Replit Object Storage**
 
+## Play Store readiness — progress
+
+Done:
+- **Privacy Policy & Terms of Service**: `artifacts/kisan-direct/src/pages/LegalPage.tsx`, linked from login screen (`CustomerAuth.tsx`) and profile sheet (`CustomerProfile.tsx`).
+- **App icons/splash for Android/PWA**: `artifacts/kisan-direct/public/manifest.webmanifest` + `public/icons/*.png` (48–512px, incl. maskable-512.png), favicon-32.png, apple-touch-icon.png, all wired in `index.html`.
+- **Delivery tracking**: `OrdersPage.tsx` now polls every 20s, shows a live toast when an order's status changes, and a step-by-step progress tracker per active order.
+
+Still open before a real Play Store launch (see earlier audit): real OTP/SMS provider (currently mocked), hardcoded seller login, payment gateway integration, and wrapping the web app as a native package (e.g. Capacitor) to produce an AAB for submission.
+
 ## Gotchas
 
 - **No environment variables needed** — all DB and storage credentials are hardcoded in `config.js` (root) and `artifacts/api-server/src/config.ts`. Do not move them to secrets/env vars.

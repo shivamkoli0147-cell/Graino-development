@@ -8,12 +8,13 @@ interface CustomerProfileProps {
   onLogout: () => void;
   onClose: () => void;
   onGoSeller: () => void;
+  onOpenLegal?: (type: "privacy" | "terms") => void;
 }
 
 const DEFAULT_LAT = 25.9797;
 const DEFAULT_LNG = 78.2039;
 
-export function CustomerProfile({ customer, onUpdate, onLogout, onClose, onGoSeller }: CustomerProfileProps) {
+export function CustomerProfile({ customer, onUpdate, onLogout, onClose, onGoSeller, onOpenLegal }: CustomerProfileProps) {
   const [name, setName] = useState(customer.name);
   const [village, setVillage] = useState(customer.village);
   const [address, setAddress] = useState(customer.address || "");
@@ -173,9 +174,24 @@ export function CustomerProfile({ customer, onUpdate, onLogout, onClose, onGoSel
             Logout करें
           </button>
 
+          <div style={{ display: "flex", justifyContent: "center", gap: 14, marginBottom: 10 }}>
+            <span
+              onClick={() => onOpenLegal?.("privacy")}
+              style={{ color: "#999", fontSize: 12, fontFamily: "'Baloo 2',sans-serif", fontWeight: 600, cursor: "pointer", textDecoration: "underline" }}
+            >
+              Privacy Policy
+            </span>
+            <span
+              onClick={() => onOpenLegal?.("terms")}
+              style={{ color: "#999", fontSize: 12, fontFamily: "'Baloo 2',sans-serif", fontWeight: 600, cursor: "pointer", textDecoration: "underline" }}
+            >
+              Terms & Conditions
+            </span>
+          </div>
+
           <div style={{ textAlign: "center" }}>
             <span style={{ color: "#CCC", fontSize: 11, fontFamily: "'Baloo 2',sans-serif" }}>
-              KisanDirect v1.0
+              Graino v1.0
             </span>
           </div>
         </div>

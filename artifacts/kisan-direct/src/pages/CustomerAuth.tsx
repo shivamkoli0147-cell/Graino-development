@@ -9,6 +9,7 @@ const SELLER_PASS  = "7089";
 interface CustomerAuthProps {
   onSuccess: (customer: CustomerSession) => void;
   onSellerLogin?: () => void;
+  onOpenLegal?: (type: "privacy" | "terms") => void;
 }
 
 type Step = "phone" | "otp" | "village";
@@ -18,7 +19,7 @@ type RawCustomer = {
   address?: string | null; lat?: number | null; lng?: number | null;
 };
 
-export function CustomerAuth({ onSuccess, onSellerLogin }: CustomerAuthProps) {
+export function CustomerAuth({ onSuccess, onSellerLogin, onOpenLegal }: CustomerAuthProps) {
   const [step, setStep] = useState<Step>("phone");
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
@@ -185,6 +186,19 @@ export function CustomerAuth({ onSuccess, onSellerLogin }: CustomerAuthProps) {
             )}
 
             <GoldBtn onClick={goToOtp} label="आगे बढ़ें →" />
+
+            <div style={{
+              textAlign: "center", marginTop: 14, fontSize: 11,
+              color: "rgba(255,255,255,0.4)", fontFamily: "'Baloo 2', sans-serif",
+            }}>
+              आगे बढ़कर आप हमारी{" "}
+              <span onClick={() => onOpenLegal?.("terms")} style={{ color: "rgba(255,255,255,0.7)", textDecoration: "underline", cursor: "pointer" }}>
+                Terms
+              </span>{" "}और{" "}
+              <span onClick={() => onOpenLegal?.("privacy")} style={{ color: "rgba(255,255,255,0.7)", textDecoration: "underline", cursor: "pointer" }}>
+                Privacy Policy
+              </span>{" "}से सहमत हैं
+            </div>
           </>
         )}
 
