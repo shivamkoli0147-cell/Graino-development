@@ -1,77 +1,123 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// otpService.ts — Real OTP delivery via Fast2SMS (https://www.fast2sms.com/otp-sms/)
+// otpService.ts — Real OTP delivery via 2Factor.in (https://2factor.in)
 // Fixed seller number (9999999999) never goes through SMS — its OTP is a
 // static "7089" checked directly in the auth route.
 // ─────────────────────────────────────────────────────────────────────────────
+
+import { TWOFACTOR_API_KEY, TWOFACTOR_OTP_TEMPLATE } from "./config.js";
 
 export const SELLER_PHONE = "9999999999";
 export const SELLER_FIXED_OTP = "7089";
 
 const OTP_TTL_MS = 5 * 60 * 1000; // 5 minutes
-const otpStore = new Map<string, { otp: string; expiresAt: number }>();
+// Maps phone -> { sessionId, expiresAt } — 2Factor owns the actual OTP value,
+// we just track which session id is "live" for verification.
+const sessionStore = new Map<string, { sessionId: string; expiresAt: number }>();
 
-function generateOtp(): string {
-  return String(Math.floor(1000 + Math.random() * 9000)); // 4-digit numeric
+/** Normalizes any phone representation down to bare 10 digits, used as the
+ * store key so send/verify always agree regardless of how the caller formatted it. */
+export function normalizePhone(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  return digits.length > 10 ? digits.slice(-10) : digits;
 }
 
+function toInternational(phone10: string): string {
+  // 2Factor expects numbers in international format, e.g. +919999999999
+  return `+91${phone10}`;
+}
+
+// Periodic sweep so unverified/expired sessions don't accumulate in memory forever.
+setInterval(() => {
+  const now = Date.now();
+  for (const [phone, entry] of sessionStore) {
+    if (now > entry.expiresAt) sessionStore.delete(phone);
+  }
+}, 5 * 60 * 1000).unref();
+
 /**
- * Generates an OTP for `phone`, stores it, and sends it via Fast2SMS.
+ * Generates an OTP for `phone` via 2Factor.in and stores the session id.
  * Returns { success, error? }. Never throws.
  */
-export async function sendOtp(phone: string): Promise<{ success: boolean; error?: string }> {
+export async function sendOtp(rawPhone: string): Promise<{ success: boolean; error?: string }> {
+  const phone = normalizePhone(rawPhone);
   if (phone === SELLER_PHONE) {
     // Fixed credential login — no SMS needed.
     return { success: true };
   }
 
-  const apiKey = process.env.FAST2SMS_API_KEY;
-  if (!apiKey) {
-    return { success: false, error: "SMS service not configured (missing FAST2SMS_API_KEY)" };
+  if (!TWOFACTOR_API_KEY) {
+    return { success: false, error: "SMS service not configured (missing TWOFACTOR_API_KEY)" };
   }
 
-  const otp = generateOtp();
-  otpStore.set(phone, { otp, expiresAt: Date.now() + OTP_TTL_MS });
-
   try {
-    const url = new URL("https://www.fast2sms.com/dev/bulkV2");
-    url.searchParams.set("authorization", apiKey);
-    url.searchParams.set("variables_values", otp);
-    url.searchParams.set("route", "otp");
-    url.searchParams.set("numbers", phone);
+    const intlPhone = toInternational(phone);
+    const url = `https://2factor.in/API/V1/${TWOFACTOR_API_KEY}/SMS/${encodeURIComponent(
+      intlPhone
+    )}/AUTOGEN2/${encodeURIComponent(TWOFACTOR_OTP_TEMPLATE)}`;
 
-    const res = await fetch(url.toString(), { method: "GET" });
-    const data = await res.json().catch(() => null);
+    const res = await fetch(url, { method: "GET" });
+    const data = (await res.json().catch(() => null)) as { Status?: string; Details?: string } | null;
 
-    if (!res.ok || (data && data.return === false)) {
-      otpStore.delete(phone);
-      let msg: unknown = data?.message;
-      if (Array.isArray(msg)) msg = msg[0];
-      if (!msg) msg = `Fast2SMS error (${res.status})`;
+    if (!res.ok || !data || data.Status !== "Success" || !data.Details) {
+      const msg = (data && (data.Details || data.Status)) || `2Factor error (${res.status})`;
       return { success: false, error: String(msg) };
     }
+
+    sessionStore.set(phone, { sessionId: data.Details, expiresAt: Date.now() + OTP_TTL_MS });
     return { success: true };
   } catch (e) {
-    otpStore.delete(phone);
     return { success: false, error: String(e) };
   }
 }
 
 /**
- * Verifies `otp` for `phone`. One-time use — deletes the entry on success.
+ * Verifies `otp` for `phone` against the live 2Factor session id.
  */
-export function verifyOtp(phone: string, otp: string): { valid: boolean; error?: string } {
-  if (phone === SELLER_PHONE) {
-    return otp === SELLER_FIXED_OTP ? { valid: true } : { valid: false, error: "गलत OTP" };
-  }
+export async function verifyOtp(
+  rawPhone: string,
+  otp: string
+): Promise<{ valid: boolean; error?: string }> {
+  const phone = normalizePhone(rawPhone);
 
-  const entry = otpStore.get(phone);
+  const entry = sessionStore.get(phone);
   if (!entry) return { valid: false, error: "पहले OTP भेजें" };
   if (Date.now() > entry.expiresAt) {
-    otpStore.delete(phone);
+    sessionStore.delete(phone);
     return { valid: false, error: "OTP expire हो गया, दोबारा भेजें" };
   }
-  if (entry.otp !== otp) return { valid: false, error: "गलत OTP" };
 
-  otpStore.delete(phone);
-  return { valid: true };
+  try {
+    const url = `https://2factor.in/API/V1/${TWOFACTOR_API_KEY}/SMS/VERIFY/${entry.sessionId}/${encodeURIComponent(
+      otp
+    )}`;
+    const res = await fetch(url, { method: "GET" });
+    const data = (await res.json().catch(() => null)) as { Status?: string; Details?: string } | null;
+
+    // 2Factor quirk: successful match returns Status "Success", Details "OTP Matched".
+    // Mismatch returns Status "Error", Details "OTP Mismatch" (still HTTP 200).
+    if (data && data.Status === "Success" && data.Details === "OTP Matched") {
+      sessionStore.delete(phone);
+      return { valid: true };
+    }
+
+    // Explicit mismatch response from 2Factor -> genuine wrong OTP.
+    if (data && data.Details === "OTP Mismatch") {
+      return { valid: false, error: "गलत OTP" };
+    }
+
+    // Anything else (non-OK HTTP, malformed body, unexpected Status/Details) is a
+    // provider-side failure, not a user input mistake — surface it distinctly.
+    return { valid: false, error: "OTP सत्यापन सेवा में समस्या, दोबारा कोशिश करें" };
+  } catch {
+    // Network/provider failure — distinct from a genuine wrong-OTP so callers
+    // can surface a "try again" message instead of blaming the user's input.
+    return { valid: false, error: "OTP सत्यापन सेवा में समस्या, दोबारा कोशिश करें" };
+  }
+}
+
+/** Seller login uses a fixed phone/OTP pair and never touches the SMS provider. */
+export function verifySellerOtp(rawPhone: string, otp: string): { valid: boolean; error?: string } {
+  const phone = normalizePhone(rawPhone);
+  if (phone !== SELLER_PHONE) return { valid: false, error: "अमान्य विक्रेता नंबर" };
+  return otp === SELLER_FIXED_OTP ? { valid: true } : { valid: false, error: "गलत OTP" };
 }

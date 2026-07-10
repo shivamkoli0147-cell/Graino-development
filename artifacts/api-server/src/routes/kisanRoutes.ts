@@ -7,7 +7,7 @@ import {
 } from "@workspace/db/schema";
 import { eq, and, ilike, or, sql, count, sum, countDistinct, asc, desc, inArray, ne } from "drizzle-orm";
 import { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_STORAGE_BUCKET } from "../config.js";
-import { sendOtp, verifyOtp, SELLER_PHONE, SELLER_FIXED_OTP } from "../otpService.js";
+import { sendOtp, verifyOtp, verifySellerOtp, normalizePhone, SELLER_PHONE } from "../otpService.js";
 
 // ── Multer (memory storage for Supabase upload) ───────────────────────────────
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
@@ -304,7 +304,7 @@ router.get("/villages", async (_req, res) => {
 // Send OTP — real SMS via Fast2SMS for all numbers except the fixed seller number.
 router.post("/auth/send-otp", async (req, res) => {
   try {
-    const { phone } = req.body as { phone: string };
+    const phone = normalizePhone((req.body as { phone?: string }).phone || "");
     if (!phone || !/^\d{10}$/.test(phone)) { res.status(400).json({ error: "10 अंकों का सही फोन नंबर डालें" }); return; }
     const result = await sendOtp(phone);
     if (!result.success) { res.status(500).json({ error: result.error || "OTP भेजने में समस्या हुई" }); return; }
@@ -319,7 +319,8 @@ router.post("/auth/customer", async (req, res) => {
       address?: string; lat?: number; lng?: number;
     };
     if (!phone || !otp) { res.status(400).json({ error: "Phone and OTP required" }); return; }
-    const verified = verifyOtp(phone, otp.toString().trim());
+    if (phone === SELLER_PHONE) { res.status(400).json({ error: "यह नंबर विक्रेता लॉगिन के लिए आरक्षित है" }); return; }
+    const verified = await verifyOtp(phone, otp.toString().trim());
     if (!verified.valid) { res.status(401).json({ error: verified.error || "गलत OTP" }); return; }
     const [existing] = await db.select().from(customers).where(eq(customers.phone, phone));
     if (existing) {
@@ -346,8 +347,10 @@ router.post("/auth/customer", async (req, res) => {
 
 router.post("/auth/seller", (req, res) => {
   const { phone, otp } = req.body as { phone: string; otp: string };
-  if (phone === SELLER_PHONE && otp === SELLER_FIXED_OTP) res.json({ success: true, message: "Seller login successful" });
-  else res.status(401).json({ success: false, message: "गलत credentials" });
+  if (!phone || !otp) { res.status(400).json({ success: false, message: "Phone and OTP required" }); return; }
+  const verified = verifySellerOtp(phone, otp.toString().trim());
+  if (verified.valid) res.json({ success: true, message: "Seller login successful" });
+  else res.status(401).json({ success: false, message: verified.error || "गलत credentials" });
 });
 
 // ── Customer profile update ───────────────────────────────────────────────────
