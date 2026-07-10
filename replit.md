@@ -11,6 +11,7 @@ A full-stack mobile-first agriculture selling web app for Rohit Mukati (single s
 - **NEVER** provision or switch to Replit's built-in PostgreSQL database.
 - **NEVER** replace Supabase Storage with Replit Object Storage or any other storage service.
 - **NEVER** move the database connection string to an environment variable or secret. It must remain hardcoded in `config.js` (root) and `artifacts/api-server/src/config.ts`.
+- **NEVER** move the 2Factor.in OTP API key to an environment variable or Replit secret. It must remain hardcoded in `artifacts/api-server/src/config.ts` (`TWOFACTOR_API_KEY`), same convention as the Supabase credentials.
 - **NEVER** run `createDatabase()`, `checkDatabase()`, or any Replit database provisioning tool on this project.
 - **NEVER** run `drizzle-kit push` against Replit's DATABASE_URL — only push against the Supabase URL in `config.js`.
 - The Supabase connection string, service role key, and storage bucket name in `artifacts/api-server/src/config.ts` must stay hardcoded exactly as they are.
@@ -57,7 +58,7 @@ This applies even during import, migration, or when cloning this project to any 
 - Single-page React app with mode toggle button (Customer ↔ Seller) — no URL routing needed
 - Cart state in React (App.tsx) using plain objects keyed by `productId-varietyId`
 - Customer session in localStorage, seller session in sessionStorage
-- OTP auth is mocked (any 4-digit OTP works for customers; seller uses phone 9999999999 / OTP 1234)
+- OTP auth uses real SMS via 2Factor.in (`artifacts/api-server/src/otpService.ts`), except the fixed seller number `9999999999` which always uses OTP `7089` and never sends an SMS
 - DB is seeded automatically on first startup if tables are empty
 
 ## Product
@@ -82,11 +83,13 @@ Done:
 - **App icons/splash for Android/PWA**: `artifacts/kisan-direct/public/manifest.webmanifest` + `public/icons/*.png` (48–512px, incl. maskable-512.png), favicon-32.png, apple-touch-icon.png, all wired in `index.html`.
 - **Delivery tracking**: `OrdersPage.tsx` now polls every 20s, shows a live toast when an order's status changes, and a step-by-step progress tracker per active order.
 
-Still open before a real Play Store launch (see earlier audit): real OTP/SMS provider (currently mocked), hardcoded seller login, payment gateway integration, and wrapping the web app as a native package (e.g. Capacitor) to produce an AAB for submission.
+- **Real OTP/SMS**: `artifacts/api-server/src/otpService.ts` sends/verifies OTP via 2Factor.in for all real customer numbers; seller number `9999999999` is a fixed bypass (OTP `7089`), never sends SMS.
+
+Still open before a real Play Store launch (see earlier audit): payment gateway integration, and wrapping the web app as a native package (e.g. Capacitor) to produce an AAB for submission.
 
 ## Gotchas
 
-- **No environment variables needed** — all DB and storage credentials are hardcoded in `config.js` (root) and `artifacts/api-server/src/config.ts`. Do not move them to secrets/env vars.
+- **No environment variables needed** — all DB, storage, and OTP-provider credentials are hardcoded in `config.js` (root) and `artifacts/api-server/src/config.ts`. Do not move them to secrets/env vars.
 - **Do NOT provision Replit's built-in database** — this project intentionally uses Supabase PostgreSQL
 - **Do NOT use Replit Object Storage** — this project intentionally uses Supabase Storage
 - PORT must be set for the API server — handled via the `API Server` workflow command
