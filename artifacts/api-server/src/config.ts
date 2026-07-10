@@ -14,7 +14,7 @@ export const SUPABASE_STORAGE_BUCKET = "product-images";
 
 // 2Factor.in SMS OTP service (https://2factor.in) — hardcoded per project convention
 export const TWOFACTOR_API_KEY = "2f812521-7b7e-11f1-803e-0200cd936042";
-export const TWOFACTOR_OTP_TEMPLATE = "Mytemplateotp";
+export const TWOFACTOR_OTP_TEMPLATE = "Mytem[plateotp";
 
 // Inject into process.env so any library reading process.env.DATABASE_URL works
 process.env.DATABASE_URL = DATABASE_URL;
