@@ -29,7 +29,7 @@ export function SellerDashboard({ onLogout, onManageOrders, onManageProducts, on
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
             <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 12, fontWeight: 600 }}>नमस्ते 🙏</div>
-            <div style={{ color: "white", fontSize: 22, fontWeight: 800, marginTop: 2 }}>Rohit Mukati</div>
+            <div style={{ color: "white", fontSize: 22, fontWeight: 800, marginTop: 2 }}>Seller</div>
             <div style={{ color: "rgba(255,255,255,0.65)", fontSize: 12, fontWeight: 500 }}>KisanDirect · MP</div>
           </div>
           <button onClick={onLogout} className="btn-press" style={{

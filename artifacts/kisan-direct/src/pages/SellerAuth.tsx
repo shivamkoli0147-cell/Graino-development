@@ -32,7 +32,7 @@ export function SellerAuth({ onSuccess }: SellerAuthProps) {
           Seller <span style={{ color: "#F59E0B" }}>Dashboard</span>
         </div>
         <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 13, marginTop: 4 }}>
-          Rohit Mukati · KisanDirect
+          Seller · KisanDirect
         </div>
       </div>
 

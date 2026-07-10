@@ -96,7 +96,7 @@ function PrivacyContent() {
       </Section>
 
       <Section title="6. संपर्क करें">
-        Privacy से जुड़े किसी भी सवाल के लिए Seller (Rohit Mukati) से ऐप के जरिए संपर्क करें।
+        Privacy से जुड़े किसी भी सवाल के लिए Seller से ऐप के जरिए संपर्क करें।
       </Section>
     </>
   );
@@ -108,7 +108,7 @@ function TermsContent() {
       <div style={{ color: "#888", fontSize: 12, marginBottom: 16 }}>अंतिम अपडेट: जुलाई 2026</div>
 
       <Section title="1. सेवा के बारे में">
-        Graino, Rohit Mukati द्वारा चलाई जाने वाली एक लोकल एग्रीकल्चर डिलीवरी सेवा है, जो चुनिंदा गांवों
+        Graino, Seller द्वारा चलाई जाने वाली एक लोकल एग्रीकल्चर डिलीवरी सेवा है, जो चुनिंदा गांवों
         में अनाज/उत्पाद सीधे किसान से ग्राहक तक पहुंचाती है।
       </Section>
 
