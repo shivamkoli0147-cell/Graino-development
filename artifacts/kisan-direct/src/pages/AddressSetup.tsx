@@ -78,7 +78,7 @@ export function AddressSetup({ customer, onComplete, onSkip }: AddressSetupProps
         <div style={{ fontSize: 36, marginBottom: 8 }}>📍</div>
         <div style={{ fontWeight: 800, fontSize: 22 }}>Delivery Location सेट करें</div>
         <div style={{ fontSize: 13, opacity: 0.85, marginTop: 4 }}>
-          नमस्ते {customer.name}! एक बार अपना घर का पता बताओ ताकि Rohit आसानी से deliver कर सके।
+          नमस्ते {customer.name}! एक बार अपना घर का पता बताओ ताकि Seller आसानी से deliver कर सके।
         </div>
         <div style={{
           marginTop: 12, background: "rgba(255,255,255,0.15)", borderRadius: 10,

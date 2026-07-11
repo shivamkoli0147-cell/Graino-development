@@ -153,7 +153,7 @@ export function CartPage({ cart, customer, onCartChange, onClearCart, onOrderSuc
         <div style={{ fontSize: 64, marginBottom: 12 }}>✅</div>
         <div style={{ fontWeight: 800, fontSize: 22, color: "#2D6A2D" }}>Order हो गया!</div>
         <div style={{ fontSize: 14, color: "#777", marginTop: 6, fontWeight: 500 }}>
-          Rohit जल्द आएंगे 📞
+          Seller जल्द आएंगे 📞
         </div>
 
         <div style={{
@@ -378,7 +378,7 @@ export function CartPage({ cart, customer, onCartChange, onClearCart, onOrderSuc
               1–2 दिन में delivery होगी
             </div>
             <div style={{ fontSize: 12, fontWeight: 600, color: "#166534" }}>
-              Rohit खुद घर पर देंगे · Payment on Delivery
+              Seller खुद घर पर देंगे · Payment on Delivery
             </div>
           </div>
         </div>
