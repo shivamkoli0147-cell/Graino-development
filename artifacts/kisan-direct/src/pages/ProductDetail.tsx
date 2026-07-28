@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useGetProduct } from "@workspace/api-client-react";
 import { formatINR, type Cart, type CartItem } from "../lib/utils";
 
@@ -8,6 +8,7 @@ interface ProductDetailProps {
   onBack: () => void;
   onCartChange: (key: string, item: CartItem | null) => void;
   onGoToCart?: () => void;
+  customer?: { id: number; name: string } | null;
 }
 
 type ProductImage = { id: number; url: string; sort_order: number };
@@ -136,7 +137,97 @@ function ImageCarousel({ images, emoji, bgColor }: { images: ProductImage[]; emo
   );
 }
 
-export function ProductDetail({ productId, cart, onBack, onCartChange, onGoToCart }: ProductDetailProps) {
+// ── Star display ──────────────────────────────────────────────────────────────
+function StarRow({ stars, size = 14 }: { stars: number; size?: number }) {
+  return (
+    <span style={{ fontSize: size, letterSpacing: 1 }}>
+      {[1,2,3,4,5].map(i => (
+        <span key={i} style={{ color: i <= stars ? "#F59E0B" : "#D1D5DB" }}>★</span>
+      ))}
+    </span>
+  );
+}
+
+// ── Ratings section ────────────────────────────────────────────────────────────
+type RatingRow = { id: number; customer_name: string; stars: number; comment: string | null; created_at: string };
+
+function RatingsSection({ productId, customer }: {
+  productId: number;
+  customer?: { id: number; name: string } | null;
+}) {
+  const [data, setData] = useState<{ average: number; count: number; ratings: RatingRow[] } | null>(null);
+  const [myStars, setMyStars] = useState(0);
+  const [myComment, setMyComment] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const font = "'Baloo 2', sans-serif";
+
+  const load = () => {
+    fetch(`/api/products/${productId}/ratings`).then(r => r.json()).then(setData).catch(() => {});
+  };
+  useEffect(() => { load(); }, [productId]);
+
+  const submit = async () => {
+    if (!myStars) return;
+    setSubmitting(true);
+    try {
+      await fetch(`/api/products/${productId}/ratings`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ customer_id: customer?.id, customer_name: customer?.name || "Customer", stars: myStars, comment: myComment.trim() || undefined }),
+      });
+      setSubmitted(true); setMyStars(0); setMyComment(""); load();
+    } finally { setSubmitting(false); }
+  };
+
+  if (!data) return null;
+
+  return (
+    <div style={{ marginTop: 18, paddingBottom: 8 }}>
+      <div style={{ fontWeight: 800, fontSize: 14, color: "#1C1C1C", marginBottom: 10, fontFamily: font }}>
+        ⭐ Ratings & Reviews
+      </div>
+      {data.count > 0 && (
+        <div style={{ background: "white", borderRadius: 14, padding: "10px 16px", marginBottom: 10, display: "flex", alignItems: "center", gap: 14, border: "1.5px solid #EDEAE5" }}>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontWeight: 900, fontSize: 30, color: "#1C1C1C", fontFamily: font, lineHeight: 1 }}>{data.average.toFixed(1)}</div>
+            <StarRow stars={Math.round(data.average)} />
+            <div style={{ fontSize: 11, color: "#888", marginTop: 3, fontFamily: font }}>{data.count} reviews</div>
+          </div>
+        </div>
+      )}
+      {customer && !submitted && (
+        <div style={{ background: "white", borderRadius: 14, padding: "12px 14px", marginBottom: 10, border: "1.5px solid #EDEAE5" }}>
+          <div style={{ fontWeight: 700, fontSize: 13, color: "#555", marginBottom: 8, fontFamily: font }}>आपका अनुभव कैसा रहा?</div>
+          <div style={{ display: "flex", gap: 4, marginBottom: 8 }}>
+            {[1,2,3,4,5].map(s => (
+              <button key={s} onClick={() => setMyStars(s)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: 28, opacity: s <= myStars ? 1 : 0.22, transition: "opacity 0.15s" }}>★</button>
+            ))}
+          </div>
+          <textarea value={myComment} onChange={e => setMyComment(e.target.value)} placeholder="Comment लिखें (optional)..." rows={2}
+            style={{ width: "100%", borderRadius: 10, border: "1.5px solid #E5DDD0", padding: "8px 10px", fontFamily: font, fontSize: 13, resize: "none", boxSizing: "border-box", outline: "none", background: "#FAFAF8" }} />
+          <button onClick={submit} disabled={!myStars || submitting} className="btn-press"
+            style={{ marginTop: 8, width: "100%", background: myStars ? "linear-gradient(135deg,#1B4332,#2D6A2D)" : "#E5E7EB", color: myStars ? "white" : "#9CA3AF", border: "none", borderRadius: 10, padding: "9px 0", fontFamily: font, fontWeight: 700, fontSize: 13, cursor: myStars ? "pointer" : "default" }}>
+            {submitting ? "..." : "⭐ Rating दें"}
+          </button>
+        </div>
+      )}
+      {submitted && <div style={{ background: "#DCFCE7", borderRadius: 12, padding: "8px 14px", marginBottom: 10, fontSize: 13, color: "#15803D", fontWeight: 700, fontFamily: font }}>✅ Rating दे दी गई, धन्यवाद!</div>}
+      {data.ratings.slice(0, 5).map(r => (
+        <div key={r.id} style={{ background: "white", borderRadius: 12, padding: "10px 14px", marginBottom: 8, border: "1.5px solid #F0EDE8" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
+            <span style={{ fontWeight: 700, fontSize: 13, color: "#1C1C1C", fontFamily: font }}>{r.customer_name}</span>
+            <StarRow stars={r.stars} size={13} />
+          </div>
+          {r.comment && <div style={{ fontSize: 12, color: "#555", fontFamily: font }}>{r.comment}</div>}
+        </div>
+      ))}
+      {data.count === 0 && <div style={{ textAlign: "center", padding: "16px 0", fontSize: 13, color: "#AAA", fontFamily: font }}>अभी कोई review नहीं है</div>}
+    </div>
+  );
+}
+
+export function ProductDetail({ productId, cart, onBack, onCartChange, onGoToCart, customer }: ProductDetailProps) {
   const { data: product, isLoading } = useGetProduct(productId);
   const [selected, setSelected] = useState<number | null>(null);
   const [qty, setQty] = useState<Record<number, number>>({});
@@ -321,12 +412,23 @@ export function ProductDetail({ productId, cart, onBack, onCartChange, onGoToCar
                         fontWeight: 700, fontSize: 13, cursor: "pointer",
                         boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
                       }}>
-                      {cart[noVarCartKey]
-                        ? "✓ Cart में है"
-                        : directPrice
-                          ? `Cart में डालो • ${formatINR(directPrice * noVarCurrentQty)}`
-                          : "Cart में डालो"}
+                      {cart[noVarCartKey] ? "✓ Cart में है" : "🛒 Cart"}
                     </button>
+                    {onGoToCart && (
+                      <button
+                        onClick={() => { if (!cart[noVarCartKey]) toggleNoVarCart(); onGoToCart(); }}
+                        className="btn-press"
+                        style={{
+                          flex: 1.4,
+                          background: "linear-gradient(135deg,#F59E0B,#D97706)",
+                          color: "#1B4332", border: "none", borderRadius: 12,
+                          padding: "10px 0", fontFamily: "'Baloo 2', sans-serif",
+                          fontWeight: 800, fontSize: 13, cursor: "pointer",
+                          boxShadow: "0 2px 8px rgba(245,158,11,0.4)",
+                        }}>
+                        ⚡ अभी खरीदो
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -432,12 +534,23 @@ export function ProductDetail({ productId, cart, onBack, onCartChange, onGoToCar
                               fontWeight: 700, fontSize: 13, cursor: "pointer",
                               boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
                             }}>
-                            {inCart
-                              ? "✓ Cart में है"
-                              : v.price_per_kg
-                                ? `Cart में डालो • ${formatINR(v.price_per_kg * q)}`
-                                : "Cart में डालो"}
+                            {inCart ? "✓ Cart में है" : "🛒 Cart"}
                           </button>
+                          {onGoToCart && (
+                            <button
+                              onClick={e => { e.stopPropagation(); if (!inCart) toggleCart(v); onGoToCart(); }}
+                              className="btn-press"
+                              style={{
+                                flex: 1.4,
+                                background: "linear-gradient(135deg,#F59E0B,#D97706)",
+                                color: "#1B4332", border: "none", borderRadius: 12,
+                                padding: "10px 0", fontFamily: "'Baloo 2', sans-serif",
+                                fontWeight: 800, fontSize: 13, cursor: "pointer",
+                                boxShadow: "0 2px 8px rgba(245,158,11,0.4)",
+                              }}>
+                              ⚡ अभी खरीदो
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -447,6 +560,7 @@ export function ProductDetail({ productId, cart, onBack, onCartChange, onGoToCar
             )}
           </>
         )}
+        <RatingsSection productId={p.id} customer={customer} />
       </div>
 
       {/* ── Floating "Go to Cart" button ── */}

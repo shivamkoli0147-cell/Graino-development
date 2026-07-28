@@ -4,6 +4,7 @@ import { db } from "../db.js";
 import {
   villages, customers, products, varieties,
   productBenefits, varietyBenefits, orders, orderItems, productImages, categories,
+  productRatings,
 } from "@workspace/db/schema";
 import { eq, and, ilike, or, sql, count, sum, countDistinct, asc, desc, inArray, ne } from "drizzle-orm";
 import { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_STORAGE_BUCKET } from "../config.js";
@@ -80,6 +81,201 @@ async function deleteFromSupabase(imageUrl: string): Promise<void> {
     }
   } catch (e) {
     console.warn("[storage] deleteFromSupabase error:", String(e));
+  }
+}
+
+// ── Invoice HTML generator ─────────────────────────────────────────────────────
+function generateInvoiceHtml(params: {
+  orderId: number;
+  orderDate: Date | null;
+  customerName: string | null;
+  customerPhone: string | null;
+  village: string;
+  address?: string | null;
+  items: { product_name: string; variety_name: string; price_per_kg: number; quantity_kg: number }[];
+  totalAmount: number;
+  paymentStatus: string;
+}): string {
+  const fmtINR = (v: number) => "₹" + Math.round(v).toLocaleString("en-IN");
+  const d = params.orderDate ? new Date(params.orderDate) : new Date();
+  const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const orderDate  = `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+  const orderTime  = `${d.getHours() % 12 || 12}:${String(d.getMinutes()).padStart(2,"0")} ${d.getHours() < 12 ? "AM" : "PM"}`;
+  const genDate    = new Date().toLocaleDateString("en-IN", { day:"2-digit", month:"short", year:"numeric" });
+  const totalStr   = fmtINR(params.totalAmount);
+  const payBadge   = params.paymentStatus === "paid" ? "✅ Paid Online" : "💵 Cash on Delivery";
+  const itemCount  = params.items.length;
+
+  const itemRows = params.items.map(item => {
+    const sub = item.price_per_kg * item.quantity_kg;
+    return `<tr>
+      <td><div class="pn">${item.product_name}</div><div class="vn">${item.variety_name}</div></td>
+      <td>${item.quantity_kg} kg</td>
+      <td>${fmtINR(item.price_per_kg)}/kg</td>
+      <td class="amt">${fmtINR(sub)}</td>
+    </tr>`;
+  }).join("\n");
+
+  const addrExtra = params.address ? `<br>${params.address}` : "";
+
+  return `<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Invoice #${params.orderId} – KisanDirect</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f7f0;min-height:100vh}
+.page{max-width:620px;margin:0 auto;background:#fff;min-height:100vh;box-shadow:0 0 40px rgba(0,0,0,.07)}
+.hdr{background:linear-gradient(135deg,#1a3d1a 0%,#2d6a2d 100%);padding:24px 20px 18px}
+.brand{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.bi{width:48px;height:48px;background:rgba(255,255,255,.18);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px}
+.bn{font-size:22px;font-weight:900;color:#fff;letter-spacing:-.5px}
+.bs{font-size:11px;color:rgba(255,255,255,.6);margin-top:2px}
+.imeta{display:flex;justify-content:space-between;align-items:flex-end}
+.ilbl{font-size:11px;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:.1em}
+.inum{font-size:32px;font-weight:900;color:#fff;letter-spacing:-1px;margin-top:2px}
+.stamp{background:#4ade80;color:#14532d;padding:8px 14px;border-radius:10px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}
+.dbar{background:#f0fdf4;border-bottom:1px solid #dcfce7;padding:9px 20px;display:flex;gap:24px;flex-wrap:wrap;font-size:12px;color:#555}
+.dbar b{color:#1a6b1a}
+.body{padding:20px}
+.parties{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.party{background:#fafafa;border:1px solid #f0ede8;border-radius:12px;padding:12px}
+.plbl{font-size:10px;font-weight:800;color:#aaa;text-transform:uppercase;letter-spacing:.1em;margin-bottom:7px}
+.pname{font-size:14px;font-weight:800;color:#1C1C1C;margin-bottom:3px}
+.pdet{font-size:11px;color:#666;line-height:1.6}
+.stitle{font-size:11px;font-weight:800;color:#888;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
+.tbl{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:14px}
+.tbl thead th{background:#f8fdf8;color:#1a6b1a;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;padding:8px 10px;border-bottom:2px solid #dcfce7;text-align:left}
+.tbl thead th:nth-child(n+2){text-align:right}
+.tbl tbody td{padding:9px 10px;border-bottom:1px solid #f3f4f6;vertical-align:top}
+.tbl tbody td:nth-child(n+2){text-align:right}
+.tbl tbody tr:last-child td{border-bottom:none}
+.pn{font-weight:700;color:#1C1C1C}.vn{font-size:11px;color:#888;margin-top:2px}
+.amt{font-weight:800;color:#1a3d1a}
+.tbox{background:#f0fdf4;border:1.5px solid #86efac;border-radius:14px;padding:14px 16px;margin-bottom:20px}
+.tr{display:flex;justify-content:space-between;font-size:12px;color:#666;margin-bottom:5px}
+.tr.fr{color:#16a34a;font-weight:600}
+.tfinal{display:flex;justify-content:space-between;align-items:center;border-top:1.5px dashed #86efac;margin-top:10px;padding-top:12px}
+.tlbl{font-size:15px;font-weight:700;color:#1a3d1a}
+.tamt{font-size:26px;font-weight:900;color:#1a6b1a;letter-spacing:-.5px}
+.pbadge{display:inline-flex;align-items:center;gap:5px;background:#dcfce7;color:#15803d;border-radius:20px;padding:5px 14px;font-size:12px;font-weight:700;margin-top:10px}
+.footer{margin-top:8px;padding-top:20px;border-top:1px dashed #e5e7eb;text-align:center;padding-bottom:28px}
+.fbrand{font-size:18px;font-weight:900;color:#1a6b1a;margin-bottom:6px}
+.fsub{font-size:11px;color:#999;line-height:1.8}
+.ptip{margin-top:16px;background:#fefce8;border:1px solid #fde68a;border-radius:10px;padding:10px 14px;font-size:11px;color:#92400e;display:flex;align-items:center;gap:8px;text-align:left}
+@media print{body{background:#fff}.page{box-shadow:none;min-height:auto}.ptip{display:none}}
+</style>
+</head>
+<body>
+<div class="page">
+
+<div class="hdr">
+  <div class="brand">
+    <div class="bi">🌾</div>
+    <div><div class="bn">KisanDirect</div><div class="bs">Graino Platform &middot; किसान से सीधे आपके द्वार</div></div>
+  </div>
+  <div class="imeta">
+    <div><div class="ilbl">Tax Invoice / Receipt</div><div class="inum">#${params.orderId}</div></div>
+    <div class="stamp">✓ &nbsp;Delivered</div>
+  </div>
+</div>
+
+<div class="dbar">
+  <span>📅 Order: <b>${orderDate}</b> at <b>${orderTime}</b></span>
+  <span>🖨 Generated: <b>${genDate}</b></span>
+</div>
+
+<div class="body">
+
+  <div class="parties">
+    <div class="party">
+      <div class="plbl">👤 Buyer</div>
+      <div class="pname">${params.customerName || "Customer"}</div>
+      <div class="pdet">📱 ${params.customerPhone || "—"}</div>
+      <div class="pdet">📍 ${params.village}${addrExtra}</div>
+    </div>
+    <div class="party">
+      <div class="plbl">🌾 Seller</div>
+      <div class="pname">Graino Seller</div>
+      <div class="pdet">KisanDirect Partner</div>
+      <div class="pdet">📍 Madhya Pradesh</div>
+      <div class="pdet">📞 7089550147</div>
+    </div>
+  </div>
+
+  <div class="stitle">🛒 Order Items</div>
+  <table class="tbl">
+    <thead><tr><th>Product</th><th>Qty</th><th>Rate/kg</th><th>Amount</th></tr></thead>
+    <tbody>${itemRows}</tbody>
+  </table>
+
+  <div class="tbox">
+    <div class="tr"><span>Subtotal (${itemCount} item${itemCount > 1 ? "s" : ""})</span><span>${totalStr}</span></div>
+    <div class="tr fr"><span>🚚 Delivery</span><span>FREE</span></div>
+    <div class="tfinal">
+      <span class="tlbl">Total</span>
+      <span class="tamt">${totalStr}</span>
+    </div>
+    <div><span class="pbadge">${payBadge}</span></div>
+  </div>
+
+  <div class="footer">
+    <div class="fbrand">🌾 KisanDirect by Graino</div>
+    <div class="fsub">
+      किसान से सीधे आपके द्वार &nbsp;&middot;&nbsp; Fresh from Farm to You<br>
+      Support: 7089550147 &nbsp;&middot;&nbsp; Platform: Graino<br>
+      Invoice generated on ${genDate}
+    </div>
+    <div class="ptip">💡 <span>PDF Save करने के लिए: Browser Menu → <b>Print</b> → <b>"Save as PDF"</b> चुनें</span></div>
+  </div>
+
+</div>
+</div>
+</body>
+</html>`;
+}
+
+async function generateAndSaveInvoice(orderId: number): Promise<string | null> {
+  try {
+    const orderData = await getOrderWithDetails(orderId);
+    if (!orderData) return null;
+    const html = generateInvoiceHtml({
+      orderId,
+      orderDate: orderData.createdAt as Date | null,
+      customerName: orderData.customer_name ?? null,
+      customerPhone: orderData.customer_phone ?? null,
+      village: orderData.village,
+      address: orderData.address,
+      items: orderData.items,
+      totalAmount: orderData.total_amount,
+      paymentStatus: orderData.payment_status,
+    });
+    const buf = Buffer.from(html, "utf-8");
+    const path = `invoices/order-${orderId}.html`;
+    const storageUrl = `${SUPABASE_URL}/storage/v1/object/${SUPABASE_STORAGE_BUCKET}/${path}`;
+    const res = await fetch(storageUrl, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        "Content-Type": "text/html; charset=utf-8",
+        "x-upsert": "true",
+      },
+      body: buf,
+    });
+    if (!res.ok) {
+      const txt = await res.text();
+      console.error(`[invoice] Upload failed: ${res.status} ${txt}`);
+      return null;
+    }
+    const invoiceUrl = `${SUPABASE_URL}/storage/v1/object/public/${SUPABASE_STORAGE_BUCKET}/${path}`;
+    await db.update(orders).set({ invoiceUrl }).where(eq(orders.id, orderId));
+    console.log(`[invoice] Saved for order #${orderId}: ${invoiceUrl}`);
+    return invoiceUrl;
+  } catch (e) {
+    console.error("[invoice] generateAndSaveInvoice error:", String(e));
+    return null;
   }
 }
 
@@ -223,6 +419,8 @@ async function getOrderWithDetails(orderId: number) {
     payment_status: order.paymentStatus,
     return_requested: order.returnRequested,
     return_note: order.returnNote,
+    return_status: order.returnStatus,
+    invoice_url: order.invoiceUrl ?? null,
     created_at: order.createdAt,
     customer_id: order.customerId,
     customer_name: customerName,
@@ -610,6 +808,7 @@ router.get("/orders", async (req, res) => {
         payment_status: row.order.paymentStatus,
         return_requested: row.order.returnRequested,
         return_note: row.order.returnNote,
+        return_status: row.order.returnStatus,
         created_at: row.order.createdAt,
         customer_id: row.order.customerId,
         customer_name: row.customerName,
@@ -665,6 +864,10 @@ router.patch("/orders/:id/status", async (req, res) => {
     const [existing] = await db.select({ id: orders.id }).from(orders).where(eq(orders.id, id));
     if (!existing) { res.status(404).json({ error: "Not found" }); return; }
     await db.update(orders).set({ status }).where(eq(orders.id, id));
+    // Auto-generate receipt PDF when order is delivered
+    if (status === "delivered") {
+      try { await generateAndSaveInvoice(id); } catch (e) { console.error("[invoice]", String(e)); }
+    }
     res.json(await getOrderWithDetails(id));
   } catch (e) { res.status(500).json({ error: String(e) }); }
 });
@@ -672,12 +875,73 @@ router.patch("/orders/:id/status", async (req, res) => {
 router.post("/orders/:id/return", async (req, res) => {
   try {
     const id = parseInt(req.params.id);
-    const { note } = req.body as { note: string };
+    const { note } = req.body as { note?: string };
     const [existing] = await db.select().from(orders).where(eq(orders.id, id));
     if (!existing) { res.status(404).json({ error: "Not found" }); return; }
-    if (existing.status !== "delivered") { res.status(400).json({ error: "Only delivered orders can be returned" }); return; }
-    await db.update(orders).set({ returnRequested: true, returnNote: note || "Return requested" }).where(eq(orders.id, id));
+    if (existing.status === "cancelled") { res.status(400).json({ error: "Cancelled orders cannot be returned" }); return; }
+    if (existing.returnRequested) { res.status(400).json({ error: "Return already requested" }); return; }
+    await db.update(orders).set({
+      returnRequested: true,
+      returnNote: note || "Return requested",
+      returnStatus: "requested",
+    }).where(eq(orders.id, id));
     res.json(await getOrderWithDetails(id));
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+// Seller: accept / reject / mark picked-up for a return request
+router.patch("/orders/:id/return-status", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { status } = req.body as { status: string };
+    const valid = ["accepted", "rejected", "picked_up"];
+    if (!valid.includes(status)) { res.status(400).json({ error: "Invalid return status" }); return; }
+    const [existing] = await db.select().from(orders).where(eq(orders.id, id));
+    if (!existing) { res.status(404).json({ error: "Not found" }); return; }
+    if (!existing.returnRequested) { res.status(400).json({ error: "No return request found" }); return; }
+    await db.update(orders).set({ returnStatus: status }).where(eq(orders.id, id));
+    res.json(await getOrderWithDetails(id));
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+// ── Product Ratings ───────────────────────────────────────────────────────────
+
+router.get("/products/:id/ratings", async (req, res) => {
+  try {
+    const productId = parseInt(req.params.id);
+    const rows = await db.select().from(productRatings)
+      .where(eq(productRatings.productId, productId))
+      .orderBy(desc(productRatings.createdAt));
+    const avg = rows.length ? rows.reduce((s, r) => s + r.stars, 0) / rows.length : 0;
+    res.json({
+      average: Math.round(avg * 10) / 10,
+      count: rows.length,
+      ratings: rows.map(r => ({
+        id: r.id,
+        customer_name: r.customerName || "Customer",
+        stars: r.stars,
+        comment: r.comment,
+        created_at: r.createdAt,
+      })),
+    });
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+router.post("/products/:id/ratings", async (req, res) => {
+  try {
+    const productId = parseInt(req.params.id);
+    const { customer_id, customer_name, stars, comment } = req.body as {
+      customer_id?: number; customer_name?: string; stars: number; comment?: string;
+    };
+    if (!stars || stars < 1 || stars > 5) { res.status(400).json({ error: "Stars must be 1–5" }); return; }
+    const [prod] = await db.select({ id: products.id }).from(products).where(eq(products.id, productId));
+    if (!prod) { res.status(404).json({ error: "Product not found" }); return; }
+    const [inserted] = await db.insert(productRatings).values({
+      productId, customerId: customer_id || null,
+      customerName: customer_name || "Customer",
+      stars, comment: comment || null,
+    }).returning();
+    res.status(201).json(inserted);
   } catch (e) { res.status(500).json({ error: String(e) }); }
 });
 

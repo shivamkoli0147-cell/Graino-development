@@ -1,17 +1,19 @@
 import { useState, useEffect, useRef } from "react";
 import { useGetOrders, useUpdateOrderStatus } from "@workspace/api-client-react";
 import { formatINR, type CustomerSession } from "../lib/utils";
+import { InvoiceModal } from "../components/InvoiceModal";
 
 interface OrdersPageProps {
   customer: CustomerSession;
-  onRequestReturn: (orderId: number) => void;
+  onRequestReturn: (orderId: number, note: string) => void;
 }
 
 type OrderItem = { product_name: string; variety_name: string; price_per_kg: number; quantity_kg: number };
 type Order = {
   id: number; status: string; payment_status: string; total_amount: number;
   created_at: string; delivery_slot?: string | null; items: OrderItem[];
-  return_requested: boolean; return_note?: string;
+  return_requested: boolean; return_note?: string; return_status?: string | null;
+  invoice_url?: string | null;
 };
 
 // ── Status config ──────────────────────────────────────────────────────────────
@@ -85,7 +87,7 @@ function ensurePulseStyle() {
   document.head.appendChild(style);
 }
 
-export function OrdersPage({ customer }: OrdersPageProps) {
+export function OrdersPage({ customer, onRequestReturn }: OrdersPageProps) {
   ensurePulseStyle();
 
   const { data: orders, isLoading, refetch } = useGetOrders(
@@ -183,10 +185,17 @@ export function OrdersPage({ customer }: OrdersPageProps) {
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ fontWeight: 800, fontSize: 19, color: "#1C1C1C" }}>📋 मेरे Orders</div>
-          <button onClick={() => refetch()} className="btn-press" style={{
-            background: "#E8F5E8", border: "none", borderRadius: 10, padding: "6px 12px",
-            color: "#2D6A2D", fontFamily: "'Baloo 2', sans-serif", fontWeight: 700, fontSize: 12, cursor: "pointer",
-          }}>↻ Refresh</button>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <a href="tel:7089550147" style={{
+              width: 32, height: 32, borderRadius: "50%", background: "#E8F5E8",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 15, textDecoration: "none", flexShrink: 0,
+            }} title="Help: 7089550147">📞</a>
+            <button onClick={() => refetch()} className="btn-press" style={{
+              background: "#E8F5E8", border: "none", borderRadius: 10, padding: "6px 12px",
+              color: "#2D6A2D", fontFamily: "'Baloo 2', sans-serif", fontWeight: 700, fontSize: 12, cursor: "pointer",
+            }}>↻ Refresh</button>
+          </div>
         </div>
         <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>{customer.name} · {customer.village}</div>
       </div>
@@ -232,13 +241,14 @@ export function OrdersPage({ customer }: OrdersPageProps) {
                     key={order.id}
                     order={order}
                     onCancel={handleCancel}
+                    onRequestReturn={onRequestReturn}
                     showDivider={isLast}
                   />
                 );
               })
             ) : (
               sorted.map(order => (
-                <OrderCard key={order.id} order={order} onCancel={handleCancel} />
+                <OrderCard key={order.id} order={order} onCancel={handleCancel} onRequestReturn={onRequestReturn} />
               ))
             )}
           </div>
@@ -313,12 +323,16 @@ function SummaryChip({ label, bg, color, pulse }: { label: string; bg: string; c
 }
 
 // ── Individual order card ──────────────────────────────────────────────────────
-function OrderCard({ order, onCancel, showDivider }: {
+function OrderCard({ order, onCancel, onRequestReturn, showDivider }: {
   order: Order;
   onCancel: (id: number) => void;
+  onRequestReturn: (id: number, note: string) => void;
   showDivider?: boolean;
 }) {
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const [showReturnForm, setShowReturnForm] = useState(false);
+  const [returnNote, setReturnNote] = useState("");
+  const [showInvoice, setShowInvoice] = useState(false);
   const cfg = STATUS_CONFIG[order.status] || STATUS_CONFIG.placed;
   const canCancel = order.status === "placed" || order.status === "accepted";
 
@@ -411,16 +425,84 @@ function OrderCard({ order, onCancel, showDivider }: {
             <StatusTracker status={order.status} />
           )}
 
-          {/* Return request info (if already requested, show status) */}
-          {order.return_requested && (
-            <div style={{
-              background: "#FEE2E2", borderRadius: 8,
-              padding: "6px 10px", marginTop: 8,
-              fontSize: 12, color: "#dc2626", fontWeight: 600,
-            }}>
-              🔄 Return request भेजा गया
-            </div>
+          {/* Invoice button — only for delivered orders */}
+          {order.status === "delivered" && order.invoice_url && (
+            <button
+              onClick={() => setShowInvoice(true)}
+              className="btn-press"
+              style={{
+                marginTop: 10, width: "100%",
+                background: "linear-gradient(135deg,#1a3d1a,#2D6A2D)",
+                color: "white", border: "none",
+                borderRadius: 10, padding: "9px 14px",
+                fontFamily: "'Baloo 2', sans-serif",
+                fontWeight: 800, fontSize: 13, cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+              }}
+            >
+              📄 Invoice देखो
+            </button>
           )}
+
+          {/* Return request button */}
+          {!order.return_requested && order.status !== "cancelled" && (
+            showReturnForm ? (
+              <div style={{ marginTop: 10, background: "#FFF7ED", border: "1.5px solid #FCD34D", borderRadius: 12, padding: "10px 12px" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#92400E", marginBottom: 8 }}>
+                  🔄 Return Request भेजें
+                </div>
+                <textarea
+                  value={returnNote}
+                  onChange={e => setReturnNote(e.target.value)}
+                  placeholder="वापसी की वजह बताएं (optional)..."
+                  rows={2}
+                  style={{ width: "100%", borderRadius: 8, border: "1.5px solid #FCD34D", padding: "7px 10px", fontFamily: "'Baloo 2', sans-serif", fontSize: 12, resize: "none", boxSizing: "border-box", outline: "none" }}
+                />
+                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                  <button
+                    onClick={() => { onRequestReturn(order.id, returnNote.trim() || "Return requested"); setShowReturnForm(false); setReturnNote(""); }}
+                    className="btn-press"
+                    style={{ flex: 1, background: "#F59E0B", color: "#1B4332", border: "none", borderRadius: 10, padding: "8px", fontFamily: "'Baloo 2', sans-serif", fontWeight: 800, fontSize: 12, cursor: "pointer" }}>
+                    भेजो
+                  </button>
+                  <button onClick={() => setShowReturnForm(false)} className="btn-press"
+                    style={{ flex: 1, background: "white", color: "#555", border: "1.5px solid #E5E7EB", borderRadius: 10, padding: "8px", fontFamily: "'Baloo 2', sans-serif", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+                    रद्द करो
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button onClick={() => setShowReturnForm(true)} className="btn-press"
+                style={{ marginTop: 8, width: "100%", background: "none", border: "1.5px solid #F59E0B", color: "#92400E", borderRadius: 10, padding: "7px 14px", fontFamily: "'Baloo 2', sans-serif", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+                🔄 Return Request
+              </button>
+            )
+          )}
+
+          {/* Return status display */}
+          {order.return_requested && (() => {
+            const s = order.return_status;
+            if (s === "accepted") return (
+              <div style={{ background: "#DCFCE7", borderRadius: 8, padding: "6px 10px", marginTop: 8, fontSize: 12, color: "#15803D", fontWeight: 600 }}>
+                ✅ Return Accept हुआ — Seller लेने आएंगे
+              </div>
+            );
+            if (s === "rejected") return (
+              <div style={{ background: "#FEE2E2", borderRadius: 8, padding: "6px 10px", marginTop: 8, fontSize: 12, color: "#dc2626", fontWeight: 600 }}>
+                ❌ Return Reject हुआ
+              </div>
+            );
+            if (s === "picked_up") return (
+              <div style={{ background: "#DBEAFE", borderRadius: 8, padding: "6px 10px", marginTop: 8, fontSize: 12, color: "#1E40AF", fontWeight: 600 }}>
+                📦 Return Pick Up हो गया
+              </div>
+            );
+            return (
+              <div style={{ background: "#FEF3C7", borderRadius: 8, padding: "6px 10px", marginTop: 8, fontSize: 12, color: "#92400E", fontWeight: 600 }}>
+                ⏳ Return Request भेजा गया — जवाब का इंतजार है
+              </div>
+            );
+          })()}
 
           {/* Cancel button — only for placed or accepted */}
           {canCancel && (
@@ -475,6 +557,15 @@ function OrderCard({ order, onCancel, showDivider }: {
           )}
         </div>
       </div>
+
+      {/* Invoice modal */}
+      {showInvoice && order.invoice_url && (
+        <InvoiceModal
+          invoiceUrl={order.invoice_url}
+          orderId={order.id}
+          onClose={() => setShowInvoice(false)}
+        />
+      )}
 
       {/* Divider between active and past orders */}
       {showDivider && (

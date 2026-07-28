@@ -161,6 +161,19 @@ export function CustomerProfile({ customer, onUpdate, onLogout, onClose, onGoSel
             {saving ? "Save हो रहा है..." : saved ? "✓ Save हो गया!" : "Save करें"}
           </button>
 
+          {/* Help */}
+          <a href="tel:7089550147" style={{
+            display: "flex", alignItems: "center", gap: 12,
+            background: "#F0FDF4", border: "1.5px solid #BBF7D0", borderRadius: 14,
+            padding: "12px 16px", marginBottom: 16, textDecoration: "none",
+          }}>
+            <span style={{ fontSize: 24 }}>📞</span>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 14, color: "#15803D", fontFamily: "'Baloo 2',sans-serif" }}>Help / सहायता</div>
+              <div style={{ fontSize: 13, color: "#166534", fontFamily: "'Baloo 2',sans-serif", fontWeight: 600 }}>7089550147</div>
+            </div>
+          </a>
+
           {/* Divider */}
           <div style={{ borderTop: "1px solid #F0EDE8", marginBottom: 16 }} />
 

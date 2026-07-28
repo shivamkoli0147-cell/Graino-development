@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useGetOrders, useUpdateOrderStatus } from "@workspace/api-client-react";
 import type { OrderStatusUpdateStatus } from "@workspace/api-client-react";
 import { formatINR } from "../lib/utils";
+import { InvoiceModal } from "../components/InvoiceModal";
 
 interface SellerOrdersProps {
   onBack: () => void;
@@ -11,9 +12,10 @@ type OrderItem = { product_name: string; variety_name: string; price_per_kg: num
 type Order = {
   id: number; status: string; payment_status: string; total_amount: number;
   created_at: string; customer_name: string; customer_phone: string; village: string;
-  items: OrderItem[]; return_requested: boolean; return_note?: string;
+  items: OrderItem[]; return_requested: boolean; return_note?: string; return_status?: string | null;
   delivery_slot?: string; address?: string; landmark?: string;
   customer_lat?: number; customer_lng?: number;
+  invoice_url?: string | null;
 };
 
 // ── Status maps ───────────────────────────────────────────────────────────────
@@ -100,11 +102,22 @@ export function SellerOrders({ onBack }: SellerOrdersProps) {
       {
         onSuccess: () => {
           handleRefetch();
-          // Update detail if open
           setDetail(prev => prev?.id === orderId ? { ...prev, status } : prev);
         },
       }
     );
+  };
+
+  const handleReturnStatus = async (orderId: number, status: string) => {
+    try {
+      await fetch(`/api/orders/${orderId}/return-status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      handleRefetch();
+      setDetail(prev => prev?.id === orderId ? { ...prev, return_status: status } : prev);
+    } catch { /* ignore */ }
   };
 
   // Count per tab
@@ -233,6 +246,7 @@ export function SellerOrders({ onBack }: SellerOrdersProps) {
           order={detail}
           onClose={() => setDetail(null)}
           onAdvance={(id, status) => advance(id, status)}
+          onReturnStatus={handleReturnStatus}
         />
       )}
     </div>
@@ -472,13 +486,15 @@ function OrderCard({
 
 // ── Order Detail Bottom Sheet ──────────────────────────────────────────────────
 function OrderDetailSheet({
-  order, onClose, onAdvance,
+  order, onClose, onAdvance, onReturnStatus,
 }: {
   order: Order;
   onClose: () => void;
   onAdvance: (id: number, status: string) => void;
+  onReturnStatus: (id: number, status: string) => void;
 }) {
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const [showInvoice, setShowInvoice] = useState(false);
   const itemsTotal = order.items.reduce((s, i) => s + i.price_per_kg * i.quantity_kg, 0);
   const canCancel = order.status !== "cancelled";
 
@@ -621,15 +637,62 @@ function OrderDetailSheet({
             <Row label="Status" value={`${STATUS_ICON[order.status]} ${STATUS_LABEL[order.status]}`} />
           </Section>
 
-          {/* Return request */}
-          {order.return_requested && (
-            <div style={{
-              background: "#FEE2E2", borderRadius: 12, padding: "12px 14px", marginBottom: 16,
-              color: "#DC2626", fontWeight: 600, fontSize: 13,
-            }}>
-              🔄 Return Request: {order.return_note || "Customer ने return माँगा है"}
+          {/* Invoice button — for delivered orders */}
+          {order.status === "delivered" && order.invoice_url && (
+            <div style={{ marginBottom: 16 }}>
+              <button
+                onClick={() => setShowInvoice(true)}
+                className="btn-press"
+                style={{
+                  width: "100%",
+                  background: "linear-gradient(135deg,#1a3d1a,#2D6A2D)",
+                  color: "white", border: "none",
+                  borderRadius: 12, padding: "12px 14px",
+                  fontFamily: "'Baloo 2', sans-serif",
+                  fontWeight: 800, fontSize: 14, cursor: "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
+                }}
+              >
+                📄 Invoice / Receipt देखो
+              </button>
             </div>
           )}
+
+          {/* Return request */}
+          {order.return_requested && (() => {
+            const s = order.return_status;
+            return (
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ background: "#FEF3C7", borderRadius: 12, padding: "10px 14px", marginBottom: s === "requested" ? 8 : 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 13, color: "#92400E", marginBottom: 3 }}>
+                    🔄 Return Request
+                  </div>
+                  <div style={{ fontSize: 12, color: "#78350F" }}>{order.return_note || "Customer ने return माँगा है"}</div>
+                  {s === "accepted" && <div style={{ marginTop: 4, fontSize: 12, color: "#15803D", fontWeight: 700 }}>✅ Accept हुआ — Pick up pending</div>}
+                  {s === "rejected" && <div style={{ marginTop: 4, fontSize: 12, color: "#DC2626", fontWeight: 700 }}>❌ Reject हो गया</div>}
+                  {s === "picked_up" && <div style={{ marginTop: 4, fontSize: 12, color: "#1E40AF", fontWeight: 700 }}>📦 Pick Up हो गया</div>}
+                </div>
+                {(!s || s === "requested") && (
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button onClick={() => { onReturnStatus(order.id, "accepted"); }} className="btn-press" style={{
+                      flex: 1, background: "#22C55E", color: "white", border: "none", borderRadius: 10, padding: "9px",
+                      fontFamily: "'Baloo 2', sans-serif", fontWeight: 800, fontSize: 12, cursor: "pointer",
+                    }}>✅ Accept करो</button>
+                    <button onClick={() => { onReturnStatus(order.id, "rejected"); }} className="btn-press" style={{
+                      flex: 1, background: "#EF4444", color: "white", border: "none", borderRadius: 10, padding: "9px",
+                      fontFamily: "'Baloo 2', sans-serif", fontWeight: 800, fontSize: 12, cursor: "pointer",
+                    }}>❌ Reject करो</button>
+                  </div>
+                )}
+                {s === "accepted" && (
+                  <button onClick={() => { onReturnStatus(order.id, "picked_up"); onClose(); }} className="btn-press" style={{
+                    width: "100%", background: "#3B82F6", color: "white", border: "none", borderRadius: 10, padding: "9px",
+                    fontFamily: "'Baloo 2', sans-serif", fontWeight: 800, fontSize: 12, cursor: "pointer",
+                  }}>📦 Pick Up हो गया</button>
+                )}
+              </div>
+            );
+          })()}
         </div>
 
         {/* Action buttons pinned at bottom */}
@@ -699,6 +762,15 @@ function OrderDetailSheet({
           </div>
         )}
       </div>
+
+      {/* Invoice modal */}
+      {showInvoice && order.invoice_url && (
+        <InvoiceModal
+          invoiceUrl={order.invoice_url}
+          orderId={order.id}
+          onClose={() => setShowInvoice(false)}
+        />
+      )}
     </>
   );
 }

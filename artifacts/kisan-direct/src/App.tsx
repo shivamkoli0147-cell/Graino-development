@@ -53,8 +53,8 @@ function GrainoApp() {
     });
   }, []);
 
-  const handleReturnRequest = (orderId: number) => {
-    requestReturn.mutate({ id: orderId, data: { note: "Customer ने return request ki hai" } });
+  const handleReturnRequest = (orderId: number, note: string) => {
+    requestReturn.mutate({ id: orderId, data: { note } });
   };
 
   const handleCustomerUpdate = (c: CustomerSession) => {
@@ -112,6 +112,7 @@ function GrainoApp() {
             ) : viewProductId ? (
               <ProductDetail
                 productId={viewProductId} cart={cart}
+                customer={customer}
                 onBack={() => setViewProductId(null)}
                 onCartChange={handleCartChange}
                 onGoToCart={() => { setViewProductId(null); setCustomerTab("cart"); }}

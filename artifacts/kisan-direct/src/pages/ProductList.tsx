@@ -65,21 +65,30 @@ export function ProductList({ cart, onAddToCart, onViewProduct, customer, onOpen
             Grai<span style={{ color: "#F59E0B" }}>no</span>
           </div>
 
-          {/* Avatar */}
-          {customer && onOpenProfile && (
-            <button onClick={onOpenProfile} className="btn-press" style={{
-              width: 36, height: 36, borderRadius: "50%",
-              background: "linear-gradient(135deg,#F59E0B,#D97706)",
-              border: "none", cursor: "pointer",
+          {/* Help & Avatar */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <a href="tel:7089550147" style={{
+              width: 34, height: 34, borderRadius: "50%",
+              background: "rgba(255,255,255,0.18)", border: "none",
               display: "flex", alignItems: "center", justifyContent: "center",
-              color: "#1B4332", fontWeight: 800, fontSize: 15,
-              fontFamily: "'Baloo 2',sans-serif",
-              boxShadow: "0 2px 8px rgba(245,158,11,0.4)",
-              flexShrink: 0,
-            }}>
-              {initial}
-            </button>
-          )}
+              fontSize: 17, textDecoration: "none", flexShrink: 0,
+              cursor: "pointer",
+            }} title="Help: 7089550147">📞</a>
+            {customer && onOpenProfile && (
+              <button onClick={onOpenProfile} className="btn-press" style={{
+                width: 36, height: 36, borderRadius: "50%",
+                background: "linear-gradient(135deg,#F59E0B,#D97706)",
+                border: "none", cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: "#1B4332", fontWeight: 800, fontSize: 15,
+                fontFamily: "'Baloo 2',sans-serif",
+                boxShadow: "0 2px 8px rgba(245,158,11,0.4)",
+                flexShrink: 0,
+              }}>
+                {initial}
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Search bar */}

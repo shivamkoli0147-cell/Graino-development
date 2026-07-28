@@ -12,6 +12,8 @@ export const orders = pgTable("orders", {
   paymentStatus: text("payment_status").notNull().default("pending"),
   returnRequested: boolean("return_requested").notNull().default(false),
   returnNote: text("return_note"),
+  returnStatus: text("return_status"),
+  invoiceUrl: text("invoice_url"),
   createdAt: timestamp("created_at", { withTimezone: false }).defaultNow(),
 });
 
