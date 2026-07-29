@@ -14,6 +14,7 @@ type Order = {
   created_at: string; delivery_slot?: string | null; items: OrderItem[];
   return_requested: boolean; return_note?: string; return_status?: string | null;
   invoice_url?: string | null;
+  delivered_at?: string | null;
 };
 
 // ── Status config ──────────────────────────────────────────────────────────────
@@ -38,7 +39,7 @@ const STATUS_CONFIG: Record<string, {
     badgeBg: "#FFEDD5", badgeColor: "#9A3412",
   },
   delivered: {
-    badge: "पहुंच गया", icon: "✅✅",
+    badge: "पहुंच गया", icon: "✅",
     borderColor: "#22C55E", bgColor: "#F0FDF4",
     badgeBg: "#DCFCE7", badgeColor: "#15803D",
     dimmed: true,
@@ -444,9 +445,20 @@ function OrderCard({ order, onCancel, onRequestReturn, showDivider }: {
             </button>
           )}
 
-          {/* Return request button */}
-          {!order.return_requested && order.status !== "cancelled" && (
-            showReturnForm ? (
+          {/* Return request — only for delivered orders, within 3 days of delivery */}
+          {(() => {
+            if (order.return_requested) return null;
+            if (order.status !== "delivered") return null;
+            const deliveredMs = order.delivered_at
+              ? new Date(order.delivered_at).getTime()
+              : new Date(order.created_at).getTime();
+            const daysSince = (Date.now() - deliveredMs) / (1000 * 60 * 60 * 24);
+            if (daysSince > 3) return (
+              <div style={{ background: "#F3F4F6", borderRadius: 8, padding: "6px 10px", marginTop: 8, fontSize: 12, color: "#9CA3AF", fontWeight: 600, textAlign: "center" }}>
+                ⏰ Return window बंद हो गया (3 दिन)
+              </div>
+            );
+            return showReturnForm ? (
               <div style={{ marginTop: 10, background: "#FFF7ED", border: "1.5px solid #FCD34D", borderRadius: 12, padding: "10px 12px" }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "#92400E", marginBottom: 8 }}>
                   🔄 Return Request भेजें
@@ -476,8 +488,8 @@ function OrderCard({ order, onCancel, onRequestReturn, showDivider }: {
                 style={{ marginTop: 8, width: "100%", background: "none", border: "1.5px solid #F59E0B", color: "#92400E", borderRadius: 10, padding: "7px 14px", fontFamily: "'Baloo 2', sans-serif", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
                 🔄 Return Request
               </button>
-            )
-          )}
+            );
+          })()}
 
           {/* Return status display */}
           {order.return_requested && (() => {

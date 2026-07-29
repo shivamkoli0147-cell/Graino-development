@@ -421,6 +421,7 @@ async function getOrderWithDetails(orderId: number) {
     return_note: order.returnNote,
     return_status: order.returnStatus,
     invoice_url: order.invoiceUrl ?? null,
+    delivered_at: order.deliveredAt ? order.deliveredAt.toISOString() : null,
     created_at: order.createdAt,
     customer_id: order.customerId,
     customer_name: customerName,
@@ -809,6 +810,8 @@ router.get("/orders", async (req, res) => {
         return_requested: row.order.returnRequested,
         return_note: row.order.returnNote,
         return_status: row.order.returnStatus,
+        invoice_url: row.order.invoiceUrl ?? null,
+        delivered_at: row.order.deliveredAt ? row.order.deliveredAt.toISOString() : null,
         created_at: row.order.createdAt,
         customer_id: row.order.customerId,
         customer_name: row.customerName,
@@ -863,8 +866,12 @@ router.patch("/orders/:id/status", async (req, res) => {
     if (!valid.includes(status)) { res.status(400).json({ error: "Invalid status" }); return; }
     const [existing] = await db.select({ id: orders.id }).from(orders).where(eq(orders.id, id));
     if (!existing) { res.status(404).json({ error: "Not found" }); return; }
-    await db.update(orders).set({ status }).where(eq(orders.id, id));
-    // Auto-generate receipt PDF when order is delivered
+    if (status === "delivered") {
+      await db.update(orders).set({ status, deliveredAt: new Date() }).where(eq(orders.id, id));
+    } else {
+      await db.update(orders).set({ status }).where(eq(orders.id, id));
+    }
+    // Auto-generate receipt when order is delivered
     if (status === "delivered") {
       try { await generateAndSaveInvoice(id); } catch (e) { console.error("[invoice]", String(e)); }
     }

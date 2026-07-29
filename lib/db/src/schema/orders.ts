@@ -14,6 +14,7 @@ export const orders = pgTable("orders", {
   returnNote: text("return_note"),
   returnStatus: text("return_status"),
   invoiceUrl: text("invoice_url"),
+  deliveredAt: timestamp("delivered_at", { withTimezone: false }),
   createdAt: timestamp("created_at", { withTimezone: false }).defaultNow(),
 });
 
