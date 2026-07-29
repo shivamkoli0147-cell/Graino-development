@@ -101,7 +101,8 @@ function generateInvoiceHtml(params: {
   const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   const orderDate  = `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
   const orderTime  = `${d.getHours() % 12 || 12}:${String(d.getMinutes()).padStart(2,"0")} ${d.getHours() < 12 ? "AM" : "PM"}`;
-  const genDate    = new Date().toLocaleDateString("en-IN", { day:"2-digit", month:"short", year:"numeric" });
+  const now = new Date();
+  const genDate    = `${now.toLocaleDateString("en-IN", { day:"2-digit", month:"short", year:"numeric" })} at ${now.getHours() % 12 || 12}:${String(now.getMinutes()).padStart(2,"0")} ${now.getHours() < 12 ? "AM" : "PM"}`;
   const totalStr   = fmtINR(params.totalAmount);
   const payBadge   = params.paymentStatus === "paid" ? "✅ Paid Online" : "💵 Cash on Delivery";
   const itemCount  = params.items.length;
@@ -123,7 +124,7 @@ function generateInvoiceHtml(params: {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Invoice #${params.orderId} – KisanDirect</title>
+<title>Invoice #${params.orderId} – Graino</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f7f0;min-height:100vh}
@@ -174,7 +175,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f7f0;min-height:100vh
 <div class="hdr">
   <div class="brand">
     <div class="bi">🌾</div>
-    <div><div class="bn">KisanDirect</div><div class="bs">Graino Platform &middot; किसान से सीधे आपके द्वार</div></div>
+    <div><div class="bn">Graino</div><div class="bs">किसान से सीधे आपके द्वार &middot; Fresh from Farm to You</div></div>
   </div>
   <div class="imeta">
     <div><div class="ilbl">Tax Invoice / Receipt</div><div class="inum">#${params.orderId}</div></div>
@@ -199,7 +200,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f7f0;min-height:100vh
     <div class="party">
       <div class="plbl">🌾 Seller</div>
       <div class="pname">Graino Seller</div>
-      <div class="pdet">KisanDirect Partner</div>
+      <div class="pdet">Graino Partner</div>
       <div class="pdet">📍 Madhya Pradesh</div>
       <div class="pdet">📞 7089550147</div>
     </div>
@@ -222,7 +223,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f7f0;min-height:100vh
   </div>
 
   <div class="footer">
-    <div class="fbrand">🌾 KisanDirect by Graino</div>
+    <div class="fbrand">🌾 Graino</div>
     <div class="fsub">
       किसान से सीधे आपके द्वार &nbsp;&middot;&nbsp; Fresh from Farm to You<br>
       Support: 7089550147 &nbsp;&middot;&nbsp; Platform: Graino<br>

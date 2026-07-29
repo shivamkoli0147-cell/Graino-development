@@ -51,7 +51,7 @@ export function InvoiceModal({ invoiceUrl, orderId, onClose }: InvoiceModalProps
               📄 Invoice #{orderId}
             </div>
             <div style={{ color: "rgba(255,255,255,0.65)", fontSize: 11, marginTop: 1 }}>
-              Order Receipt · KisanDirect
+              Order Receipt · Graino
             </div>
           </div>
 
