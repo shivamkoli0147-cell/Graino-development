@@ -255,12 +255,116 @@ function ImageManager({ productId }: { productId: number }) {
   );
 }
 
+// ─── Variety Image Manager ─────────────────────────────────────────────────────
+type VarietyImageItem = { id: number; url: string; sort_order: number };
+
+function VarietyImageManager({ productId, varietyId }: { productId: number; varietyId: number }) {
+  const [images, setImages] = useState<VarietyImageItem[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const fetchImages = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/products/${productId}/varieties/${varietyId}/images`);
+      if (res.ok) setImages(await res.json());
+    } catch { /* ignore */ }
+  }, [productId, varietyId]);
+
+  useEffect(() => { void fetchImages(); }, [fetchImages]);
+
+  const handleUpload = async (files: FileList) => {
+    if (images.length >= 5) { setError("अधिकतम 5 images allowed"); return; }
+    const toUpload = Array.from(files).slice(0, 5 - images.length);
+    setUploading(true); setError(null);
+    try {
+      const formData = new FormData();
+      toUpload.forEach(f => formData.append("images", f));
+      const res = await fetch(`/api/products/${productId}/varieties/${varietyId}/images`, { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || "Upload failed"); }
+      else { await fetchImages(); }
+    } catch (e) { setError("Upload failed: " + String(e)); }
+    finally { setUploading(false); if (fileInputRef.current) fileInputRef.current.value = ""; }
+  };
+
+  const handleDelete = async (imageId: number) => {
+    try {
+      await fetch(`/api/varieties/images/${imageId}`, { method: "DELETE" });
+      await fetchImages();
+    } catch { setError("Delete failed"); }
+  };
+
+  return (
+    <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px dashed #E5DDD0" }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: "#555", marginBottom: 8 }}>📸 किस्म की Images</div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
+        {images.map((img, idx) => (
+          <div key={img.id} style={{ position: "relative" }}>
+            <img
+              src={img.url}
+              alt={`Image ${idx + 1}`}
+              style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 10, display: "block", border: "1.5px solid #E5DDD0" }}
+            />
+            <div style={{
+              position: "absolute", top: 2, left: 4,
+              background: "rgba(0,0,0,0.55)", borderRadius: 5,
+              padding: "1px 4px", color: "white", fontSize: 9, fontWeight: 700,
+            }}>{idx + 1}</div>
+            <button
+              onClick={() => handleDelete(img.id)}
+              style={{
+                position: "absolute", top: -6, right: -6,
+                width: 18, height: 18, borderRadius: "50%",
+                background: "#dc2626", color: "white", border: "2px solid white",
+                cursor: "pointer", fontSize: 11, fontWeight: 800,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                lineHeight: 1, padding: 0,
+              }}>×</button>
+          </div>
+        ))}
+        {images.length < 5 && (
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            style={{
+              width: 64, height: 64, borderRadius: 10,
+              border: "2px dashed #C5D8C5", background: "#F7FBF7",
+              cursor: uploading ? "default" : "pointer",
+              display: "flex", flexDirection: "column",
+              alignItems: "center", justifyContent: "center", gap: 2,
+              color: "#4A9B4A", fontSize: 9, fontWeight: 700,
+              fontFamily: "'Baloo 2', sans-serif",
+            }}>
+            {uploading ? <span style={{ fontSize: 16 }}>⏳</span> : <><span style={{ fontSize: 18 }}>📷</span>Add</>}
+          </button>
+        )}
+      </div>
+      <input
+        ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp"
+        multiple style={{ display: "none" }}
+        onChange={e => { if (e.target.files?.length) void handleUpload(e.target.files); }}
+      />
+      <div style={{ fontSize: 10, color: "#999", fontFamily: "'Baloo 2', sans-serif" }}>
+        {images.length}/5 · JPG/PNG/WebP
+      </div>
+      {error && (
+        <div style={{ marginTop: 5, fontSize: 11, color: "#dc2626", background: "#FEE2E2",
+          borderRadius: 8, padding: "5px 8px", fontFamily: "'Baloo 2', sans-serif" }}>
+          ❌ {error}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Variety Editor ────────────────────────────────────────────────────────────
-function VarietyEditor({ variety, index, onUpdate, onDelete, canDelete }: {
+function VarietyEditor({ variety, index, onUpdate, onDelete, canDelete, productId }: {
   variety: VarietyForm; index: number;
   onUpdate: (v: VarietyForm) => void;
   onDelete: () => void;
   canDelete: boolean;
+  productId?: number;
 }) {
   const [open, setOpen] = useState(index === 0);
   const upd = (patch: Partial<VarietyForm>) => onUpdate({ ...variety, ...patch });
@@ -328,6 +432,16 @@ function VarietyEditor({ variety, index, onUpdate, onDelete, canDelete }: {
             onAdd={t => upd({ disadvantages: [...variety.disadvantages, { text: t }] })}
             onRemove={i => upd({ disadvantages: variety.disadvantages.filter((_, idx) => idx !== i) })}
           />
+          {variety.id && productId ? (
+            <VarietyImageManager productId={productId} varietyId={variety.id} />
+          ) : (variety.name || index === 0) && !variety.id ? (
+            <div style={{
+              marginTop: 12, paddingTop: 12, borderTop: "1px dashed #E5DDD0",
+              fontSize: 11, color: "#888", fontFamily: "'Baloo 2', sans-serif",
+            }}>
+              📸 किस्म की images — Product save करने के बाद upload कर सकते हैं
+            </div>
+          ) : null}
         </div>
       )}
     </div>
@@ -504,10 +618,11 @@ function ProductFormView({ form, onSave, onCancel, onDelete, saving, deleting }:
             </div>
           ) : (
             f.varieties.map((v, i) => (
-              <VarietyEditor key={i} variety={v} index={i}
+              <VarietyEditor key={v.id ?? `new-${i}`} variety={v} index={i}
                 onUpdate={nv => updateVariety(i, nv)}
                 onDelete={() => deleteVariety(i)}
                 canDelete={true}
+                productId={f.id}
               />
             ))
           )}

@@ -64,6 +64,12 @@ export interface CustomerUpdateInput {
   lng?: number | null;
 }
 
+export interface VarietyImage {
+  id: number;
+  url: string;
+  sort_order: number;
+}
+
 export interface Variety {
   id: number;
   product_id: number;
@@ -74,6 +80,7 @@ export interface Variety {
   /** @nullable */
   shelf_life?: string | null;
   in_stock: boolean;
+  images?: VarietyImage[];
 }
 
 export interface Product {

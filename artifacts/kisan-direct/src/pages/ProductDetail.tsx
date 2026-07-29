@@ -15,6 +15,7 @@ type ProductImage = { id: number; url: string; sort_order: number };
 type Variety = {
   id: number; name: string; price_per_kg: number;
   description?: string; shelf_life?: string;
+  images?: ProductImage[];
 };
 type Product = {
   id: number; name: string; name_en: string; emoji: string; bg_color: string;
@@ -137,6 +138,176 @@ function ImageCarousel({ images, emoji, bgColor }: { images: ProductImage[]; emo
   );
 }
 
+// ── Variety Bottom Sheet ───────────────────────────────────────────────────────
+function VarietySheet({ variety, product, cart, onCartChange, onGoToCart, onClose, minKg }: {
+  variety: Variety;
+  product: Product;
+  cart: Cart;
+  onCartChange: (key: string, item: CartItem | null) => void;
+  onGoToCart?: () => void;
+  onClose: () => void;
+  minKg: number;
+}) {
+  const key = `${product.id}-${variety.id}`;
+  const inCart = !!cart[key];
+  const [qty, setQty] = useState<number>((cart[key]?.quantityKg) ?? minKg);
+  const font = "'Baloo 2', sans-serif";
+
+  // If variety has its own images use them, otherwise fall back to product images
+  const sheetImages: ProductImage[] = (variety.images && variety.images.length > 0)
+    ? [...variety.images].sort((a, b) => a.sort_order - b.sort_order)
+    : (product.images ?? []).sort((a, b) => a.sort_order - b.sort_order);
+
+  const updateQty = (delta: number) => {
+    const next = Math.max(minKg, qty + delta);
+    setQty(next);
+    if (cart[key]) onCartChange(key, { ...cart[key], quantityKg: next });
+  };
+
+  const toggleCart = () => {
+    if (inCart) {
+      onCartChange(key, null);
+    } else {
+      onCartChange(key, {
+        productId: product.id, varietyId: variety.id,
+        productName: product.name, productNameEn: product.name_en,
+        productEmoji: product.emoji, varietyName: variety.name,
+        pricePerKg: variety.price_per_kg, quantityKg: qty, minKg,
+      });
+    }
+  };
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)",
+          zIndex: 300, animation: "fadeIn 0.2s ease",
+        }}
+      />
+
+      {/* Sheet panel */}
+      <div style={{
+        position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)",
+        width: "100%", maxWidth: 390,
+        background: "white", borderRadius: "22px 22px 0 0",
+        zIndex: 301, maxHeight: "90vh", display: "flex", flexDirection: "column",
+        animation: "slideUp 0.28s cubic-bezier(0.32,0.72,0,1)",
+        boxShadow: "0 -8px 40px rgba(0,0,0,0.25)",
+        overflow: "hidden",
+      }}>
+        {/* Drag handle + close */}
+        <div style={{ padding: "12px 16px 0", flexShrink: 0, textAlign: "center", position: "relative" }}>
+          <div style={{ width: 36, height: 4, borderRadius: 2, background: "#E5E7EB", margin: "0 auto 4px" }} />
+          <button onClick={onClose} style={{
+            position: "absolute", top: 10, right: 14,
+            background: "rgba(0,0,0,0.07)", border: "none", borderRadius: "50%",
+            width: 28, height: 28, cursor: "pointer", fontSize: 14,
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>✕</button>
+        </div>
+
+        <div style={{ overflowY: "auto", flex: 1, WebkitOverflowScrolling: "touch" as const }}>
+          {/* Image carousel */}
+          <ImageCarousel images={sheetImages} emoji={product.emoji} bgColor={product.bg_color} />
+
+          {/* Variety info */}
+          <div style={{ padding: "16px 16px 0" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 800, fontSize: 18, color: "#1C1C1C", fontFamily: font }}>{variety.name}</div>
+                <div style={{ fontSize: 12, color: "#777", fontFamily: font }}>{product.name} • {product.name_en}</div>
+              </div>
+              {variety.price_per_kg ? (
+                <div style={{ textAlign: "right", marginLeft: 12, flexShrink: 0 }}>
+                  <div style={{ fontWeight: 900, fontSize: 22, color: "#1B4332", fontFamily: font }}>
+                    {formatINR(variety.price_per_kg)}
+                  </div>
+                  <div style={{ fontSize: 10, color: "#999", fontFamily: font }}>per kg</div>
+                </div>
+              ) : null}
+            </div>
+
+            {variety.description && (
+              <div style={{ fontSize: 13, color: "#555", fontFamily: font, marginBottom: 6, lineHeight: 1.5 }}>
+                {variety.description}
+              </div>
+            )}
+            {variety.shelf_life && (
+              <div style={{ fontSize: 12, color: "#4A9B4A", fontWeight: 600, fontFamily: font, marginBottom: 10 }}>
+                📦 shelf life: {variety.shelf_life}
+              </div>
+            )}
+          </div>
+
+          {/* Qty + Buy/Cart */}
+          <div style={{ padding: "12px 16px 28px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{
+                display: "flex", alignItems: "center",
+                background: "#F0F4F0", borderRadius: 12, overflow: "hidden",
+              }}>
+                <button
+                  onClick={() => updateQty(-minKg)}
+                  className="btn-press"
+                  style={{
+                    background: "none", border: "none", padding: "10px 15px",
+                    cursor: "pointer", fontFamily: font,
+                    fontWeight: 800, fontSize: 20, color: "#1B4332",
+                  }}>−</button>
+                <div style={{
+                  fontWeight: 800, fontSize: 14, minWidth: 46, textAlign: "center",
+                  color: "#1C1C1C", fontFamily: font,
+                }}>{qty}kg</div>
+                <button
+                  onClick={() => updateQty(minKg)}
+                  className="btn-press"
+                  style={{
+                    background: "none", border: "none", padding: "10px 15px",
+                    cursor: "pointer", fontFamily: font,
+                    fontWeight: 800, fontSize: 20, color: "#1B4332",
+                  }}>+</button>
+              </div>
+              <button
+                onClick={toggleCart}
+                className="btn-press"
+                style={{
+                  flex: 1,
+                  background: inCart
+                    ? "linear-gradient(135deg,#dc2626,#b91c1c)"
+                    : "linear-gradient(135deg,#1B4332,#2D6A2D)",
+                  color: "white", border: "none", borderRadius: 12,
+                  padding: "11px 0", fontFamily: font,
+                  fontWeight: 700, fontSize: 13, cursor: "pointer",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                }}>
+                {inCart ? "✓ Cart में है" : "🛒 Cart"}
+              </button>
+              {onGoToCart && (
+                <button
+                  onClick={() => { if (!inCart) toggleCart(); onGoToCart(); onClose(); }}
+                  className="btn-press"
+                  style={{
+                    flex: 1.4,
+                    background: "linear-gradient(135deg,#F59E0B,#D97706)",
+                    color: "#1B4332", border: "none", borderRadius: 12,
+                    padding: "11px 0", fontFamily: font,
+                    fontWeight: 800, fontSize: 13, cursor: "pointer",
+                    boxShadow: "0 2px 8px rgba(245,158,11,0.4)",
+                  }}>
+                  ⚡ अभी खरीदो
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ── Star display ──────────────────────────────────────────────────────────────
 function StarRow({ stars, size = 14 }: { stars: number; size?: number }) {
   return (
@@ -232,6 +403,7 @@ export function ProductDetail({ productId, cart, onBack, onCartChange, onGoToCar
   const [selected, setSelected] = useState<number | null>(null);
   const [qty, setQty] = useState<Record<number, number>>({});
   const [noVarQty, setNoVarQty] = useState<number | null>(null);
+  const [sheetVariety, setSheetVariety] = useState<Variety | null>(null);
 
   if (isLoading) return (
     <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", background: "#F4F6F3" }}>
@@ -465,7 +637,7 @@ export function ProductDetail({ productId, cart, onBack, onCartChange, onGoToCar
                       boxShadow: inCart ? "0 2px 12px rgba(27,67,50,0.15)" : "0 2px 6px rgba(0,0,0,0.04)",
                     }}>
                       <div style={{ padding: "14px 14px 12px", cursor: "pointer" }}
-                        onClick={() => setSelected(isOpen ? null : v.id)}>
+                        onClick={() => { setSelected(isOpen ? null : v.id); setSheetVariety(v); }}>
 
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                           <div style={{ flex: 1, minWidth: 0 }}>
@@ -562,6 +734,19 @@ export function ProductDetail({ productId, cart, onBack, onCartChange, onGoToCar
         )}
         <RatingsSection productId={p.id} customer={customer} />
       </div>
+
+      {/* ── Variety Bottom Sheet ── */}
+      {sheetVariety && (
+        <VarietySheet
+          variety={sheetVariety}
+          product={p}
+          cart={cart}
+          onCartChange={onCartChange}
+          onGoToCart={onGoToCart}
+          onClose={() => setSheetVariety(null)}
+          minKg={minKg}
+        />
+      )}
 
       {/* ── Floating "Go to Cart" button ── */}
       {onGoToCart && Object.keys(cart).some(k => k.startsWith(`${p.id}-`)) && (

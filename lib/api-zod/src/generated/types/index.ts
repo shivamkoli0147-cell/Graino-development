@@ -36,4 +36,5 @@ export * from './sellerAuthResult';
 export * from './slotBreakdown';
 export * from './stockUpdate';
 export * from './variety';
+export * from './varietyImage';
 export * from './village';

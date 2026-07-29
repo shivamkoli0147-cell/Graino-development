@@ -3,7 +3,7 @@ import multer from "multer";
 import { db } from "../db.js";
 import {
   villages, customers, products, varieties,
-  productBenefits, varietyBenefits, orders, orderItems, productImages, categories,
+  productBenefits, varietyBenefits, orders, orderItems, productImages, varietyImages, categories,
   productRatings,
 } from "@workspace/db/schema";
 import { eq, and, ilike, or, sql, count, sum, countDistinct, asc, desc, inArray, ne } from "drizzle-orm";
@@ -322,7 +322,11 @@ async function getVarietyBenefitsData(varietyId: number) {
   };
 }
 
-function mapVariety(v: { id: number; productId: number; name: string; pricePerKg: number; description: string | null; shelfLife: string | null; inStock: boolean; stockLevel: string | null }, vb: { benefits: { id: number; text: string }[]; disadvantages: { id: number; text: string }[] }) {
+function mapVariety(
+  v: { id: number; productId: number; name: string; pricePerKg: number; description: string | null; shelfLife: string | null; inStock: boolean; stockLevel: string | null },
+  vb: { benefits: { id: number; text: string }[]; disadvantages: { id: number; text: string }[] },
+  images: { id: number; url: string; sort_order: number }[] = [],
+) {
   return {
     ...v,
     product_id: v.productId,
@@ -330,6 +334,7 @@ function mapVariety(v: { id: number; productId: number; name: string; pricePerKg
     shelf_life: v.shelfLife,
     in_stock: v.inStock,
     stock_level: v.stockLevel,
+    images,
     ...vb,
   };
 }
@@ -352,6 +357,13 @@ async function getProductImages(productId: number) {
   return imgs.map(i => ({ id: i.id, url: i.imageUrl, sort_order: i.sortOrder }));
 }
 
+async function getVarietyImages(varietyId: number) {
+  const imgs = await db.select().from(varietyImages)
+    .where(eq(varietyImages.varietyId, varietyId))
+    .orderBy(asc(varietyImages.sortOrder), asc(varietyImages.id));
+  return imgs.map(i => ({ id: i.id, url: i.imageUrl, sort_order: i.sortOrder }));
+}
+
 async function getProductWithDetails(id: number) {
   const [product] = await db.select().from(products).where(eq(products.id, id));
   if (!product) return null;
@@ -361,8 +373,8 @@ async function getProductWithDetails(id: number) {
     getProductImages(id),
   ]);
   const varWithBenefits = await Promise.all(vars.map(async v => {
-    const vb = await getVarietyBenefitsData(v.id);
-    return mapVariety(v, vb);
+    const [vb, vImgs] = await Promise.all([getVarietyBenefitsData(v.id), getVarietyImages(v.id)]);
+    return mapVariety(v, vb, vImgs);
   }));
   return {
     ...mapProduct(product),
@@ -385,8 +397,8 @@ async function getAllProductsWithDetails(search?: string) {
       getProductImages(p.id),
     ]);
     const varWithBenefits = await Promise.all(vars.map(async v => {
-      const vb = await getVarietyBenefitsData(v.id);
-      return mapVariety(v, vb);
+      const [vb, vImgs] = await Promise.all([getVarietyBenefitsData(v.id), getVarietyImages(v.id)]);
+      return mapVariety(v, vb, vImgs);
     }));
     return {
       ...mapProduct(p),
@@ -773,6 +785,65 @@ router.patch("/products/:id/images/reorder", async (req, res) => {
         .where(and(eq(productImages.id, order[i]), eq(productImages.productId, productId)));
     }
     res.json(await getProductImages(productId));
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+// ── Variety Images ────────────────────────────────────────────────────────────
+
+router.get("/products/:id/varieties/:varietyId/images", async (req, res) => {
+  try {
+    const varietyId = parseInt(req.params.varietyId);
+    res.json(await getVarietyImages(varietyId));
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+router.post("/products/:id/varieties/:varietyId/images", upload.array("images", 5), async (req, res) => {
+  try {
+    const varietyId = parseInt(req.params.varietyId);
+    const [existing] = await db.select({ id: varieties.id }).from(varieties).where(eq(varieties.id, varietyId));
+    if (!existing) { res.status(404).json({ error: "Variety not found" }); return; }
+
+    const currentCount = (await db.select({ id: varietyImages.id }).from(varietyImages).where(eq(varietyImages.varietyId, varietyId))).length;
+    const files = (req.files as Express.Multer.File[]) ?? [];
+    if (files.length === 0) { res.status(400).json({ error: "No images uploaded" }); return; }
+    if (currentCount + files.length > 5) {
+      res.status(400).json({ error: `Maximum 5 images allowed. Currently has ${currentCount}.` }); return;
+    }
+
+    const inserted = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const imageUrl = await uploadToSupabase(file.buffer, file.originalname, file.mimetype);
+      const [row] = await db.insert(varietyImages).values({
+        varietyId, imageUrl, sortOrder: currentCount + i,
+      }).returning();
+      inserted.push({ id: row.id, url: row.imageUrl, sort_order: row.sortOrder });
+    }
+    res.status(201).json(inserted);
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+router.delete("/varieties/images/:imageId", async (req, res) => {
+  try {
+    const imageId = parseInt(req.params.imageId);
+    const [existing] = await db.select().from(varietyImages).where(eq(varietyImages.id, imageId));
+    if (!existing) { res.status(404).json({ error: "Image not found" }); return; }
+    await db.delete(varietyImages).where(eq(varietyImages.id, imageId));
+    void deleteFromSupabase(existing.imageUrl);
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+router.patch("/products/:id/varieties/:varietyId/images/reorder", async (req, res) => {
+  try {
+    const varietyId = parseInt(req.params.varietyId);
+    const { order } = req.body as { order: number[] };
+    for (let i = 0; i < order.length; i++) {
+      await db.update(varietyImages)
+        .set({ sortOrder: i })
+        .where(and(eq(varietyImages.id, order[i]), eq(varietyImages.varietyId, varietyId)));
+    }
+    res.json(await getVarietyImages(varietyId));
   } catch (e) { res.status(500).json({ error: String(e) }); }
 });
 

@@ -5,6 +5,7 @@
  * KisanDirect API — farm-to-village selling platform
  * OpenAPI spec version: 0.1.0
  */
+import type { VarietyImage } from './varietyImage';
 
 export interface Variety {
   id: number;
@@ -16,4 +17,5 @@ export interface Variety {
   /** @nullable */
   shelf_life?: string | null;
   in_stock: boolean;
+  images?: VarietyImage[];
 }

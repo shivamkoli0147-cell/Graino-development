@@ -108,7 +108,12 @@ export const GetProductsResponseItem = zod.object({
   "price_per_kg": zod.number(),
   "description": zod.string().nullish(),
   "shelf_life": zod.string().nullish(),
-  "in_stock": zod.boolean()
+  "in_stock": zod.boolean(),
+  "images": zod.array(zod.object({
+  "id": zod.number(),
+  "url": zod.string(),
+  "sort_order": zod.number()
+})).optional()
 })).optional(),
   "benefits": zod.array(zod.string()).optional()
 })
@@ -159,7 +164,12 @@ export const GetProductResponse = zod.object({
   "price_per_kg": zod.number(),
   "description": zod.string().nullish(),
   "shelf_life": zod.string().nullish(),
-  "in_stock": zod.boolean()
+  "in_stock": zod.boolean(),
+  "images": zod.array(zod.object({
+  "id": zod.number(),
+  "url": zod.string(),
+  "sort_order": zod.number()
+})).optional()
 })).optional(),
   "benefits": zod.array(zod.string()).optional()
 })
@@ -205,7 +215,12 @@ export const UpdateProductResponse = zod.object({
   "price_per_kg": zod.number(),
   "description": zod.string().nullish(),
   "shelf_life": zod.string().nullish(),
-  "in_stock": zod.boolean()
+  "in_stock": zod.boolean(),
+  "images": zod.array(zod.object({
+  "id": zod.number(),
+  "url": zod.string(),
+  "sort_order": zod.number()
+})).optional()
 })).optional(),
   "benefits": zod.array(zod.string()).optional()
 })
@@ -243,7 +258,12 @@ export const UpdateVarietyStockResponse = zod.object({
   "price_per_kg": zod.number(),
   "description": zod.string().nullish(),
   "shelf_life": zod.string().nullish(),
-  "in_stock": zod.boolean()
+  "in_stock": zod.boolean(),
+  "images": zod.array(zod.object({
+  "id": zod.number(),
+  "url": zod.string(),
+  "sort_order": zod.number()
+})).optional()
 })
 
 

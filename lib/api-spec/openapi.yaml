@@ -456,6 +456,17 @@ components:
         lng:
           type: ["number", "null"]
 
+    VarietyImage:
+      type: object
+      required: [id, url, sort_order]
+      properties:
+        id:
+          type: integer
+        url:
+          type: string
+        sort_order:
+          type: integer
+
     Variety:
       type: object
       required: [id, product_id, name, price_per_kg, in_stock]
@@ -474,6 +485,10 @@ components:
           type: ["string", "null"]
         in_stock:
           type: boolean
+        images:
+          type: array
+          items:
+            $ref: "#/components/schemas/VarietyImage"
 
     Product:
       type: object

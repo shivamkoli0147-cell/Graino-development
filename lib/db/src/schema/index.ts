@@ -8,4 +8,5 @@ export * from "./variety_benefits";
 export * from "./orders";
 export * from "./order_items";
 export * from "./product_images";
+export * from "./variety_images";
 export * from "./product_ratings";
