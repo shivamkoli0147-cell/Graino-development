@@ -638,7 +638,7 @@ function OrderDetailSheet({
           </Section>
 
           {/* Invoice button — for delivered orders */}
-          {order.status === "delivered" && order.invoice_url && (
+          {order.status === "delivered" && (
             <div style={{ marginBottom: 16 }}>
               <button
                 onClick={() => setShowInvoice(true)}
@@ -764,9 +764,9 @@ function OrderDetailSheet({
       </div>
 
       {/* Invoice modal */}
-      {showInvoice && order.invoice_url && (
+      {showInvoice && (
         <InvoiceModal
-          invoiceUrl={order.invoice_url}
+          invoiceUrl={`/api/orders/${order.id}/invoice`}
           orderId={order.id}
           onClose={() => setShowInvoice(false)}
         />

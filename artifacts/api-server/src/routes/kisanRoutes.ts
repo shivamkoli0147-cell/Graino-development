@@ -858,6 +858,30 @@ router.post("/orders", async (req, res) => {
   } catch (e) { res.status(500).json({ error: String(e) }); }
 });
 
+// ── Serve invoice HTML directly (bypasses Supabase storage content-type issues) ─
+router.get("/orders/:id/invoice", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const orderData = await getOrderWithDetails(id);
+    if (!orderData) { res.status(404).send("Order not found"); return; }
+    if (orderData.status !== "delivered") { res.status(400).send("Invoice only available for delivered orders"); return; }
+    const html = generateInvoiceHtml({
+      orderId: id,
+      orderDate: orderData.createdAt as Date | null,
+      customerName: orderData.customer_name ?? null,
+      customerPhone: orderData.customer_phone ?? null,
+      village: orderData.village,
+      address: orderData.address,
+      items: orderData.items,
+      totalAmount: orderData.total_amount,
+      paymentStatus: orderData.payment_status,
+    });
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.setHeader("Content-Disposition", "inline");
+    res.send(html);
+  } catch (e) { res.status(500).send(String(e)); }
+});
+
 router.patch("/orders/:id/status", async (req, res) => {
   try {
     const id = parseInt(req.params.id);

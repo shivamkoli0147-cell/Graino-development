@@ -427,7 +427,7 @@ function OrderCard({ order, onCancel, onRequestReturn, showDivider }: {
           )}
 
           {/* Invoice button — only for delivered orders */}
-          {order.status === "delivered" && order.invoice_url && (
+          {order.status === "delivered" && (
             <button
               onClick={() => setShowInvoice(true)}
               className="btn-press"
@@ -571,9 +571,9 @@ function OrderCard({ order, onCancel, onRequestReturn, showDivider }: {
       </div>
 
       {/* Invoice modal */}
-      {showInvoice && order.invoice_url && (
+      {showInvoice && (
         <InvoiceModal
-          invoiceUrl={order.invoice_url}
+          invoiceUrl={`/api/orders/${order.id}/invoice`}
           orderId={order.id}
           onClose={() => setShowInvoice(false)}
         />
