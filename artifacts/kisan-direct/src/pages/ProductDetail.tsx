@@ -194,7 +194,7 @@ function VarietySheet({ variety, product, cart, onCartChange, onGoToCart, onClos
         width: "100%", maxWidth: 390,
         background: "white", borderRadius: "22px 22px 0 0",
         zIndex: 301, maxHeight: "90vh", display: "flex", flexDirection: "column",
-        animation: "slideUp 0.28s cubic-bezier(0.32,0.72,0,1)",
+        animation: "so-sheet 0.38s cubic-bezier(0.25,0.8,0.25,1)",
         boxShadow: "0 -8px 40px rgba(0,0,0,0.25)",
         overflow: "hidden",
       }}>
@@ -639,7 +639,20 @@ export function ProductDetail({ productId, cart, onBack, onCartChange, onGoToCar
                       <div style={{ padding: "14px 14px 12px", cursor: "pointer" }}
                         onClick={() => { setSelected(isOpen ? null : v.id); setSheetVariety(v); }}>
 
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+                          {/* Variety thumbnail */}
+                          {v.images && v.images.length > 0 && (
+                            <div style={{
+                              flexShrink: 0, width: 58, height: 58, borderRadius: 12,
+                              overflow: "hidden", border: "1.5px solid #EDEAE5",
+                            }}>
+                              <img
+                                src={v.images[0].url}
+                                alt={v.name}
+                                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                              />
+                            </div>
+                          )}
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontWeight: 800, fontSize: 15, color: "#1C1C1C",
                               fontFamily: "'Baloo 2', sans-serif" }}>{v.name}</div>
@@ -655,7 +668,7 @@ export function ProductDetail({ productId, cart, onBack, onCartChange, onGoToCar
                             )}
                           </div>
                           {v.price_per_kg ? (
-                            <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 12 }}>
+                            <div style={{ textAlign: "right", flexShrink: 0 }}>
                               <div style={{ fontWeight: 800, fontSize: 18, color: "#1B4332",
                                 fontFamily: "'Baloo 2', sans-serif" }}>
                                 {formatINR(v.price_per_kg)}
