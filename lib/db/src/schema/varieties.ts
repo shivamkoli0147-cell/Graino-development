@@ -10,6 +10,8 @@ export const varieties = pgTable("varieties", {
   shelfLife: text("shelf_life"),
   inStock: boolean("in_stock").notNull().default(true),
   stockLevel: text("stock_level").default("High"),
+  offerPrice: real("offer_price"),
+  offerLabel: text("offer_label"),
 });
 
 export type Variety = typeof varieties.$inferSelect;

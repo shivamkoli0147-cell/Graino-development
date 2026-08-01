@@ -15,6 +15,7 @@ type ProductImage = { id: number; url: string; sort_order: number };
 type Variety = {
   id: number; name: string; price_per_kg: number;
   description?: string; shelf_life?: string;
+  offer_price?: number | null; offer_label?: string | null;
   images?: ProductImage[];
 };
 type Product = {
@@ -219,13 +220,36 @@ function VarietySheet({ variety, product, cart, onCartChange, onGoToCart, onClos
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 800, fontSize: 18, color: "#1C1C1C", fontFamily: font }}>{variety.name}</div>
                 <div style={{ fontSize: 12, color: "#777", fontFamily: font }}>{product.name} • {product.name_en}</div>
+                {variety.offer_price && variety.offer_label && (
+                  <div style={{
+                    display: "inline-block", marginTop: 4,
+                    background: "#FEF3C7", color: "#92400E",
+                    borderRadius: 8, padding: "2px 8px",
+                    fontSize: 11, fontWeight: 800, fontFamily: font,
+                  }}>🏷️ {variety.offer_label}</div>
+                )}
               </div>
               {variety.price_per_kg ? (
                 <div style={{ textAlign: "right", marginLeft: 12, flexShrink: 0 }}>
-                  <div style={{ fontWeight: 900, fontSize: 22, color: "#1B4332", fontFamily: font }}>
-                    {formatINR(variety.price_per_kg)}
-                  </div>
-                  <div style={{ fontSize: 10, color: "#999", fontFamily: font }}>per kg</div>
+                  {variety.offer_price ? (
+                    <>
+                      <div style={{ fontSize: 12, color: "#999", fontFamily: font,
+                        textDecoration: "line-through", lineHeight: 1.2 }}>
+                        {formatINR(variety.price_per_kg)}
+                      </div>
+                      <div style={{ fontWeight: 900, fontSize: 24, color: "#D97706", fontFamily: font, lineHeight: 1 }}>
+                        {formatINR(variety.offer_price)}
+                      </div>
+                      <div style={{ fontSize: 10, color: "#999", fontFamily: font }}>per kg</div>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ fontWeight: 900, fontSize: 22, color: "#1B4332", fontFamily: font }}>
+                        {formatINR(variety.price_per_kg)}
+                      </div>
+                      <div style={{ fontSize: 10, color: "#999", fontFamily: font }}>per kg</div>
+                    </>
+                  )}
                 </div>
               ) : null}
             </div>
@@ -669,12 +693,31 @@ export function ProductDetail({ productId, cart, onBack, onCartChange, onGoToCar
                           </div>
                           {v.price_per_kg ? (
                             <div style={{ textAlign: "right", flexShrink: 0 }}>
-                              <div style={{ fontWeight: 800, fontSize: 18, color: "#1B4332",
-                                fontFamily: "'Baloo 2', sans-serif" }}>
-                                {formatINR(v.price_per_kg)}
-                              </div>
-                              <div style={{ fontSize: 10, color: "#999",
-                                fontFamily: "'Baloo 2', sans-serif" }}>per kg</div>
+                              {v.offer_price ? (
+                                <>
+                                  <div style={{ fontSize: 10, color: "#999", fontFamily: "'Baloo 2', sans-serif",
+                                    textDecoration: "line-through" }}>
+                                    {formatINR(v.price_per_kg)}
+                                  </div>
+                                  <div style={{ fontWeight: 900, fontSize: 18, color: "#D97706",
+                                    fontFamily: "'Baloo 2', sans-serif" }}>
+                                    {formatINR(v.offer_price)}
+                                  </div>
+                                  <div style={{ fontSize: 10, background: "#FEF3C7", color: "#92400E",
+                                    borderRadius: 6, padding: "1px 5px", fontWeight: 800,
+                                    fontFamily: "'Baloo 2', sans-serif" }}>
+                                    {v.offer_label || `${Math.round((1 - v.offer_price/v.price_per_kg)*100)}% OFF`}
+                                  </div>
+                                </>
+                              ) : (
+                                <>
+                                  <div style={{ fontWeight: 800, fontSize: 18, color: "#1B4332",
+                                    fontFamily: "'Baloo 2', sans-serif" }}>
+                                    {formatINR(v.price_per_kg)}
+                                  </div>
+                                  <div style={{ fontSize: 10, color: "#999", fontFamily: "'Baloo 2', sans-serif" }}>per kg</div>
+                                </>
+                              )}
                             </div>
                           ) : null}
                         </div>

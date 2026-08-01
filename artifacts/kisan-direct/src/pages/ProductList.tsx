@@ -183,6 +183,80 @@ export function ProductList({ cart, onAddToCart, onViewProduct, customer, onOpen
         </div>
       ) : null}
 
+      {/* ── Offers banner ── */}
+      {!search && (() => {
+        const offerProducts = (allNavProducts as unknown as Product[] | undefined)?.filter(p =>
+          (p.varieties as Variety[]).some(v => v.offer_price)
+        ) ?? [];
+        if (offerProducts.length === 0) return null;
+        return (
+          <div style={{
+            margin: "10px 12px 0", flexShrink: 0,
+            background: "linear-gradient(135deg,#1B4332,#2D6A2D)",
+            borderRadius: 16, padding: "12px 14px", overflow: "hidden", position: "relative",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+              <div style={{ fontWeight: 800, fontSize: 14, color: "white", fontFamily: "'Baloo 2', sans-serif" }}>
+                🏷️ चल रहे Offers
+              </div>
+              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", fontFamily: "'Baloo 2', sans-serif" }}>
+                {offerProducts.length} उत्पाद
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 2 }}>
+              {offerProducts.map(p => {
+                const offerV = (p.varieties as Variety[]).find(v => v.offer_price)!;
+                const pct = Math.round((1 - offerV.offer_price! / offerV.price_per_kg) * 100);
+                const img = p.images?.[0];
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => onViewProduct(p.id)}
+                    style={{
+                      flexShrink: 0, background: "rgba(255,255,255,0.12)",
+                      border: "1.5px solid rgba(255,255,255,0.2)",
+                      borderRadius: 12, padding: "8px 10px",
+                      display: "flex", alignItems: "center", gap: 8,
+                      cursor: "pointer", textAlign: "left",
+                    }}
+                  >
+                    <div style={{
+                      width: 36, height: 36, borderRadius: 8, overflow: "hidden",
+                      background: "rgba(255,255,255,0.15)", flexShrink: 0,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      {img
+                        ? <img src={img.url} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        : <span style={{ fontSize: 20 }}>{p.emoji}</span>
+                      }
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 12, color: "white", fontFamily: "'Baloo 2', sans-serif" }}>
+                        {p.name}
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <span style={{
+                          background: "#F59E0B", color: "#1B4332",
+                          borderRadius: 6, padding: "1px 5px",
+                          fontSize: 10, fontWeight: 800, fontFamily: "'Baloo 2', sans-serif",
+                        }}>{pct}% OFF</span>
+                        <span style={{ fontSize: 10, color: "rgba(255,255,255,0.75)", fontFamily: "'Baloo 2', sans-serif",
+                          textDecoration: "line-through" }}>
+                          ₹{offerV.price_per_kg}
+                        </span>
+                        <span style={{ fontSize: 11, color: "#FCD34D", fontWeight: 800, fontFamily: "'Baloo 2', sans-serif" }}>
+                          ₹{offerV.offer_price}
+                        </span>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* ── Section header ── */}
       <div style={{ padding: "14px 14px 4px", flexShrink: 0 }}>
         <div style={{ fontWeight: 800, fontSize: 15, color: "#1C1C1C",
@@ -306,26 +380,36 @@ export function ProductList({ cart, onAddToCart, onViewProduct, customer, onOpen
 
                   {/* Info + CTA */}
                   <div style={{ padding: "10px 11px 12px" }}>
-                    {hasNoVarieties ? (
-                      directPrice ? (
-                        <div style={{ fontSize: 10, color: "#4A9B4A", fontWeight: 600,
-                          fontFamily: "'Baloo 2', sans-serif" }}>
-                          ₹{directPrice}/kg
-                        </div>
-                      ) : null
-                    ) : (
-                      cheapest?.price_per_kg ? (
-                        <div style={{ fontSize: 10, color: "#4A9B4A", fontWeight: 600,
-                          fontFamily: "'Baloo 2', sans-serif" }}>
+                    {(() => {
+                      const offerVariety = allVarieties.find(v => v.offer_price);
+                      if (offerVariety && offerVariety.offer_price) {
+                        const pct = Math.round((1 - offerVariety.offer_price / offerVariety.price_per_kg) * 100);
+                        return (
+                          <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
+                            <span style={{
+                              background: "#FEF3C7", color: "#92400E", borderRadius: 8,
+                              padding: "2px 7px", fontSize: 10, fontWeight: 800,
+                              fontFamily: "'Baloo 2', sans-serif",
+                            }}>🏷️ {pct}% OFF</span>
+                            <span style={{ fontSize: 10, color: "#4A9B4A", fontWeight: 600, fontFamily: "'Baloo 2', sans-serif" }}>
+                              ₹{offerVariety.offer_price}/kg
+                            </span>
+                          </div>
+                        );
+                      }
+                      if (hasNoVarieties) {
+                        return directPrice ? (
+                          <div style={{ fontSize: 10, color: "#4A9B4A", fontWeight: 600, fontFamily: "'Baloo 2', sans-serif" }}>
+                            ₹{directPrice}/kg
+                          </div>
+                        ) : null;
+                      }
+                      return (
+                        <div style={{ fontSize: 10, color: "#4A9B4A", fontWeight: 600, fontFamily: "'Baloo 2', sans-serif" }}>
                           {allVarieties.length} किस्में उपलब्ध
                         </div>
-                      ) : (
-                        <div style={{ fontSize: 10, color: "#4A9B4A", fontWeight: 600,
-                          fontFamily: "'Baloo 2', sans-serif" }}>
-                          {allVarieties.length} किस्में उपलब्ध
-                        </div>
-                      )
-                    )}
+                      );
+                    })()}
 
                     {/* Order button */}
                     <button
@@ -365,7 +449,7 @@ export function ProductList({ cart, onAddToCart, onViewProduct, customer, onOpen
   );
 }
 
-type Variety = { id: number; price_per_kg: number; name: string };
+type Variety = { id: number; price_per_kg: number; name: string; offer_price?: number | null; offer_label?: string | null };
 type Product = {
   id: number; name: string; name_en: string; emoji: string; bg_color: string;
   min_kg: number; varieties: Variety[]; benefits: string[];

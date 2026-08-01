@@ -323,7 +323,7 @@ async function getVarietyBenefitsData(varietyId: number) {
 }
 
 function mapVariety(
-  v: { id: number; productId: number; name: string; pricePerKg: number; description: string | null; shelfLife: string | null; inStock: boolean; stockLevel: string | null },
+  v: { id: number; productId: number; name: string; pricePerKg: number; description: string | null; shelfLife: string | null; inStock: boolean; stockLevel: string | null; offerPrice?: number | null; offerLabel?: string | null },
   vb: { benefits: { id: number; text: string }[]; disadvantages: { id: number; text: string }[] },
   images: { id: number; url: string; sort_order: number }[] = [],
 ) {
@@ -334,6 +334,8 @@ function mapVariety(
     shelf_life: v.shelfLife,
     in_stock: v.inStock,
     stock_level: v.stockLevel,
+    offer_price: v.offerPrice ?? null,
+    offer_label: v.offerLabel ?? null,
     images,
     ...vb,
   };
@@ -457,6 +459,7 @@ type VarietyInput = {
   id?: number;
   name: string; price_per_kg: number; description?: string; shelf_life?: string;
   in_stock?: boolean; stock_level?: string;
+  offer_price?: number | null; offer_label?: string | null;
   benefits?: { text: string }[];
   disadvantages?: { text: string }[];
 };
@@ -475,6 +478,8 @@ async function saveVarieties(productId: number, varietyInputs: VarietyInput[]) {
         shelfLife: v.shelf_life || null,
         inStock: v.in_stock !== false,
         stockLevel: v.stock_level || (v.in_stock !== false ? "High" : "Out of Stock"),
+        offerPrice: v.offer_price ?? null,
+        offerLabel: v.offer_label || null,
       }).where(eq(varieties.id, v.id));
       await db.delete(varietyBenefits).where(eq(varietyBenefits.varietyId, v.id));
       for (const b of (v.benefits || []))
@@ -488,6 +493,8 @@ async function saveVarieties(productId: number, varietyInputs: VarietyInput[]) {
         description: v.description || null, shelfLife: v.shelf_life || null,
         inStock: v.in_stock !== false,
         stockLevel: v.stock_level || "High",
+        offerPrice: v.offer_price ?? null,
+        offerLabel: v.offer_label || null,
       }).returning({ id: varieties.id });
       const newId = inserted.id;
       for (const b of (v.benefits || []))

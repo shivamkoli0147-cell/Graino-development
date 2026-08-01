@@ -53,7 +53,7 @@ export async function sendOtp(rawPhone: string): Promise<{ success: boolean; err
     const intlPhone = toInternational(phone);
     const url = `https://2factor.in/API/V1/${TWOFACTOR_API_KEY}/SMS/${encodeURIComponent(
       intlPhone
-    )}/AUTOGEN2/${encodeURIComponent(TWOFACTOR_OTP_TEMPLATE)}`;
+    )}/AUTOGEN`;
 
     const res = await fetch(url, { method: "GET" });
     const data = (await res.json().catch(() => null)) as { Status?: string; Details?: string } | null;

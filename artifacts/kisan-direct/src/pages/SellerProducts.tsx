@@ -16,6 +16,8 @@ type VarietyForm = {
   price_per_kg: string;
   description: string;
   shelf_life: string;
+  offer_price: string;
+  offer_label: string;
   benefits: BenefitItem[];
   disadvantages: BenefitItem[];
 };
@@ -60,6 +62,7 @@ const BG_COLORS = [
 
 const EMPTY_VARIETY: VarietyForm = {
   name: "", price_per_kg: "", description: "", shelf_life: "",
+  offer_price: "", offer_label: "",
   benefits: [], disadvantages: [],
 };
 const EMPTY_FORM: ProductForm = {
@@ -77,6 +80,8 @@ function productToForm(p: ApiProduct): ProductForm {
     varieties: (p.varieties || []).map(v => ({
       id: v.id, name: v.name, price_per_kg: String(v.price_per_kg),
       description: v.description || "", shelf_life: v.shelf_life || "",
+      offer_price: (v as any).offer_price != null ? String((v as any).offer_price) : "",
+      offer_label: (v as any).offer_label || "",
       benefits: (v.benefits || []).map(b => ({ text: b.text })),
       disadvantages: (v.disadvantages || []).map(b => ({ text: b.text })),
     })),
@@ -412,6 +417,32 @@ function VarietyEditor({ variety, index, onUpdate, onDelete, canDelete, productI
               <Input value={variety.price_per_kg} onChange={v => upd({ price_per_kg: v })} placeholder="खाली छोड़ सकते हैं" type="number" />
             </div>
           </div>
+
+          {/* Offer section */}
+          <div style={{
+            background: "#FFF7ED", border: "1.5px dashed #F59E0B",
+            borderRadius: 12, padding: "10px 12px", marginBottom: 10,
+          }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: "#92400E", marginBottom: 8 }}>
+              🏷️ Offer (optional)
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <div>
+                <Label>Offer Price (₹/kg)</Label>
+                <Input value={variety.offer_price} onChange={v => upd({ offer_price: v })} placeholder="जैसे: 45" type="number" />
+              </div>
+              <div>
+                <Label>Offer Label</Label>
+                <Input value={variety.offer_label} onChange={v => upd({ offer_label: v })} placeholder="जैसे: Diwali Sale" />
+              </div>
+            </div>
+            {variety.offer_price && variety.price_per_kg && parseFloat(variety.offer_price) < parseFloat(variety.price_per_kg) && (
+              <div style={{ marginTop: 6, fontSize: 11, color: "#15803D", fontWeight: 700 }}>
+                ✅ {Math.round((1 - parseFloat(variety.offer_price) / parseFloat(variety.price_per_kg)) * 100)}% की बचत
+              </div>
+            )}
+          </div>
+
           <div style={{ marginBottom: 8 }}>
             <Label>विवरण</Label>
             <Input value={variety.description} onChange={v => upd({ description: v })} placeholder="किस्म के बारे में..." />
@@ -716,6 +747,8 @@ export function SellerProducts({ onBack: _onBack }: SellerProductsProps) {
         ...(v.id ? { id: v.id } : {}),
         name: v.name.trim(), price_per_kg: v.price_per_kg ? parseFloat(v.price_per_kg) : null,
         description: v.description.trim(), shelf_life: v.shelf_life.trim(),
+        offer_price: v.offer_price ? parseFloat(v.offer_price) : null,
+        offer_label: v.offer_label.trim() || null,
         benefits: v.benefits,
         disadvantages: v.disadvantages,
       })),
