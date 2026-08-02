@@ -88,8 +88,15 @@ function ReviewModal({ review, productId, onSave, onClose }: {
       }}>
         {/* Handle */}
         <div style={{ width: 36, height: 4, borderRadius: 2, background: "#E5E7EB", margin: "0 auto 16px" }} />
-        <div style={{ fontWeight: 800, fontSize: 16, color: "#1C1C1C", marginBottom: 14, fontFamily: font }}>
-          {review ? "✏️ Review Edit करें" : "➕ नई Review जोड़ें"}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+          <div style={{ fontWeight: 800, fontSize: 16, color: "#1C1C1C", fontFamily: font }}>
+            {review ? "✏️ Review Edit करें" : "➕ नई Review जोड़ें"}
+          </div>
+          <button onClick={handleSave} disabled={saving} style={{
+            background: saving ? "#ccc" : "linear-gradient(135deg,#1B4332,#2D6A2D)",
+            color: "white", border: "none", borderRadius: 10, padding: "7px 16px",
+            fontFamily: font, fontWeight: 700, fontSize: 13, cursor: saving ? "default" : "pointer",
+          }}>{saving ? "..." : "✓ Save"}</button>
         </div>
 
         <div style={{ marginBottom: 12 }}>
@@ -125,17 +132,10 @@ function ReviewModal({ review, productId, onSave, onClose }: {
           </div>
         )}
 
-        <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={onClose} style={{
-            flex: 1, background: "#F4F4F4", color: "#555", border: "none",
-            borderRadius: 12, padding: "11px 0", fontFamily: font, fontWeight: 700, fontSize: 14, cursor: "pointer",
-          }}>रद्द करें</button>
-          <button onClick={handleSave} disabled={saving} style={{
-            flex: 2, background: saving ? "#ccc" : "linear-gradient(135deg,#1B4332,#2D6A2D)",
-            color: "white", border: "none", borderRadius: 12, padding: "11px 0",
-            fontFamily: font, fontWeight: 700, fontSize: 14, cursor: saving ? "default" : "pointer",
-          }}>{saving ? "..." : (review ? "✓ Save करें" : "➕ जोड़ें")}</button>
-        </div>
+        <button onClick={onClose} style={{
+          width: "100%", background: "#F4F4F4", color: "#555", border: "none",
+          borderRadius: 12, padding: "11px 0", fontFamily: font, fontWeight: 700, fontSize: 14, cursor: "pointer",
+        }}>रद्द करें</button>
       </div>
     </>
   );
