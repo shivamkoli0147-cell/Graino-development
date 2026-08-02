@@ -84,6 +84,7 @@ function ReviewModal({ review, productId, onSave, onClose }: {
         zIndex: 401, padding: "20px 18px 32px",
         animation: "variety-sheet 0.35s cubic-bezier(0.22,1,0.36,1) both",
         boxShadow: "0 -8px 40px rgba(0,0,0,0.2)",
+        maxHeight: "90vh", overflowY: "auto",
       }}>
         {/* Handle */}
         <div style={{ width: 36, height: 4, borderRadius: 2, background: "#E5E7EB", margin: "0 auto 16px" }} />
