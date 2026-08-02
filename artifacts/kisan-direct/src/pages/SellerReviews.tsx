@@ -322,14 +322,17 @@ function ProductReviews({ product, onBack }: { product: ProductSummary; onBack: 
 export function SellerReviews() {
   const [products, setProducts] = useState<ProductSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchErr, setFetchErr] = useState(false);
   const [selected, setSelected] = useState<ProductSummary | null>(null);
 
   const load = async () => {
-    setLoading(true);
+    setLoading(true); setFetchErr(false);
     try {
       const res = await fetch("/api/admin/products-ratings");
-      setProducts(await res.json());
-    } catch { /* ignore */ }
+      if (!res.ok) { setFetchErr(true); return; }
+      const data = await res.json();
+      setProducts(Array.isArray(data) ? data : []);
+    } catch { setFetchErr(true); }
     finally { setLoading(false); }
   };
 
@@ -366,6 +369,18 @@ export function SellerReviews() {
                 backgroundSize: "200% 100%", animation: "shimmer 1.4s infinite",
               }} />
             ))}
+          </div>
+        ) : fetchErr ? (
+          <div style={{ textAlign: "center", padding: "56px 24px" }}>
+            <div style={{ fontSize: 44 }}>⚠️</div>
+            <div style={{ fontWeight: 700, marginTop: 12, fontFamily: font, color: "#555" }}>
+              Products load नहीं हो सके
+            </div>
+            <button onClick={load} style={{
+              marginTop: 14, background: "#1B4332", color: "white",
+              border: "none", borderRadius: 12, padding: "10px 24px",
+              fontFamily: font, fontWeight: 700, fontSize: 14, cursor: "pointer",
+            }}>🔄 दोबारा कोशिश करें</button>
           </div>
         ) : products.length === 0 ? (
           <div style={{ textAlign: "center", padding: "56px 24px", color: "#888" }}>
