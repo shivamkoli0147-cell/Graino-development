@@ -13,6 +13,7 @@ import { SellerDashboard } from "@/pages/SellerDashboard";
 import { SellerOrders } from "@/pages/SellerOrders";
 import { SellerProducts } from "@/pages/SellerProducts";
 import { SellerSettings } from "@/pages/SellerSettings";
+import { SellerReviews } from "@/pages/SellerReviews";
 import { BottomNav } from "@/components/kisan/BottomNav";
 import {
   getCustomerSession, setCustomerSession, clearCustomerSession,
@@ -28,7 +29,7 @@ const queryClient = new QueryClient({
 
 type AppMode = "customer" | "seller";
 type CustomerTab = "products" | "cart" | "orders";
-type SellerTab = "dashboard" | "orders" | "products" | "settings";
+type SellerTab = "dashboard" | "orders" | "products" | "settings" | "reviews";
 
 function GrainoApp() {
   const [showSplash, setShowSplash] = useState(true);
@@ -195,6 +196,9 @@ function GrainoApp() {
                 {sellerTab === "settings" && (
                   <SellerSettings onBack={() => setSellerTab("dashboard")} />
                 )}
+                {sellerTab === "reviews" && (
+                  <SellerReviews />
+                )}
                 <BottomNav
                   active={sellerTab}
                   onSelect={id => setSellerTab(id as SellerTab)}
@@ -203,6 +207,7 @@ function GrainoApp() {
                     { id: "orders", icon: "📋", label: "Orders" },
                     { id: "products", icon: "🌾", label: "Products" },
                     { id: "settings", icon: "⚙️", label: "Settings" },
+                    { id: "reviews", icon: "⭐", label: "Reviews" },
                   ]}
                 />
               </>

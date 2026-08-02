@@ -1055,6 +1055,49 @@ router.post("/products/:id/ratings", async (req, res) => {
   } catch (e) { res.status(500).json({ error: String(e) }); }
 });
 
+// ── Admin: Rating CRUD ────────────────────────────────────────────────────────
+
+// All products with their rating summary (for admin list view)
+router.get("/admin/products-ratings", async (_req, res) => {
+  try {
+    const allProducts = await db.select({ id: products.id, name: products.name, nameEn: products.nameEn, emoji: products.emoji }).from(products).orderBy(asc(products.id));
+    const result = await Promise.all(allProducts.map(async p => {
+      const rows = await db.select({ stars: productRatings.stars }).from(productRatings).where(eq(productRatings.productId, p.id));
+      const avg = rows.length ? Math.round((rows.reduce((s, r) => s + r.stars, 0) / rows.length) * 10) / 10 : 0;
+      return { id: p.id, name: p.name, name_en: p.nameEn, emoji: p.emoji, count: rows.length, average: avg };
+    }));
+    res.json(result);
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+// Edit a review
+router.put("/admin/ratings/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { customer_name, stars, comment } = req.body as { customer_name?: string; stars?: number; comment?: string };
+    const [existing] = await db.select().from(productRatings).where(eq(productRatings.id, id));
+    if (!existing) { res.status(404).json({ error: "Review not found" }); return; }
+    if (stars && (stars < 1 || stars > 5)) { res.status(400).json({ error: "Stars must be 1–5" }); return; }
+    const [updated] = await db.update(productRatings).set({
+      customerName: customer_name ?? existing.customerName,
+      stars: stars ?? existing.stars,
+      comment: comment !== undefined ? (comment || null) : existing.comment,
+    }).where(eq(productRatings.id, id)).returning();
+    res.json(updated);
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
+// Delete a review
+router.delete("/admin/ratings/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const [existing] = await db.select({ id: productRatings.id }).from(productRatings).where(eq(productRatings.id, id));
+    if (!existing) { res.status(404).json({ error: "Review not found" }); return; }
+    await db.delete(productRatings).where(eq(productRatings.id, id));
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: String(e) }); }
+});
+
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 router.get("/dashboard/stats", async (_req, res) => {
   try {
