@@ -191,11 +191,11 @@ function VarietySheet({ variety, product, cart, onCartChange, onGoToCart, onClos
 
       {/* Sheet panel */}
       <div style={{
-        position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)",
-        width: "100%", maxWidth: 390,
+        position: "fixed", bottom: 0, left: 0, right: 0,
+        margin: "0 auto", width: "100%", maxWidth: 390,
         background: "white", borderRadius: "22px 22px 0 0",
         zIndex: 301, maxHeight: "90vh", display: "flex", flexDirection: "column",
-        animation: "so-sheet 0.38s cubic-bezier(0.25,0.8,0.25,1)",
+        animation: "variety-sheet 0.4s cubic-bezier(0.22,1,0.36,1) both",
         boxShadow: "0 -8px 40px rgba(0,0,0,0.25)",
         overflow: "hidden",
       }}>

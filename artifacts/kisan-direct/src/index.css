@@ -309,6 +309,12 @@
   from { transform: translateY(100%); }
   to   { transform: translateY(0); }
 }
+
+/* Variety bottom sheet — centre-anchored, no transform conflict */
+@keyframes variety-sheet {
+  from { transform: translateY(100%); opacity: 0.6; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
 @keyframes so-ping {
   0%, 100% { opacity: 1; transform: scale(1); }
   50%       { opacity: .5; transform: scale(1.3); }
