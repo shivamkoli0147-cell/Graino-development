@@ -1,1 +1,2 @@
 - [KisanDirect stack](kisandirect-stack.md) — Supabase PostgreSQL + Supabase Storage; all credentials hardcoded in config.js and config.ts, never env vars or Replit DB.
+- [Artifact workflow ports](artifact-workflow-ports.md) — KisanDirect frontend and API artifacts already own ports 21034 and 8080; duplicate legacy workflows cause preview crashes.
