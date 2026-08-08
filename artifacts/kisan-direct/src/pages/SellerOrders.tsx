@@ -33,6 +33,7 @@ const TABS = [
   { id: "confirmed", label: "Confirm", icon: "🔵", statuses: ["accepted", "out_for_delivery"] },
   { id: "delivered", label: "Done",    icon: "✅", statuses: ["delivered"] },
   { id: "cancelled", label: "रद्द",   icon: "❌", statuses: ["cancelled"] },
+  { id: "returns",   label: "Returns", icon: "🔄", statuses: [] },
 ] as const;
 type TabId = typeof TABS[number]["id"];
 
@@ -122,16 +123,17 @@ export function SellerOrders({ onBack }: SellerOrdersProps) {
 
   // Count per tab
   const counts: Record<TabId, number> = {
-    new: allOrders.filter(o => o.status === "placed").length,
-    confirmed: allOrders.filter(o => o.status === "accepted" || o.status === "out_for_delivery").length,
-    delivered: allOrders.filter(o => o.status === "delivered").length,
-    cancelled: allOrders.filter(o => o.status === "cancelled").length,
+    new: allOrders.filter(o => !o.return_requested && o.status === "placed").length,
+    confirmed: allOrders.filter(o => !o.return_requested && (o.status === "accepted" || o.status === "out_for_delivery")).length,
+    delivered: allOrders.filter(o => !o.return_requested && o.status === "delivered").length,
+    cancelled: allOrders.filter(o => !o.return_requested && o.status === "cancelled").length,
+    returns: allOrders.filter(o => o.return_requested).length,
   };
 
   // Orders for current tab
   const tabDef = TABS.find(t => t.id === tab)!;
   const tabOrders = allOrders
-    .filter(o => tabDef.statuses.includes(o.status as never))
+    .filter(o => tab === "returns" ? o.return_requested : !o.return_requested && tabDef.statuses.includes(o.status as never))
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
   const lastUpdatedStr = (() => {
@@ -205,7 +207,7 @@ export function SellerOrders({ onBack }: SellerOrdersProps) {
                 {cnt > 0 && (
                   <div style={{
                     position: "absolute", top: 4, right: "50%", transform: "translateX(10px)",
-                    background: t.id === "new" ? "#EF4444" : t.id === "confirmed" ? "#3B82F6" : t.id === "delivered" ? "#22C55E" : "#9CA3AF",
+                     background: t.id === "new" ? "#EF4444" : t.id === "confirmed" ? "#3B82F6" : t.id === "delivered" ? "#22C55E" : t.id === "returns" ? "#F59E0B" : "#9CA3AF",
                     color: "white", borderRadius: 10, padding: "0 5px",
                     fontSize: 9, fontWeight: 800, lineHeight: "14px", minWidth: 14, textAlign: "center",
                   }}>{cnt}</div>
@@ -243,7 +245,8 @@ export function SellerOrders({ onBack }: SellerOrdersProps) {
       {/* ── Detail bottom sheet ─────────────────────────────────────────────────── */}
       {detail && (
         <OrderDetailSheet
-          order={detail}
+           order={detail}
+           isReturnView={tab === "returns"}
           onClose={() => setDetail(null)}
           onAdvance={(id, status) => advance(id, status)}
           onReturnStatus={handleReturnStatus}
@@ -260,6 +263,7 @@ function EmptyState({ tab }: { tab: TabId }) {
     confirmed: { emoji: "📦", msg: "कोई pending delivery नहीं", sub: "Accept किए orders यहाँ आते हैं" },
     delivered: { emoji: "🎉", msg: "अभी तक कोई delivery नहीं", sub: "Delivered orders यहाँ दिखेंगे" },
     cancelled: { emoji: "✅", msg: "कोई cancelled order नहीं", sub: "अच्छी बात है!" },
+    returns:   { emoji: "🔄", msg: "कोई return request नहीं", sub: "Customer के return requests यहाँ दिखेंगे" },
   }[tab];
   return (
     <div style={{ textAlign: "center", padding: "60px 24px", color: "#777" }}>
@@ -288,6 +292,10 @@ const TAB_CARD_STYLE: Record<TabId, { border: string; bg: string; badge: string;
     border: "#9CA3AF", bg: "#F9FAFB",
     badge: "रद्द हो गया", badgeText: "#6B7280", badgeColor: "#F3F4F6",
   },
+  returns: {
+    border: "#F59E0B", bg: "#FFF7ED",
+    badge: "Return tracking", badgeText: "#92400E", badgeColor: "#FEF3C7",
+  },
 };
 
 function OrderCard({
@@ -300,7 +308,7 @@ function OrderCard({
   const [confirmCancel, setConfirmCancel] = useState(false);
   const style = TAB_CARD_STYLE[tab];
   const isDimmed = tab === "delivered" || tab === "cancelled";
-  const canCancel = order.status !== "cancelled";
+  const canCancel = tab !== "returns" && order.status !== "cancelled";
 
   return (
     <div
@@ -328,7 +336,7 @@ function OrderCard({
             borderRadius: 20, padding: "3px 10px",
             fontSize: 11, fontWeight: 800,
           }}>
-            {STATUS_ICON[order.status]} {STATUS_LABEL[order.status]}
+            {tab === "returns" ? "🔄 Return Request" : `${STATUS_ICON[order.status]} ${STATUS_LABEL[order.status]}`}
           </span>
           {order.return_requested && (
             <span style={{
@@ -486,9 +494,10 @@ function OrderCard({
 
 // ── Order Detail Bottom Sheet ──────────────────────────────────────────────────
 function OrderDetailSheet({
-  order, onClose, onAdvance, onReturnStatus,
+  order, isReturnView, onClose, onAdvance, onReturnStatus,
 }: {
   order: Order;
+  isReturnView: boolean;
   onClose: () => void;
   onAdvance: (id: number, status: string) => void;
   onReturnStatus: (id: number, status: string) => void;
@@ -496,7 +505,7 @@ function OrderDetailSheet({
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [showInvoice, setShowInvoice] = useState(false);
   const itemsTotal = order.items.reduce((s, i) => s + i.price_per_kg * i.quantity_kg, 0);
-  const canCancel = order.status !== "cancelled";
+  const canCancel = !isReturnView && order.status !== "cancelled";
 
   const nextActionMap: Record<string, { label: string; status: string; bg: string } | null> = {
     placed:           { label: "✅ Accept करो", status: "accepted", bg: "#1a6b1a" },
@@ -505,7 +514,7 @@ function OrderDetailSheet({
     delivered:        null,
     cancelled:        null,
   };
-  const nextAction = nextActionMap[order.status];
+  const nextAction = isReturnView ? null : nextActionMap[order.status];
 
   return (
     <>

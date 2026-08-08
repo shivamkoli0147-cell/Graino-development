@@ -54,8 +54,9 @@ function GrainoApp() {
     });
   }, []);
 
-  const handleReturnRequest = (orderId: number, note: string) => {
-    requestReturn.mutate({ id: orderId, data: { note } });
+  const handleReturnRequest = async (orderId: number, note: string) => {
+    await requestReturn.mutateAsync({ id: orderId, data: { note } });
+    await queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
   };
 
   const handleCustomerUpdate = (c: CustomerSession) => {
