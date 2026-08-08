@@ -6,20 +6,69 @@ interface SellerAuthProps {
   onSuccess: () => void;
 }
 
+const FIXED_SELLER_PHONE = "9999999999";
+const SMS_SELLER_PHONE = "7089550147";
+
 export function SellerAuth({ onSuccess }: SellerAuthProps) {
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [error, setError] = useState("");
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [resendIn, setResendIn] = useState(0);
   const authMutation = useSellerAuth();
+
+  const sendOtp = async () => {
+    if (phone !== SMS_SELLER_PHONE) {
+      setError("इस नंबर के लिए OTP भेजने की जरूरत नहीं है");
+      return;
+    }
+    setError("");
+    setSendingOtp(true);
+    try {
+      const res = await fetch("/api/auth/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error || "OTP भेजने में समस्या हुई");
+        return;
+      }
+      setOtpSent(true);
+      setResendIn(30);
+      const timer = window.setInterval(() => {
+        setResendIn(value => {
+          if (value <= 1) {
+            window.clearInterval(timer);
+            return 0;
+          }
+          return value - 1;
+        });
+      }, 1000);
+    } catch {
+      setError("OTP भेजने में समस्या हुई, दोबारा कोशिश करें");
+    } finally {
+      setSendingOtp(false);
+    }
+  };
 
   const login = () => {
     if (!phone || !otp) { setError("Phone और OTP दोनों डालें"); return; }
+    if (phone === SMS_SELLER_PHONE && !otpSent) {
+      setError("पहले OTP भेजें");
+      return;
+    }
     setError("");
     authMutation.mutate(
       { data: { phone, otp } },
       {
         onSuccess: () => { setSellerSession(); onSuccess(); },
-        onError: () => setError("गलत Seller credentials"),
+        onError: (e: unknown) => {
+          const message = (e as { data?: { message?: string; error?: string } })?.data;
+          setError(message?.message || message?.error || "गलत Seller credentials");
+        },
       }
     );
   };
@@ -44,16 +93,33 @@ export function SellerAuth({ onSuccess }: SellerAuthProps) {
           </div>
           <div style={{ background: "#FEF3C7", borderRadius: 10, padding: "10px 14px", fontSize: 12,
             color: "#92400e", fontWeight: 600, marginBottom: 20 }}>
-            Phone: <strong>9999999999</strong> · OTP: <strong>7089</strong>
+             Fixed Seller: <strong>9999999999</strong> · OTP: <strong>7089</strong><br />
+             दूसरा Seller: <strong>7089550147</strong> · OTP SMS से आएगा
           </div>
           <div style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#777", marginBottom: 6 }}>Seller Phone</div>
-            <input value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+            <input value={phone} onChange={e => {
+              setPhone(e.target.value.replace(/\D/g, "").slice(0, 10));
+              setOtpSent(false); setOtp(""); setError("");
+            }}
               placeholder="9999999999" type="tel" inputMode="numeric" style={iSty} />
           </div>
           <div style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#777", marginBottom: 6 }}>OTP</div>
-            <input value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g, "").slice(0, 4))}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#777" }}>OTP</div>
+              {phone === SMS_SELLER_PHONE && (
+                <button onClick={() => { if (!resendIn && !sendingOtp) void sendOtp(); }}
+                  disabled={sendingOtp || resendIn > 0}
+                  style={{
+                    border: "none", background: "none", color: resendIn ? "#aaa" : "#1a6b1a",
+                    fontFamily: "'Baloo 2', sans-serif", fontWeight: 800, fontSize: 12,
+                    cursor: resendIn || sendingOtp ? "default" : "pointer",
+                  }}>
+                  {sendingOtp ? "भेज रहे हैं..." : resendIn ? `दोबारा भेजें (${resendIn}s)` : otpSent ? "OTP दोबारा भेजें" : "OTP भेजें"}
+                </button>
+              )}
+            </div>
+            <input value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
               placeholder="7089" type="tel" inputMode="numeric"
               style={{ ...iSty, letterSpacing: 8, fontSize: 20, fontWeight: 800, textAlign: "center" }} />
           </div>

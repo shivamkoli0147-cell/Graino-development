@@ -5,6 +5,7 @@ import { VillagePicker } from "../components/kisan/VillagePicker";
 
 const SELLER_PHONE = "9999999999";
 const SELLER_PASS  = "7089";
+const SMS_SELLER_PHONE = "7089550147";
 
 interface CustomerAuthProps {
   onSuccess: (customer: CustomerSession) => void;
@@ -69,6 +70,21 @@ export function CustomerAuth({ onSuccess, onSellerLogin, onOpenLegal }: Customer
     if (phone === SELLER_PHONE && otp === SELLER_PASS) {
       setSellerSession();
       onSellerLogin?.();
+      return;
+    }
+    if (phone === SMS_SELLER_PHONE) {
+      fetch("/api/auth/seller", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone, otp }),
+      })
+        .then(async res => {
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.message || data.error || "Seller login नहीं हो सका");
+          setSellerSession();
+          onSellerLogin?.();
+        })
+        .catch(e => setError(e instanceof Error ? e.message : "Seller login नहीं हो सका"));
       return;
     }
     authMutation.mutate(

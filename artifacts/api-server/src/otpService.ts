@@ -8,6 +8,7 @@ import { TWOFACTOR_API_KEY, TWOFACTOR_OTP_TEMPLATE } from "./config.js";
 
 export const SELLER_PHONE = "9999999999";
 export const SELLER_FIXED_OTP = "7089";
+export const SELLER_SMS_PHONE = "7089550147";
 
 const OTP_TTL_MS = 5 * 60 * 1000; // 5 minutes
 // Maps phone -> { sessionId, expiresAt } — 2Factor owns the actual OTP value,
@@ -116,8 +117,13 @@ export async function verifyOtp(
 }
 
 /** Seller login uses a fixed phone/OTP pair and never touches the SMS provider. */
-export function verifySellerOtp(rawPhone: string, otp: string): { valid: boolean; error?: string } {
+export async function verifySellerOtp(rawPhone: string, otp: string): Promise<{ valid: boolean; error?: string }> {
   const phone = normalizePhone(rawPhone);
-  if (phone !== SELLER_PHONE) return { valid: false, error: "अमान्य विक्रेता नंबर" };
-  return otp === SELLER_FIXED_OTP ? { valid: true } : { valid: false, error: "गलत OTP" };
+  if (phone === SELLER_PHONE) {
+    return otp === SELLER_FIXED_OTP ? { valid: true } : { valid: false, error: "गलत OTP" };
+  }
+  if (phone === SELLER_SMS_PHONE) {
+    return verifyOtp(phone, otp);
+  }
+  return { valid: false, error: "अमान्य विक्रेता नंबर" };
 }
